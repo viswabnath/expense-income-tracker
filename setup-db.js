@@ -1,0 +1,107 @@
+
+
+const { Pool } = require('pg');
+
+// Database connection configuration
+const pool = new Pool({
+  user: 'postgres',
+  host: 'localhost',
+  database: 'expense_tracker',
+  password: 'expense-tracker-2025',
+  port: 5432,
+});
+
+// Database schema setup
+const createTables = async () => {
+  try {
+    // Users table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username VARCHAR(50) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        name VARCHAR(100) NOT NULL,
+        tracking_option VARCHAR(20) NOT NULL CHECK (tracking_option IN ('income', 'expenses', 'both')),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Banks table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS banks (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(100) NOT NULL,
+        initial_balance DECIMAL(10,2) DEFAULT 0.00,
+        current_balance DECIMAL(10,2) DEFAULT 0.00,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, name)
+      )
+    `);
+
+    // Credit cards table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS credit_cards (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        name VARCHAR(100) NOT NULL,
+        credit_limit DECIMAL(10,2) NOT NULL,
+        used_limit DECIMAL(10,2) DEFAULT 0.00,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, name)
+      )
+    `);
+
+    // Income entries table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS income_entries (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        source VARCHAR(100) NOT NULL,
+        amount DECIMAL(10,2) NOT NULL,
+        credited_to_type VARCHAR(10) NOT NULL CHECK (credited_to_type IN ('bank', 'cash')),
+        credited_to_id INTEGER,
+        date DATE NOT NULL,
+        month INTEGER NOT NULL,
+        year INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Expenses table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS expenses (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        title VARCHAR(200) NOT NULL,
+        amount DECIMAL(10,2) NOT NULL,
+        payment_method VARCHAR(15) NOT NULL CHECK (payment_method IN ('cash', 'bank', 'credit_card')),
+        payment_source_id INTEGER,
+        date DATE NOT NULL,
+        month INTEGER NOT NULL,
+        year INTEGER NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Cash balance table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS cash_balance (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+        balance DECIMAL(10,2) DEFAULT 0.00,
+        initial_balance DECIMAL(10,2) DEFAULT 0.00,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    console.log('Database tables created successfully!');
+  } catch (error) {
+    console.error('Error creating tables:', error);
+  } finally {
+    pool.end();
+  }
+};
+
+// Run the setup
+createTables();

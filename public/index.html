@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Tracker</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .hidden { display: none; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input, select, button { padding: 8px; margin-right: 10px; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .error { color: red; margin-top: 10px; }
+        .success { color: green; margin-top: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .nav-button { margin: 5px; padding: 10px 15px; }
+        .summary { background: #f8f9fa; padding: 15px; margin: 20px 0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Login/Register Section -->
+        <div id="auth-section">
+            <h2>Login / Register</h2>
+            
+            <div id="login-form">
+                <h3>Login</h3>
+                <div class="form-group">
+                    <label>Username:</label>
+                    <input type="text" id="login-username" required>
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button onclick="login()">Login</button>
+                <button onclick="showRegister()">Register</button>
+            </div>
+            
+            <div id="register-form" class="hidden">
+                <h3>Register</h3>
+                <div class="form-group">
+                    <label>Name:</label>
+                    <input type="text" id="register-name" required>
+                </div>
+                <div class="form-group">
+                    <label>Username:</label>
+                    <input type="text" id="register-username" required>
+                </div>
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="register-password" required>
+                </div>
+                <button onclick="register()">Register</button>
+                <button onclick="showLogin()">Back to Login</button>
+            </div>
+            
+            <div id="auth-message" class="error"></div>
+        </div>
+
+        <!-- Welcome Section -->
+        <div id="welcome-section" class="hidden">
+            <h2>Welcome, <span id="user-name"></span>!</h2>
+            <p><em>"A penny saved is a penny earned." - Benjamin Franklin</em></p>
+            
+            <h3>Choose Your Tracking Option:</h3>
+            <button onclick="setTrackingOption('income')">Income Only</button>
+            <button onclick="setTrackingOption('expenses')">Expenses Only</button>
+            <button onclick="setTrackingOption('both')">Both Income & Expenses</button>
+        </div>
+
+        <!-- Main Application -->
+        <div id="main-app" class="hidden">
+            <div id="nav-bar">
+                <button class="nav-button" onclick="showSection('setup')">Setup</button>
+                <button class="nav-button" onclick="showSection('transactions')">Transactions</button>
+                <button class="nav-button" onclick="showSection('summary')">Monthly Summary</button>
+                <button class="nav-button" onclick="logout()">Logout</button>
+            </div>
+
+            <!-- Setup Section -->
+            <div id="setup-section">
+                <h2>Account Setup</h2>
+                
+                <!-- Bank Setup -->
+                <div id="bank-setup">
+                    <h3>Bank Setup</h3>
+                    <div class="form-group">
+                        <label>Bank Name:</label>
+                        <input type="text" id="bank-name" placeholder="Enter bank name">
+                        <label>Initial Balance:</label>
+                        <input type="number" id="bank-balance" placeholder="0.00" step="0.01">
+                        <button onclick="addBank()">Add Bank</button>
+                    </div>
+                    <div id="banks-list"></div>
+                </div>
+
+                <!-- Credit Card Setup -->
+                <div id="credit-card-setup">
+                    <h3>Credit Card Setup</h3>
+                    <div class="form-group">
+                        <label>Card Name:</label>
+                        <input type="text" id="cc-name" placeholder="Enter card name">
+                        <label>Credit Limit:</label>
+                        <input type="number" id="cc-limit" placeholder="0.00" step="0.01">
+                        <button onclick="addCreditCard()">Add Credit Card</button>
+                    </div>
+                    <div id="credit-cards-list"></div>
+                </div>
+
+                <!-- Cash Balance Setup -->
+                <div id="cash-setup">
+                    <h3>Cash Balance</h3>
+                    <div class="form-group">
+                        <label>Cash Balance:</label>
+                        <input type="number" id="cash-balance" placeholder="0.00" step="0.01">
+                        <button onclick="setCashBalance()">Set Cash Balance</button>
+                    </div>
+                    <div id="cash-display"></div>
+                </div>
+            </div>
+
+            <!-- Transactions Section -->
+            <div id="transactions-section" class="hidden">
+                <h2>Transactions</h2>
+                
+                <!-- Income Form -->
+                <div id="income-form">
+                    <h3>Add Income</h3>
+                    <div class="form-group">
+                        <label>Source:</label>
+                        <input type="text" id="income-source" placeholder="Salary, Freelance, etc.">
+                        <label>Amount:</label>
+                        <input type="number" id="income-amount" placeholder="0.00" step="0.01">
+                        <label>Credited To:</label>
+                        <select id="income-credited-to">
+                            <option value="cash">Cash</option>
+                        </select>
+                        <label>Date:</label>
+                        <input type="date" id="income-date">
+                        <button onclick="addIncome()">Add Income</button>
+                    </div>
+                </div>
+
+                <!-- Expense Form -->
+                <div id="expense-form">
+                    <h3>Add Expense</h3>
+                    <div class="form-group">
+                        <label>Title:</label>
+                        <input type="text" id="expense-title" placeholder="Groceries, Rent, etc.">
+                        <label>Amount:</label>
+                        <input type="number" id="expense-amount" placeholder="0.00" step="0.01">
+                        <label>Payment Method:</label>
+                        <select id="expense-payment-method">
+                            <option value="cash">Cash</option>
+                        </select>
+                        <label>Date:</label>
+                        <input type="date" id="expense-date">
+                        <button onclick="addExpense()">Add Expense</button>
+                    </div>
+                </div>
+
+                <div id="transactions-message" class="error"></div>
+
+                <!-- Transactions History -->
+                <div id="transactions-history">
+                    <!-- Income History -->
+                    <div id="income-history">
+                        <h3>Income History</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Source</th>
+                                    <th>Amount</th>
+                                    <th>Credited To</th>
+                                </tr>
+                            </thead>
+                            <tbody id="income-table-body"></tbody>
+                        </table>
+                    </div>
+
+                    <!-- Expense History -->
+                    <div id="expense-history">
+                        <h3>Expense History</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Title</th>
+                                    <th>Amount</th>
+                                    <th>Payment Method</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expense-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly Summary Section -->
+            <div id="summary-section" class="hidden">
+                <h2>Monthly Summary</h2>
+                
+                <div class="form-group">
+                    <label>Month:</label>
+                    <select id="summary-month">
+                        <option value="1">January</option>
+                        <option value="2">February</option>
+                        <option value="3">March</option>
+                        <option value="4">April</option>
+                        <option value="5">May</option>
+                        <option value="6">June</option>
+                        <option value="7">July</option>
+                        <option value="8">August</option>
+                        <option value="9">September</option>
+                        <option value="10">October</option>
+                        <option value="11">November</option>
+                        <option value="12">December</option>
+                    </select>
+                    <label>Year:</label>
+                    <select id="summary-year"></select>
+                    <button onclick="loadMonthlySummary()">Load Summary</button>
+                </div>
+
+                <div id="summary-display"></div>
+            </div>
+        </div>
+    </div>
+
+     <script>
+        let currentUser = null;
+        let trackingOption = 'both';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentDate = new Date();
+            document.getElementById('income-date').valueAsDate = currentDate;
+            document.getElementById('expense-date').valueAsDate = currentDate;
+            
+            // Populate year dropdown
+            const yearSelect = document.getElementById('summary-year');
+            const currentYear = currentDate.getFullYear();
+            for (let year = currentYear - 5; year <= currentYear + 1; year++) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                if (year === currentYear) option.selected = true;
+                yearSelect.appendChild(option);
+            }
+            
+            // Set current month
+            document.getElementById('summary-month').value = currentDate.getMonth() + 1;
+        });
+
+        // Authentication Functions
+        async function login() {
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = data;
+                    trackingOption = data.trackingOption;
+                    document.getElementById('user-name').textContent = data.name;
+                    document.getElementById('auth-section').classList.add('hidden');
+                    document.getElementById('main-app').classList.remove('hidden');
+                    showSection('setup');
+                    loadSetupData();
+                } else {
+                    document.getElementById('auth-message').textContent = data.error;
+                }
+            } catch (error) {
+                document.getElementById('auth-message').textContent = 'Login failed';
+            }
+        }
+
+        async function register() {
+            const name = document.getElementById('register-name').value;
+            const username = document.getElementById('register-username').value;
+            const password = document.getElementById('register-password').value;
+            
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentUser = { name, userId: data.userId };
+                    document.getElementById('user-name').textContent = name;
+                    document.getElementById('auth-section').classList.add('hidden');
+                    document.getElementById('welcome-section').classList.remove('hidden');
+                } else {
+                    document.getElementById('auth-message').textContent = data.error;
+                }
+            } catch (error) {
+                document.getElementById('auth-message').textContent = 'Registration failed';
+            }
+        }
+
+        function showLogin() {
+            document.getElementById('login-form').classList.remove('hidden');
+            document.getElementById('register-form').classList.add('hidden');
+            document.getElementById('auth-message').textContent = '';
+        }
+
+        function showRegister() {
+            document.getElementById('login-form').classList.add('hidden');
+            document.getElementById('register-form').classList.remove('hidden');
+            document.getElementById('auth-message').textContent = '';
+        }
+
+        async function setTrackingOption(option) {
+            trackingOption = option;
+            
+            try {
+                await fetch('/api/set-tracking-option', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ trackingOption: option })
+                });
+                
+                document.getElementById('welcome-section').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                showSection('setup');
+                loadSetupData();
+            } catch (error) {
+                console.error('Error setting tracking option:', error);
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                currentUser = null;
+                document.getElementById('main-app').classList.add('hidden');
+                document.getElementById('auth-section').classList.remove('hidden');
+                showLogin();
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
+
+        // Navigation
+        function showSection(section) {
+            document.getElementById('setup-section').classList.add('hidden');
+            document.getElementById('transactions-section').classList.add('hidden');
+            document.getElementById('summary-section').classList.add('hidden');
+            
+            document.getElementById(section + '-section').classList.remove('hidden');
+            
+            if (section === 'transactions') {
+                updateTransactionFormVisibility();
+                loadPaymentOptions();
+                loadTransactions();
+            } else if (section === 'summary') {
+                loadMonthlySummary();
+            }
+        }
+
+        function updateTransactionFormVisibility() {
+            const incomeForm = document.getElementById('income-form');
+            const expenseForm = document.getElementById('expense-form');
+            
+            if (trackingOption === 'income') {
+                incomeForm.classList.remove('hidden');
+                expenseForm.classList.add('hidden');
+            } else if (trackingOption === 'expenses') {
+                incomeForm.classList.add('hidden');
+                expenseForm.classList.remove('hidden');
+            } else {
+                incomeForm.classList.remove('hidden');
+                expenseForm.classList.remove('hidden');
+            }
+        }
+
+        // Setup Functions
+        async function loadSetupData() {
+            await loadBanks();
+            await loadCreditCards();
+            await loadCashBalance();
+            updateCreditCardVisibility();
+        }
+
+        function updateCreditCardVisibility() {
+            const ccSetup = document.getElementById('credit-card-setup');
+            if (trackingOption === 'income') {
+                ccSetup.classList.add('hidden');
+            } else {
+                ccSetup.classList.remove('hidden');
+            }
+        }
+
+        async function addBank() {
+            const name = document.getElementById('bank-name').value;
+            const balance = document.getElementById('bank-balance').value;
+            
+            if (!name) {
+                alert('Please enter bank name');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/banks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, initialBalance: balance || 0 })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('bank-name').value = '';
+                    document.getElementById('bank-balance').value = '';
+                    loadBanks();
+                } else {
+                    alert(data.error);
+                }
+            } catch (error) {
+                alert('Error adding bank');
+            }
+        }
+
+        async function loadBanks() {
+            try {
+                const response = await fetch('/api/banks');
+                const banks = await response.json();
+                
+                const banksDiv = document.getElementById('banks-list');
+                banksDiv.innerHTML = '<h4>Your Banks:</h4>';
+                
+                if (banks.length === 0) {
+                    banksDiv.innerHTML += '<p>No banks added yet.</p>';
+                } else {
+                    const table = document.createElement('table');
+                    table.innerHTML = `
+                        <tr>
+                            <th>Bank Name</th>
+                            <th>Initial Balance</th>
+                            <th>Current Balance</th>
+                        </tr>
+                    `;
+                    
+                    banks.forEach(bank => {
+                        const row = table.insertRow();
+                        row.innerHTML = `
+                            <td>${bank.name}</td>
+                            <td>${parseFloat(bank.initial_balance).toFixed(2)}</td>
+                            <td>${parseFloat(bank.current_balance).toFixed(2)}</td>
+                        `;
+                    });
+                    
+                    banksDiv.appendChild(table);
+                }
+            } catch (error) {
+                console.error('Error loading banks:', error);
+            }
+        }
+
+        async function addCreditCard() {
+            const name = document.getElementById('cc-name').value;
+            const limit = document.getElementById('cc-limit').value;
+            
+            if (!name || !limit) {
+                alert('Please enter card name and credit limit');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/credit-cards', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, creditLimit: limit })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('cc-name').value = '';
+                    document.getElementById('cc-limit').value = '';
+                    loadCreditCards();
+                } else {
+                    alert(data.error);
+                }
+            } catch (error) {
+                alert('Error adding credit card');
+            }
+        }
+
+        async function loadCreditCards() {
+            try {
+                const response = await fetch('/api/credit-cards');
+                const cards = await response.json();
+                
+                const cardsDiv = document.getElementById('credit-cards-list');
+                cardsDiv.innerHTML = '<h4>Your Credit Cards:</h4>';
+                
+                if (cards.length === 0) {
+                    cardsDiv.innerHTML += '<p>No credit cards added yet.</p>';
+                } else {
+                    const table = document.createElement('table');
+                    table.innerHTML = `
+                        <tr>
+                            <th>Card Name</th>
+                            <th>Credit Limit</th>
+                            <th>Used Limit</th>
+                            <th>Available</th>
+                        </tr>
+                    `;
+                    
+                    cards.forEach(card => {
+                        const row = table.insertRow();
+                        const available = parseFloat(card.credit_limit) - parseFloat(card.used_limit);
+                        row.innerHTML = `
+                            <td>${card.name}</td>
+                            <td>${parseFloat(card.credit_limit).toFixed(2)}</td>
+                            <td>${parseFloat(card.used_limit).toFixed(2)}</td>
+                            <td>${available.toFixed(2)}</td>
+                        `;
+                    });
+                    
+                    cardsDiv.appendChild(table);
+                }
+            } catch (error) {
+                console.error('Error loading credit cards:', error);
+            }
+        }
+
+        async function setCashBalance() {
+            const balance = document.getElementById('cash-balance').value;
+            
+            try {
+                const response = await fetch('/api/cash-balance', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ balance: balance || 0 })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('cash-balance').value = '';
+                    loadCashBalance();
+                } else {
+                    alert('Error setting cash balance');
+                }
+            } catch (error) {
+                alert('Error setting cash balance');
+            }
+        }
+
+        async function loadCashBalance() {
+            try {
+                const response = await fetch('/api/cash-balance');
+                const cashData = await response.json();
+                
+                const cashDiv = document.getElementById('cash-display');
+                cashDiv.innerHTML = `<h4>Cash Balance: ${parseFloat(cashData.balance || 0).toFixed(2)}</h4>`;
+            } catch (error) {
+                console.error('Error loading cash balance:', error);
+            }
+        }
+
+        // Transaction Functions
+        async function loadPaymentOptions() {
+            try {
+                const [banksResponse, cardsResponse] = await Promise.all([
+                    fetch('/api/banks'),
+                    fetch('/api/credit-cards')
+                ]);
+                
+                const banks = await banksResponse.json();
+                const cards = await cardsResponse.json();
+                
+                // Update income credited to options
+                const incomeSelect = document.getElementById('income-credited-to');
+                incomeSelect.innerHTML = '<option value="cash">Cash</option>';
+                
+                banks.forEach(bank => {
+                    const option = document.createElement('option');
+                    option.value = `bank-${bank.id}`;
+                    option.textContent = bank.name;
+                    incomeSelect.appendChild(option);
+                });
+                
+                // Update expense payment method options
+                const expenseSelect = document.getElementById('expense-payment-method');
+                expenseSelect.innerHTML = '<option value="cash">Cash</option>';
+                
+                banks.forEach(bank => {
+                    const option = document.createElement('option');
+                    option.value = `bank-${bank.id}`;
+                    option.textContent = bank.name;
+                    expenseSelect.appendChild(option);
+                });
+                
+                cards.forEach(card => {
+                    const option = document.createElement('option');
+                    option.value = `credit_card-${card.id}`;
+                    option.textContent = card.name;
+                    expenseSelect.appendChild(option);
+                });
+                
+            } catch (error) {
+                console.error('Error loading payment options:', error);
+            }
+        }
+
+        async function addIncome() {
+            const source = document.getElementById('income-source').value;
+            const amount = document.getElementById('income-amount').value;
+            const creditedTo = document.getElementById('income-credited-to').value;
+            const date = document.getElementById('income-date').value;
+            
+            if (!source || !amount || !date) {
+                document.getElementById('transactions-message').textContent = 'Please fill all fields';
+                return;
+            }
+            
+            let creditedToType, creditedToId;
+            if (creditedTo === 'cash') {
+                creditedToType = 'cash';
+                creditedToId = null;
+            } else {
+                [creditedToType, creditedToId] = creditedTo.split('-');
+            }
+            
+            try {
+                const response = await fetch('/api/income', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        source,
+                        amount: parseFloat(amount),
+                        creditedToType,
+                        creditedToId,
+                        date
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('income-source').value = '';
+                    document.getElementById('income-amount').value = '';
+                    document.getElementById('transactions-message').textContent = '';
+                    document.getElementById('transactions-message').className = 'success';
+                    document.getElementById('transactions-message').textContent = 'Income added successfully!';
+                    loadSetupData(); // Refresh balances
+                    loadTransactions(); // Refresh transactions
+                } else {
+                    document.getElementById('transactions-message').className = 'error';
+                    document.getElementById('transactions-message').textContent = data.error;
+                }
+            } catch (error) {
+                document.getElementById('transactions-message').className = 'error';
+                document.getElementById('transactions-message').textContent = 'Error adding income';
+            }
+        }
+
+        async function addExpense() {
+            const title = document.getElementById('expense-title').value;
+            const amount = document.getElementById('expense-amount').value;
+            const paymentMethod = document.getElementById('expense-payment-method').value;
+            const date = document.getElementById('expense-date').value;
+            
+            if (!title || !amount || !date) {
+                document.getElementById('transactions-message').textContent = 'Please fill all fields';
+                return;
+            }
+            
+            let paymentMethodType, paymentSourceId;
+            if (paymentMethod === 'cash') {
+                paymentMethodType = 'cash';
+                paymentSourceId = null;
+            } else {
+                [paymentMethodType, paymentSourceId] = paymentMethod.split('-');
+            }
+            
+            try {
+                const response = await fetch('/api/expenses', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title,
+                        amount: parseFloat(amount),
+                        paymentMethod: paymentMethodType,
+                        paymentSourceId,
+                        date
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('expense-title').value = '';
+                    document.getElementById('expense-amount').value = '';
+                    document.getElementById('transactions-message').textContent = '';
+                    document.getElementById('transactions-message').className = 'success';
+                    document.getElementById('transactions-message').textContent = 'Expense added successfully!';
+                    loadSetupData(); // Refresh balances
+                    loadTransactions(); // Refresh transactions
+                } else {
+                    document.getElementById('transactions-message').className = 'error';
+                    document.getElementById('transactions-message').textContent = data.error;
+                }
+            } catch (error) {
+                document.getElementById('transactions-message').className = 'error';
+                document.getElementById('transactions-message').textContent = 'Error adding expense';
+            }
+        }
+
+        // Load and display transactions
+        async function loadTransactions() {
+            const currentDate = new Date();
+            const currentMonth = currentDate.getMonth() + 1;
+            const currentYear = currentDate.getFullYear();
+            
+            try {
+                // Load income transactions
+                const incomeResponse = await fetch(`/api/income?month=${currentMonth}&year=${currentYear}`);
+                const incomeData = await incomeResponse.json();
+                
+                const incomeTableBody = document.getElementById('income-table-body');
+                incomeTableBody.innerHTML = '';
+                
+                incomeData.forEach(income => {
+                    const row = document.createElement('tr');
+                    const date = new Date(income.date).toLocaleDateString();
+                    const creditedTo = income.credited_to_type === 'bank' ? 
+                        document.querySelector(`#income-credited-to option[value="bank-${income.credited_to_id}"]`)?.textContent || 'Unknown Bank' :
+                        'Cash';
+                    
+                    row.innerHTML = `
+                        <td>${date}</td>
+                        <td>${income.source}</td>
+                        <td>${parseFloat(income.amount).toFixed(2)}</td>
+                        <td>${creditedTo}</td>
+                    `;
+                    incomeTableBody.appendChild(row);
+                });
+                
+                // Load expense transactions
+                const expenseResponse = await fetch(`/api/expenses?month=${currentMonth}&year=${currentYear}`);
+                const expenseData = await expenseResponse.json();
+                
+                const expenseTableBody = document.getElementById('expense-table-body');
+                expenseTableBody.innerHTML = '';
+                
+                expenseData.forEach(expense => {
+                    const row = document.createElement('tr');
+                    const date = new Date(expense.date).toLocaleDateString();
+                    let paymentMethod = expense.payment_method;
+                    if (paymentMethod === 'bank' || paymentMethod === 'credit_card') {
+                        const select = document.querySelector(`#expense-payment-method option[value="${paymentMethod}-${expense.payment_source_id}"]`);
+                        paymentMethod = select ? select.textContent : 'Unknown Source';
+                    } else {
+                        paymentMethod = 'Cash';
+                    }
+                    
+                    row.innerHTML = `
+                        <td>${date}</td>
+                        <td>${expense.title}</td>
+                        <td>${parseFloat(expense.amount).toFixed(2)}</td>
+                        <td>${paymentMethod}</td>
+                    `;
+                    expenseTableBody.appendChild(row);
+                });
+                
+                // Show/hide based on tracking option
+                const incomeHistory = document.getElementById('income-history');
+                const expenseHistory = document.getElementById('expense-history');
+                
+                if (trackingOption === 'income') {
+                    incomeHistory.style.display = 'block';
+                    expenseHistory.style.display = 'none';
+                } else if (trackingOption === 'expenses') {
+                    incomeHistory.style.display = 'none';
+                    expenseHistory.style.display = 'block';
+                } else {
+                    incomeHistory.style.display = 'block';
+                    expenseHistory.style.display = 'block';
+                }
+                
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+            }
+        }
+
+        // Monthly Summary
+        async function loadMonthlySummary() {
+            const month = document.getElementById('summary-month').value;
+            const year = document.getElementById('summary-year').value;
+            
+            try {
+                const response = await fetch(`/api/monthly-summary?month=${month}&year=${year}`);
+                const data = await response.json();
+                
+                const summaryDiv = document.getElementById('summary-display');
+                
+                let html = '<div class="summary">';
+                
+                // Inside loadMonthlySummary function:
+if (trackingOption === 'income' || trackingOption === 'both') {
+    html += '<div class="income-summary">';
+    html += `<h3>This Month's Income: ${data.monthlyIncome.toFixed(2)}</h3>`;
+    html += `<h3>Total Income (Including All Balances): ${data.totalIncome.toFixed(2)}</h3>`;
+    html += '</div>';
+}
+                
+                if (trackingOption === 'expenses' || trackingOption === 'both') {
+                    html += `<h3>Total Expenses: ${data.totalExpenses.toFixed(2)}</h3>`;
+                }
+                
+                if (trackingOption === 'both') {
+                    html += `<h3>Net Savings: ${data.netSavings.toFixed(2)}</h3>`;
+                }
+                
+                html += '</div>';
+                
+                // Banks
+                if (data.banks.length > 0) {
+                    html += '<h3>Bank Balances:</h3>';
+                    html += '<table><tr><th>Bank</th><th>Balance</th></tr>';
+                    data.banks.forEach(bank => {
+                        html += `<tr><td>${bank.name}</td><td>${parseFloat(bank.current_balance).toFixed(2)}</td></tr>`;
+                    });
+                    html += '</table>';
+                }
+                
+                // Cash
+                if (data.cash.balance > 0) {
+                    html += `<h3>Cash Balance: ${parseFloat(data.cash.balance).toFixed(2)}</h3>`;
+                }
+                
+                // Credit Cards
+                if (data.creditCards.length > 0) {
+                    html += '<h3>Credit Cards:</h3>';
+                    html += '<table><tr><th>Card</th><th>Limit</th><th>Used</th><th>Available</th></tr>';
+                    data.creditCards.forEach(card => {
+                        const available = parseFloat(card.credit_limit) - parseFloat(card.used_limit);
+                        html += `<tr><td>${card.name}</td><td>${parseFloat(card.credit_limit).toFixed(2)}</td><td>${parseFloat(card.used_limit).toFixed(2)}</td><td>${available.toFixed(2)}</td></tr>`;
+                    });
+                    html += '</table>';
+                }
+                
+                summaryDiv.innerHTML = html;
+                
+            } catch (error) {
+                console.error('Error loading monthly summary:', error);
+                document.getElementById('summary-display').innerHTML = '<p>Error loading summary</p>';
+            }
+        }
+    </script>
+</body>
+</html>
