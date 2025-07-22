@@ -197,3 +197,12 @@ bower_components/
 GIT-PUSH-GUIDE.md
 LINTING.md
 refactoring-report.md
+SECURITY-ANALYSIS.md
+# Development utility scripts
+check-schema.js
+reset-db.js
+
+# Development utility scripts
+check-schema.js
+reset-db.js
+

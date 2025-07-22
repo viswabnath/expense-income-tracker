@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const { Pool } = require('pg');
 const path = require('path');
 const bodyParser = require('body-parser');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,14 +21,41 @@ const pool = new Pool({
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
+// Rate limiting for authentication endpoints
+// DEVELOPMENT: Rate limiting disabled for easier development
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 attempts per window per IP
+    message: { error: 'Too many authentication attempts. Please try again in 15 minutes.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Development bypass - no rate limiting
+// const authLimiter = (req, res, next) => next();
+
+// General rate limiting
+const generalLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 100, // 100 requests per minute per IP
+    message: { error: 'Too many requests. Please slow down.' }
+});
+
 // Middleware
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(generalLimiter);
+app.use(bodyParser.json({ limit: '10mb' })); // Limit request size
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 app.use(session({
-    secret: 'your-secret-key-change-this',
+    secret: process.env.SESSION_SECRET || require('crypto').randomBytes(64).toString('hex'),
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }
+    name: 'sessionId', // Don't use default session name
+    cookie: {
+        secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+        httpOnly: true, // Prevent XSS attacks
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        sameSite: 'strict' // CSRF protection
+    }
 }));
 
 // Serve static files
@@ -75,7 +103,7 @@ const requireAuth = (req, res, next) => {
 // Routes
 
 // User Registration
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', authLimiter, async (req, res) => {
     try {
         const { username, password, name, email, securityQuestion, securityAnswer } = req.body;
 
@@ -127,13 +155,13 @@ app.post('/api/register', async (req, res) => {
         if (error.code === '23505') { // Unique constraint violation
             res.status(400).json({ error: 'Username or email already exists' });
         } else {
-            res.status(400).json({ error: 'Registration failed. Please try again.' });
+            res.status(500).json({ error: 'Registration failed. Please try again.' });
         }
     }
 });
 
 // User Login
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', authLimiter, async (req, res) => {
     try {
         const { username, password } = req.body;
 
@@ -204,7 +232,7 @@ app.get('/api/user', requireAuth, async (req, res) => {
 });
 
 // Forgot Username - Retrieve username by email
-app.post('/api/forgot-username', async (req, res) => {
+app.post('/api/forgot-username', authLimiter, async (req, res) => {
     try {
         const { email } = req.body;
 
@@ -241,7 +269,7 @@ app.post('/api/forgot-username', async (req, res) => {
 });
 
 // Password Reset - Step 1: Verify user and security question
-app.post('/api/forgot-password', async (req, res) => {
+app.post('/api/forgot-password', authLimiter, async (req, res) => {
     try {
         const { username, email } = req.body;
 
@@ -294,8 +322,8 @@ app.post('/api/forgot-password', async (req, res) => {
     }
 });
 
-// Password Reset - Step 2: Verify security answer and reset password
-app.post('/api/reset-password', async (req, res) => {
+// Password Reset - Step 2: Reset password with security answer
+app.post('/api/reset-password', authLimiter, async (req, res) => {
     try {
         const { userId, securityAnswer, newPassword } = req.body;
 
@@ -510,33 +538,47 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
         const month = dateObj.getMonth() + 1;
         const year = dateObj.getFullYear();
 
-        // Validate balance/limit
-        if (paymentMethod === 'bank') {
-            const bankResult = await pool.query(
-                'SELECT current_balance FROM banks WHERE id = $1 AND user_id = $2',
-                [paymentSourceId, req.session.userId]
-            );
+        // Get user's tracking option to determine validation behavior
+        const userResult = await pool.query(
+            'SELECT tracking_option FROM users WHERE id = $1',
+            [req.session.userId]
+        );
 
-            if (bankResult.rows.length === 0 || bankResult.rows[0].current_balance < amount) {
-                return res.status(400).json({ error: 'Insufficient bank balance' });
-            }
-        } else if (paymentMethod === 'cash') {
-            const cashResult = await pool.query(
-                'SELECT balance FROM cash_balance WHERE user_id = $1',
-                [req.session.userId]
-            );
+        const trackingOption = userResult.rows[0]?.tracking_option || 'both';
 
-            if (cashResult.rows.length === 0 || cashResult.rows[0].balance < amount) {
-                return res.status(400).json({ error: 'Insufficient cash balance' });
-            }
-        } else if (paymentMethod === 'credit_card') {
-            const ccResult = await pool.query(
-                'SELECT credit_limit, used_limit FROM credit_cards WHERE id = $1 AND user_id = $2',
-                [paymentSourceId, req.session.userId]
-            );
+        // For expense-only users, allow expense tracking without strict balance validation
+        // For 'both' or 'income' users, enforce balance validation
+        const shouldValidateBalance = trackingOption !== 'expenses';
 
-            if (ccResult.rows.length === 0 || (ccResult.rows[0].credit_limit - ccResult.rows[0].used_limit) < amount) {
-                return res.status(400).json({ error: 'Insufficient credit limit' });
+        if (shouldValidateBalance) {
+            // Validate balance/limit only for users who also track income
+            if (paymentMethod === 'bank') {
+                const bankResult = await pool.query(
+                    'SELECT current_balance FROM banks WHERE id = $1 AND user_id = $2',
+                    [paymentSourceId, req.session.userId]
+                );
+
+                if (bankResult.rows.length === 0 || bankResult.rows[0].current_balance < amount) {
+                    return res.status(400).json({ error: 'Insufficient bank balance' });
+                }
+            } else if (paymentMethod === 'cash') {
+                const cashResult = await pool.query(
+                    'SELECT balance FROM cash_balance WHERE user_id = $1',
+                    [req.session.userId]
+                );
+
+                if (cashResult.rows.length === 0 || cashResult.rows[0].balance < amount) {
+                    return res.status(400).json({ error: 'Insufficient cash balance' });
+                }
+            } else if (paymentMethod === 'credit_card') {
+                const ccResult = await pool.query(
+                    'SELECT credit_limit, used_limit FROM credit_cards WHERE id = $1 AND user_id = $2',
+                    [paymentSourceId, req.session.userId]
+                );
+
+                if (ccResult.rows.length === 0 || (ccResult.rows[0].credit_limit - ccResult.rows[0].used_limit) < amount) {
+                    return res.status(400).json({ error: 'Insufficient credit limit' });
+                }
             }
         }
 
@@ -545,22 +587,24 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
             [req.session.userId, title, amount, paymentMethod, paymentSourceId, date, month, year]
         );
 
-        // Update balance/limit
-        if (paymentMethod === 'bank') {
-            await pool.query(
-                'UPDATE banks SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3',
-                [amount, paymentSourceId, req.session.userId]
-            );
-        } else if (paymentMethod === 'cash') {
-            await pool.query(
-                'UPDATE cash_balance SET balance = balance - $1 WHERE user_id = $2',
-                [amount, req.session.userId]
-            );
-        } else if (paymentMethod === 'credit_card') {
-            await pool.query(
-                'UPDATE credit_cards SET used_limit = used_limit + $1 WHERE id = $2 AND user_id = $3',
-                [amount, paymentSourceId, req.session.userId]
-            );
+        // Update balance/limit only for users who track both income and expenses
+        if (shouldValidateBalance) {
+            if (paymentMethod === 'bank') {
+                await pool.query(
+                    'UPDATE banks SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3',
+                    [amount, paymentSourceId, req.session.userId]
+                );
+            } else if (paymentMethod === 'cash') {
+                await pool.query(
+                    'UPDATE cash_balance SET balance = balance - $1 WHERE user_id = $2',
+                    [amount, req.session.userId]
+                );
+            } else if (paymentMethod === 'credit_card') {
+                await pool.query(
+                    'UPDATE credit_cards SET used_limit = used_limit + $1 WHERE id = $2 AND user_id = $3',
+                    [amount, paymentSourceId, req.session.userId]
+                );
+            }
         }
 
         res.json(result.rows[0]);
@@ -605,6 +649,13 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
         const currentDate = new Date();
         const selectedDate = new Date(selectedYear, selectedMonth - 1, 1);
 
+        // Check if the selected month is completed
+        const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-based
+        const currentYear = currentDate.getFullYear();
+        const isCurrentMonth = (selectedMonth === currentMonth && selectedYear === currentYear);
+        const isMonthCompleted = selectedYear < currentYear ||
+                               (selectedYear === currentYear && selectedMonth < currentMonth);
+
         // Check if selected date is in the future
         if (selectedDate > currentDate) {
             return res.json({
@@ -616,13 +667,16 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
                 banks: [],
                 creditCards: [],
                 cash: { balance: 0, initial_balance: 0 },
+                trackingOption: 'both', // Default, will be updated when user info is fetched
+                isCurrentMonth: false,
+                isMonthCompleted: false,
                 message: 'Future date selected - no data available'
             });
         }
 
-        // Get user registration date
+        // Get user registration date and tracking option
         const userResult = await pool.query(
-            'SELECT created_at FROM users WHERE id = $1',
+            'SELECT created_at, tracking_option FROM users WHERE id = $1',
             [userId]
         );
 
@@ -631,6 +685,7 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
         }
 
         const registrationDate = new Date(userResult.rows[0].created_at);
+        const userTrackingOption = userResult.rows[0].tracking_option;
         const registrationMonth = registrationDate.getMonth() + 1;
         const registrationYear = registrationDate.getFullYear();
 
@@ -646,6 +701,9 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
                 banks: [],
                 creditCards: [],
                 cash: { balance: 0, initial_balance: 0 },
+                trackingOption: userTrackingOption,
+                isCurrentMonth: false,
+                isMonthCompleted: true, // Before registration is considered "completed"
                 message: 'Date before registration - no data available'
             });
         }
@@ -716,11 +774,15 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
       WHERE user_id = $1
     `, [userId, endOfSelectedMonth]);
 
-        // Get credit cards (only if they existed at that time)
-        const creditCardResult = await pool.query(
-            'SELECT * FROM credit_cards WHERE user_id = $1 AND created_at <= $2',
-            [userId, endOfSelectedMonth]
-        );
+        // Get credit cards only if user tracks expenses or both
+        let creditCards = [];
+        if (userTrackingOption === 'expenses' || userTrackingOption === 'both') {
+            const creditCardResult = await pool.query(
+                'SELECT * FROM credit_cards WHERE user_id = $1 AND created_at <= $2',
+                [userId, endOfSelectedMonth]
+            );
+            creditCards = creditCardResult.rows;
+        }
 
         // Calculate totals
         const monthIncome = parseFloat(incomeResult.rows[0]?.total_income || 0);
@@ -760,10 +822,13 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
             netSavings: netSavings,
             totalInitialBalance: totalInitialBalance,
             banks: banksWithHistoricalBalance,
-            creditCards: creditCardResult.rows,
+            creditCards: creditCards,
             cash: cashData,
             selectedMonth: selectedMonth,
             selectedYear: selectedYear,
+            trackingOption: userTrackingOption,
+            isCurrentMonth: isCurrentMonth,
+            isMonthCompleted: isMonthCompleted,
             message: null
         });
 

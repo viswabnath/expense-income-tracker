@@ -86,8 +86,16 @@ class TransactionManager {
             } else {
                 this.showTransactionMessage(response.error, 'error');
             }
-        } catch {
-            this.showTransactionMessage('Error adding income', 'error');
+        } catch (error) {
+            console.error('Error adding income:', error);
+            // Try to extract the actual error message from the API response
+            let errorMessage = 'Error adding income';
+            if (error && error.message) {
+                errorMessage = error.message;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            }
+            this.showTransactionMessage(errorMessage, 'error');
         }
     }
 
@@ -128,8 +136,16 @@ class TransactionManager {
             } else {
                 this.showTransactionMessage(response.error, 'error');
             }
-        } catch {
-            this.showTransactionMessage('Error adding expense', 'error');
+        } catch (error) {
+            console.error('Error adding expense:', error);
+            // Try to extract the actual error message from the API response
+            let errorMessage = 'Error adding expense';
+            if (error && error.message) {
+                errorMessage = error.message;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            }
+            this.showTransactionMessage(errorMessage, 'error');
         }
     }
 
@@ -138,6 +154,14 @@ class TransactionManager {
         if (messageElement) {
             messageElement.className = type;
             messageElement.textContent = message;
+
+            // Auto-clear success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    messageElement.textContent = '';
+                    messageElement.className = '';
+                }, 5000);
+            }
         }
     }
 

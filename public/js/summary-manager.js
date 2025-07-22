@@ -57,6 +57,16 @@ class SummaryManager {
             'July', 'August', 'September', 'October', 'November', 'December'];
         const monthName = monthNames[parseInt(month) - 1];
 
+        // Determine the correct time reference text
+        let timeReference;
+        if (data.isCurrentMonth) {
+            timeReference = 'as of now';
+        } else if (data.isMonthCompleted) {
+            timeReference = `at End of ${monthName}`;
+        } else {
+            timeReference = `at End of ${monthName}`; // fallback
+        }
+
         let html = `<h2>Monthly Summary - ${monthName} ${year}</h2>`;
 
         // Check for no data message
@@ -85,7 +95,7 @@ class SummaryManager {
 
         // Total Wealth
         if (data.totalCurrentWealth !== undefined && data.totalCurrentWealth !== null) {
-            html += `<h3>Total Wealth (Bank + Cash) at End of ${monthName}: ${parseFloat(data.totalCurrentWealth).toFixed(2)}</h3>`;
+            html += `<h3>Total Wealth (Bank + Cash) ${timeReference}: ${parseFloat(data.totalCurrentWealth).toFixed(2)}</h3>`;
         } else {
             html += '<h3 class="error">Total Wealth: Unable to calculate wealth</h3>';
         }
@@ -109,9 +119,9 @@ class SummaryManager {
 
         html += '</div>';
 
-        // Bank Balances (as they were at end of selected month)
+        // Bank Balances (as they were at end of selected month or as of now)
         if (data.banks && data.banks.length > 0) {
-            html += `<h3>Bank Balances at End of ${monthName} ${year}:</h3>`;
+            html += `<h3>Bank Balances ${timeReference.replace('at End of', 'at End of').replace('as of now', 'as of now')}:</h3>`;
             html += '<table><tr><th>Bank</th><th>Balance</th></tr>';
             data.banks.forEach(bank => {
                 const bankName = bank.name || 'Unknown Bank';
@@ -127,43 +137,45 @@ class SummaryManager {
             html += `<h3>Bank Balances: No banks configured in ${monthName} ${year}</h3>`;
         }
 
-        // Cash Balance (as it was at end of selected month)
+        // Cash Balance (as it was at end of selected month or as of now)
         if (data.cash) {
             const cashBalance = data.cash.balance;
             if (cashBalance === undefined || cashBalance === null || isNaN(cashBalance)) {
-                html += `<h3 class="error">Cash Balance at End of ${monthName}: Balance unavailable for this period</h3>`;
+                html += `<h3 class="error">Cash Balance ${timeReference}: Balance unavailable for this period</h3>`;
             } else {
-                html += `<h3>Cash Balance at End of ${monthName}: ${parseFloat(cashBalance).toFixed(2)}</h3>`;
+                html += `<h3>Cash Balance ${timeReference}: ${parseFloat(cashBalance).toFixed(2)}</h3>`;
             }
         } else {
             html += `<h3>Cash Balance: No cash balance configured in ${monthName} ${year}</h3>`;
         }
 
-        // Credit Cards (as they were at that time)
-        if (data.creditCards && data.creditCards.length > 0) {
-            html += `<h3>Credit Cards in ${monthName} ${year}:</h3>`;
-            html += '<table><tr><th>Card</th><th>Limit</th><th>Used</th><th>Available</th></tr>';
-            data.creditCards.forEach(card => {
-                const cardName = card.name || 'Unknown Card';
-                const creditLimit = card.credit_limit;
-                const usedLimit = card.used_limit;
+        // Credit Cards (only show if user tracks expenses or both)
+        if (data.trackingOption === 'expenses' || data.trackingOption === 'both') {
+            if (data.creditCards && data.creditCards.length > 0) {
+                html += `<h3>Credit Cards in ${monthName} ${year}:</h3>`;
+                html += '<table><tr><th>Card</th><th>Limit</th><th>Used</th><th>Available</th></tr>';
+                data.creditCards.forEach(card => {
+                    const cardName = card.name || 'Unknown Card';
+                    const creditLimit = card.credit_limit;
+                    const usedLimit = card.used_limit;
 
-                if (creditLimit === undefined || creditLimit === null ||
-                    usedLimit === undefined || usedLimit === null) {
-                    html += `<tr><td>${cardName}</td><td colspan="3" class="error">Card data unavailable</td></tr>`;
-                } else {
-                    const available = parseFloat(creditLimit) - parseFloat(usedLimit);
-                    html += `<tr>
-                        <td>${cardName}</td>
-                        <td>${parseFloat(creditLimit).toFixed(2)}</td>
-                        <td>${parseFloat(usedLimit).toFixed(2)}</td>
-                        <td>${available.toFixed(2)}</td>
-                    </tr>`;
-                }
-            });
-            html += '</table>';
-        } else {
-            html += `<h3>Credit Cards: No credit cards configured in ${monthName} ${year}</h3>`;
+                    if (creditLimit === undefined || creditLimit === null ||
+                        usedLimit === undefined || usedLimit === null) {
+                        html += `<tr><td>${cardName}</td><td colspan="3" class="error">Card data unavailable</td></tr>`;
+                    } else {
+                        const available = parseFloat(creditLimit) - parseFloat(usedLimit);
+                        html += `<tr>
+                            <td>${cardName}</td>
+                            <td>${parseFloat(creditLimit).toFixed(2)}</td>
+                            <td>${parseFloat(usedLimit).toFixed(2)}</td>
+                            <td>${available.toFixed(2)}</td>
+                        </tr>`;
+                    }
+                });
+                html += '</table>';
+            } else {
+                html += `<h3>Credit Cards: No credit cards configured in ${monthName} ${year}</h3>`;
+            }
         }
 
         document.getElementById('summary-display').innerHTML = html;

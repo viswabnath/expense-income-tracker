@@ -3,6 +3,22 @@ import globals from "globals";
 
 export default [
   {
+    ignores: [
+      "node_modules/",
+      ".env",
+      ".env.local",
+      ".env.production",
+      "*.db",
+      "*.sqlite",
+      "*.log",
+      "coverage/",
+      "dist/",
+      "build/",
+      "check-schema.js",
+      "reset-db.js"
+    ]
+  },
+  {
     files: ["**/*.js"],
     languageOptions: {
       ecmaVersion: 2022,
