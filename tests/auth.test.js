@@ -2,18 +2,6 @@
  * Authentication Manager Unit Tests
  */
 
-// Mock the DOM environment
-const mockElement = (value = '') => ({
-    value,
-    textContent: '',
-    className: '',
-    classList: {
-        add: jest.fn(),
-        remove: jest.fn(),
-        toggle: jest.fn(),
-    }
-});
-
 // Mock document.getElementById
 global.document = {
     getElementById: jest.fn()
@@ -31,6 +19,35 @@ class AuthManager {
 
     static validateUsername(username) {
         return /^[a-zA-Z0-9_]+$/.test(username);
+    }
+
+    static validatePassword(password) {
+        // Check length (8-16 characters)
+        if (password.length < 8 || password.length > 16) {
+            return 'Password must be between 8 and 16 characters long';
+        }
+
+        // Check for at least one lowercase letter
+        if (!/[a-z]/.test(password)) {
+            return 'Password must contain at least one lowercase letter';
+        }
+
+        // Check for at least one uppercase letter
+        if (!/[A-Z]/.test(password)) {
+            return 'Password must contain at least one uppercase letter';
+        }
+
+        // Check for at least one number
+        if (!/[0-9]/.test(password)) {
+            return 'Password must contain at least one number';
+        }
+
+        // Check for at least one special character (_ - &)
+        if (!/[_\-&]/.test(password)) {
+            return 'Password must contain at least one special character (_, -, or &)';
+        }
+
+        return null; // Password is valid
     }
 
     static validateInput(value, fieldName) {
@@ -57,8 +74,10 @@ class AuthManager {
             throw new Error('Please enter a valid email address');
         }
 
-        if (data.password.length < 6) {
-            throw new Error('Password must be at least 6 characters long');
+        // Validate password strength
+        const passwordError = AuthManager.validatePassword(data.password);
+        if (passwordError) {
+            throw new Error(passwordError);
         }
 
         if (data.password !== data.confirmPassword) {
@@ -117,6 +136,68 @@ describe('AuthManager', () => {
         });
     });
 
+    describe('validatePassword', () => {
+        test('should return null for valid passwords', () => {
+            expect(AuthManager.validatePassword('Password123_')).toBeNull();
+            expect(AuthManager.validatePassword('Test123-')).toBeNull();
+            expect(AuthManager.validatePassword('MyPass1&')).toBeNull();
+            expect(AuthManager.validatePassword('Strong9_')).toBeNull();
+            expect(AuthManager.validatePassword('Valid123-Pass')).toBeNull();
+        });
+
+        test('should reject passwords that are too short', () => {
+            expect(AuthManager.validatePassword('Pass1_')).toBe('Password must be between 8 and 16 characters long');
+            expect(AuthManager.validatePassword('Aa1_')).toBe('Password must be between 8 and 16 characters long');
+            expect(AuthManager.validatePassword('')).toBe('Password must be between 8 and 16 characters long');
+        });
+
+        test('should reject passwords that are too long', () => {
+            expect(AuthManager.validatePassword('Password123_TooLong')).toBe('Password must be between 8 and 16 characters long');
+            expect(AuthManager.validatePassword('ThisPasswordIsWayTooLong123_')).toBe('Password must be between 8 and 16 characters long');
+        });
+
+        test('should reject passwords missing lowercase letters', () => {
+            expect(AuthManager.validatePassword('PASSWORD123_')).toBe('Password must contain at least one lowercase letter');
+            expect(AuthManager.validatePassword('TEST123-')).toBe('Password must contain at least one lowercase letter');
+        });
+
+        test('should reject passwords missing uppercase letters', () => {
+            expect(AuthManager.validatePassword('password123_')).toBe('Password must contain at least one uppercase letter');
+            expect(AuthManager.validatePassword('test123-')).toBe('Password must contain at least one uppercase letter');
+        });
+
+        test('should reject passwords missing numbers', () => {
+            expect(AuthManager.validatePassword('Password_')).toBe('Password must contain at least one number');
+            expect(AuthManager.validatePassword('TestPass-')).toBe('Password must contain at least one number');
+        });
+
+        test('should reject passwords missing special characters', () => {
+            expect(AuthManager.validatePassword('Password123')).toBe('Password must contain at least one special character (_, -, or &)');
+            expect(AuthManager.validatePassword('TestPass123')).toBe('Password must contain at least one special character (_, -, or &)');
+        });
+
+        test('should reject passwords with invalid special characters', () => {
+            expect(AuthManager.validatePassword('Password123!')).toBe('Password must contain at least one special character (_, -, or &)');
+            expect(AuthManager.validatePassword('Password123@')).toBe('Password must contain at least one special character (_, -, or &)');
+            expect(AuthManager.validatePassword('Password123#')).toBe('Password must contain at least one special character (_, -, or &)');
+        });
+
+        test('should accept passwords with valid special characters', () => {
+            expect(AuthManager.validatePassword('Password123_')).toBeNull();
+            expect(AuthManager.validatePassword('Password123-')).toBeNull();
+            expect(AuthManager.validatePassword('Password123&')).toBeNull();
+        });
+
+        test('should handle edge cases', () => {
+            // Exactly 8 characters
+            expect(AuthManager.validatePassword('Pass123_')).toBeNull();
+            // Exactly 16 characters
+            expect(AuthManager.validatePassword('Password123_Pass')).toBeNull();
+            // Multiple special characters
+            expect(AuthManager.validatePassword('Pass123_-&')).toBeNull();
+        });
+    });
+
     describe('validateInput', () => {
         test('should validate and trim non-empty inputs', () => {
             expect(AuthManager.validateInput('  test  ', 'Test')).toBe('test');
@@ -149,8 +230,8 @@ describe('AuthManager', () => {
             name: 'John Doe',
             username: 'john_doe',
             email: 'john@example.com',
-            password: 'password123',
-            confirmPassword: 'password123',
+            password: 'Password123_',
+            confirmPassword: 'Password123_',
             securityQuestion: 'pet',
             securityAnswer: 'Fluffy'
         };
@@ -165,14 +246,35 @@ describe('AuthManager', () => {
                 .toThrow('Please enter a valid email address');
         });
 
-        test('should throw error for short password', () => {
-            const invalidData = { ...validData, password: '123', confirmPassword: '123' };
-            expect(() => authManager.validateRegistrationData(invalidData))
-                .toThrow('Password must be at least 6 characters long');
+        test('should throw error for weak passwords', () => {
+            // Too short
+            const shortPassword = { ...validData, password: 'Pass1_', confirmPassword: 'Pass1_' };
+            expect(() => authManager.validateRegistrationData(shortPassword))
+                .toThrow('Password must be between 8 and 16 characters long');
+
+            // Missing uppercase
+            const noUppercase = { ...validData, password: 'password123_', confirmPassword: 'password123_' };
+            expect(() => authManager.validateRegistrationData(noUppercase))
+                .toThrow('Password must contain at least one uppercase letter');
+
+            // Missing lowercase
+            const noLowercase = { ...validData, password: 'PASSWORD123_', confirmPassword: 'PASSWORD123_' };
+            expect(() => authManager.validateRegistrationData(noLowercase))
+                .toThrow('Password must contain at least one lowercase letter');
+
+            // Missing number
+            const noNumber = { ...validData, password: 'Password_', confirmPassword: 'Password_' };
+            expect(() => authManager.validateRegistrationData(noNumber))
+                .toThrow('Password must contain at least one number');
+
+            // Missing special character
+            const noSpecial = { ...validData, password: 'Password123', confirmPassword: 'Password123' };
+            expect(() => authManager.validateRegistrationData(noSpecial))
+                .toThrow('Password must contain at least one special character (_, -, or &)');
         });
 
         test('should throw error for password mismatch', () => {
-            const invalidData = { ...validData, confirmPassword: 'different' };
+            const invalidData = { ...validData, confirmPassword: 'Different123_' };
             expect(() => authManager.validateRegistrationData(invalidData))
                 .toThrow('Passwords do not match');
         });

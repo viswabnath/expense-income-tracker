@@ -192,3 +192,8 @@ bower_components/
 
 # DynamoDB Local files
 .dynamodb/
+
+# Temporary documentation files (remove when project is finalized)
+GIT-PUSH-GUIDE.md
+LINTING.md
+refactoring-report.md

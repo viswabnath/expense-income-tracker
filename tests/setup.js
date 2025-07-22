@@ -10,7 +10,7 @@ global.fetch = jest.fn();
 
 // Mock DOM elements that might not exist in tests
 global.document = {
-    getElementById: jest.fn((id) => {
+    getElementById: jest.fn(() => {
         const mockElement = {
             value: '',
             textContent: '',

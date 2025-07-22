@@ -17,6 +17,36 @@ const mockPool = {
     query: jest.fn()
 };
 
+// Password validation function (same as in server.js)
+function validatePassword(password) {
+    // Check length (8-16 characters)
+    if (password.length < 8 || password.length > 16) {
+        return 'Password must be between 8 and 16 characters long';
+    }
+
+    // Check for at least one lowercase letter
+    if (!/[a-z]/.test(password)) {
+        return 'Password must contain at least one lowercase letter';
+    }
+
+    // Check for at least one uppercase letter
+    if (!/[A-Z]/.test(password)) {
+        return 'Password must contain at least one uppercase letter';
+    }
+
+    // Check for at least one number
+    if (!/[0-9]/.test(password)) {
+        return 'Password must contain at least one number';
+    }
+
+    // Check for at least one special character (_ - &)
+    if (!/[_\-&]/.test(password)) {
+        return 'Password must contain at least one special character (_, -, or &)';
+    }
+
+    return null; // Password is valid
+}
+
 // Create a test app with just the authentication routes
 const createTestApp = () => {
     const app = express();
@@ -48,9 +78,10 @@ const createTestApp = () => {
                 return res.status(400).json({ error: 'Invalid email format' });
             }
 
-            // Validate password length
-            if (password.length < 6) {
-                return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+            // Validate password strength
+            const passwordError = validatePassword(password);
+            if (passwordError) {
+                return res.status(400).json({ error: passwordError });
             }
 
             // Validate username format
@@ -111,6 +142,68 @@ const createTestApp = () => {
     return app;
 };
 
+describe('Password Validation Function', () => {
+    test('should return null for valid passwords', () => {
+        expect(validatePassword('Password123_')).toBeNull();
+        expect(validatePassword('Test123-')).toBeNull();
+        expect(validatePassword('MyPass1&')).toBeNull();
+        expect(validatePassword('Strong9_')).toBeNull();
+        expect(validatePassword('Valid123-Pass')).toBeNull();
+    });
+
+    test('should reject passwords that are too short', () => {
+        expect(validatePassword('Pass1_')).toBe('Password must be between 8 and 16 characters long');
+        expect(validatePassword('Aa1_')).toBe('Password must be between 8 and 16 characters long');
+        expect(validatePassword('')).toBe('Password must be between 8 and 16 characters long');
+    });
+
+    test('should reject passwords that are too long', () => {
+        expect(validatePassword('Password123_TooLong')).toBe('Password must be between 8 and 16 characters long');
+        expect(validatePassword('ThisPasswordIsWayTooLong123_')).toBe('Password must be between 8 and 16 characters long');
+    });
+
+    test('should reject passwords missing lowercase letters', () => {
+        expect(validatePassword('PASSWORD123_')).toBe('Password must contain at least one lowercase letter');
+        expect(validatePassword('TEST123-')).toBe('Password must contain at least one lowercase letter');
+    });
+
+    test('should reject passwords missing uppercase letters', () => {
+        expect(validatePassword('password123_')).toBe('Password must contain at least one uppercase letter');
+        expect(validatePassword('test123-')).toBe('Password must contain at least one uppercase letter');
+    });
+
+    test('should reject passwords missing numbers', () => {
+        expect(validatePassword('Password_')).toBe('Password must contain at least one number');
+        expect(validatePassword('TestPass-')).toBe('Password must contain at least one number');
+    });
+
+    test('should reject passwords missing special characters', () => {
+        expect(validatePassword('Password123')).toBe('Password must contain at least one special character (_, -, or &)');
+        expect(validatePassword('TestPass123')).toBe('Password must contain at least one special character (_, -, or &)');
+    });
+
+    test('should reject passwords with invalid special characters', () => {
+        expect(validatePassword('Password123!')).toBe('Password must contain at least one special character (_, -, or &)');
+        expect(validatePassword('Password123@')).toBe('Password must contain at least one special character (_, -, or &)');
+        expect(validatePassword('Password123#')).toBe('Password must contain at least one special character (_, -, or &)');
+    });
+
+    test('should accept passwords with valid special characters', () => {
+        expect(validatePassword('Password123_')).toBeNull();
+        expect(validatePassword('Password123-')).toBeNull();
+        expect(validatePassword('Password123&')).toBeNull();
+    });
+
+    test('should handle edge cases', () => {
+        // Exactly 8 characters
+        expect(validatePassword('Pass123_')).toBeNull();
+        // Exactly 16 characters
+        expect(validatePassword('Password123_Pass')).toBeNull();
+        // Multiple special characters
+        expect(validatePassword('Pass123_-&')).toBeNull();
+    });
+});
+
 describe('Server API Endpoints', () => {
     let app;
 
@@ -124,7 +217,7 @@ describe('Server API Endpoints', () => {
             name: 'Test User',
             username: 'testuser',
             email: 'test@example.com',
-            password: 'password123',
+            password: 'Password123_',
             securityQuestion: 'pet',
             securityAnswer: 'Fluffy'
         };
@@ -172,7 +265,49 @@ describe('Server API Endpoints', () => {
                 .send(invalidData)
                 .expect(400);
 
-            expect(response.body.error).toBe('Password must be at least 6 characters long');
+            expect(response.body.error).toBe('Password must be between 8 and 16 characters long');
+        });
+
+        test('should reject registration with weak passwords', async () => {
+            // Test missing uppercase
+            let invalidData = { ...validRegistrationData, password: 'password123_' };
+            let response = await request(app)
+                .post('/api/register')
+                .send(invalidData)
+                .expect(400);
+            expect(response.body.error).toBe('Password must contain at least one uppercase letter');
+
+            // Test missing lowercase
+            invalidData = { ...validRegistrationData, password: 'PASSWORD123_' };
+            response = await request(app)
+                .post('/api/register')
+                .send(invalidData)
+                .expect(400);
+            expect(response.body.error).toBe('Password must contain at least one lowercase letter');
+
+            // Test missing number
+            invalidData = { ...validRegistrationData, password: 'Password_' };
+            response = await request(app)
+                .post('/api/register')
+                .send(invalidData)
+                .expect(400);
+            expect(response.body.error).toBe('Password must contain at least one number');
+
+            // Test missing special character
+            invalidData = { ...validRegistrationData, password: 'Password123' };
+            response = await request(app)
+                .post('/api/register')
+                .send(invalidData)
+                .expect(400);
+            expect(response.body.error).toBe('Password must contain at least one special character (_, -, or &)');
+
+            // Test too long password
+            invalidData = { ...validRegistrationData, password: 'Password123_TooLong' };
+            response = await request(app)
+                .post('/api/register')
+                .send(invalidData)
+                .expect(400);
+            expect(response.body.error).toBe('Password must be between 8 and 16 characters long');
         });
 
         test('should reject registration with invalid username', async () => {

@@ -7,17 +7,17 @@
 function validateModules() {
     const modules = [
         'apiClient',
-        'setupManager', 
+        'setupManager',
         'transactionManager',
         'navigationManager',
         'summaryManager',
         'authManager',
         'expenseTracker'
     ];
-    
+
     const loadedModules = [];
     const missingModules = [];
-    
+
     modules.forEach(module => {
         if (window[module]) {
             loadedModules.push(module);
@@ -25,12 +25,12 @@ function validateModules() {
             missingModules.push(module);
         }
     });
-    
+
     console.log('✅ Loaded Modules:', loadedModules);
     if (missingModules.length > 0) {
         console.log('❌ Missing Modules:', missingModules);
     }
-    
+
     return missingModules.length === 0;
 }
 
@@ -38,20 +38,20 @@ function validateModules() {
 function checkForDuplicates() {
     const globalFunctions = [
         'addBank',
-        'addIncome', 
+        'addIncome',
         'addExpense',
         'showSection',
         'loadMonthlySummary'
     ];
-    
+
     const duplicateCheck = {};
-    
+
     globalFunctions.forEach(funcName => {
         if (window[funcName]) {
             duplicateCheck[funcName] = 'Available as global function';
         }
     });
-    
+
     console.log('Global Functions Check:', duplicateCheck);
     return Object.keys(duplicateCheck).length > 0;
 }

@@ -15,11 +15,11 @@ class NavigationManager {
             const element = document.getElementById(sectionId);
             if (element) element.classList.add('hidden');
         });
-        
+
         // Show the requested section
         const targetSection = document.getElementById(section + '-section');
         if (targetSection) targetSection.classList.remove('hidden');
-        
+
         // Load section-specific data
         if (section === 'transactions') {
             window.transactionManager.updateTransactionFormVisibility();
@@ -32,12 +32,12 @@ class NavigationManager {
 
     async setTrackingOption(option) {
         window.expenseTracker.trackingOption = option;
-        
+
         try {
             await this.apiClient.post('/api/set-tracking-option', {
                 trackingOption: option
             });
-            
+
             this.hideWelcomeSection();
             this.showMainApp();
             this.showSection('setup');

@@ -22,7 +22,7 @@ class ExpenseTracker {
         const currentDate = new Date();
         const incomeDate = document.getElementById('income-date');
         const expenseDate = document.getElementById('expense-date');
-        
+
         if (incomeDate) incomeDate.valueAsDate = currentDate;
         if (expenseDate) expenseDate.valueAsDate = currentDate;
     }
@@ -33,7 +33,7 @@ class ExpenseTracker {
 
         const currentYear = new Date().getFullYear();
         yearSelect.innerHTML = '';
-        
+
         for (let year = currentYear - 5; year <= currentYear + 1; year++) {
             const option = document.createElement('option');
             option.value = year;
@@ -59,18 +59,23 @@ class ExpenseTracker {
         window.showForgotPassword = () => window.authManager.showForgotPasswordForm();
         window.requestPasswordReset = () => window.authManager.requestPasswordReset();
         window.resetPassword = () => window.authManager.resetPassword();
+        window.showForgotUsername = () => window.authManager.showForgotUsernameForm();
+        window.forgotUsername = () => window.authManager.forgotUsername();
+        window.showEmailReset = () => window.authManager.showEmailResetForm();
+        window.requestPasswordResetByEmail = () => window.authManager.requestPasswordResetByEmail();
+        window.resetPasswordWithToken = () => window.authManager.resetPasswordWithToken();
         window.logout = () => window.authManager.logout();
-        
+
         window.setTrackingOption = (option) => window.navigationManager.setTrackingOption(option);
         window.showSection = (section) => window.navigationManager.showSection(section);
-        
+
         window.addBank = () => window.setupManager.addBank();
         window.addCreditCard = () => window.setupManager.addCreditCard();
         window.setCashBalance = () => window.setupManager.setCashBalance();
-        
+
         window.addIncome = () => window.transactionManager.addIncome();
         window.addExpense = () => window.transactionManager.addExpense();
-        
+
         window.loadMonthlySummary = () => window.summaryManager.loadMonthlySummary();
     }
 }

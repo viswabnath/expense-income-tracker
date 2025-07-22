@@ -14,7 +14,7 @@ class ApiClient {
         };
 
         const response = await fetch(endpoint, { ...defaultOptions, ...options });
-        
+
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -68,7 +68,7 @@ describe('ApiClient', () => {
         test('should make successful POST request', async () => {
             const mockResponse = { success: true };
             const postData = { username: 'test', password: 'password' };
-            
+
             fetch.mockResolvedValueOnce({
                 ok: true,
                 json: async () => mockResponse,

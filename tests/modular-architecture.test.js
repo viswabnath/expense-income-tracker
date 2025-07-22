@@ -19,7 +19,7 @@ describe('Modular Architecture Validation', () => {
         it('should maintain single responsibility principle', () => {
             // Each manager handles only its specific domain:
             // - SetupManager: banks, credit cards, cash
-            // - TransactionManager: income/expense transactions  
+            // - TransactionManager: income/expense transactions
             // - NavigationManager: section navigation
             // - SummaryManager: monthly summaries
             expect(true).toBe(true);
@@ -44,7 +44,7 @@ describe('Modular Architecture Validation', () => {
         it('should have organized code structure', () => {
             // Modular files created:
             // - setup-manager.js (158 lines)
-            // - transaction-manager.js (220 lines) 
+            // - transaction-manager.js (220 lines)
             // - navigation-manager.js (84 lines)
             // - summary-manager.js (160 lines)
             expect(true).toBe(true);
@@ -70,7 +70,7 @@ describe('Application Integration', () => {
         });
 
         it('should have working authentication', () => {
-            // Auth tests are passing - security layer works correctly  
+            // Auth tests are passing - security layer works correctly
             expect(true).toBe(true);
         });
 

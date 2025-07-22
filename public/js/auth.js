@@ -16,6 +16,35 @@ class AuthManager {
         return /^[a-zA-Z0-9_]+$/.test(username);
     }
 
+    static validatePassword(password) {
+        // Check length (8-16 characters)
+        if (password.length < 8 || password.length > 16) {
+            return 'Password must be between 8 and 16 characters long';
+        }
+
+        // Check for at least one lowercase letter
+        if (!/[a-z]/.test(password)) {
+            return 'Password must contain at least one lowercase letter';
+        }
+
+        // Check for at least one uppercase letter
+        if (!/[A-Z]/.test(password)) {
+            return 'Password must contain at least one uppercase letter';
+        }
+
+        // Check for at least one number
+        if (!/[0-9]/.test(password)) {
+            return 'Password must contain at least one number';
+        }
+
+        // Check for at least one special character (_ - &)
+        if (!/[_\-&]/.test(password)) {
+            return 'Password must contain at least one special character (_, -, or &)';
+        }
+
+        return null; // Password is valid
+    }
+
     static validateInput(value, fieldName) {
         if (!value || !value.trim()) {
             throw new Error(`${fieldName} is required`);
@@ -49,11 +78,11 @@ class AuthManager {
     async login() {
         try {
             const username = AuthManager.validateInput(
-                document.getElementById('login-username').value, 
+                document.getElementById('login-username').value,
                 'Username'
             );
             const password = AuthManager.validateInput(
-                document.getElementById('login-password').value, 
+                document.getElementById('login-password').value,
                 'Password'
             );
 
@@ -126,8 +155,10 @@ class AuthManager {
             throw new Error('Please enter a valid email address');
         }
 
-        if (data.password.length < 6) {
-            throw new Error('Password must be at least 6 characters long');
+        // Validate password strength
+        const passwordError = AuthManager.validatePassword(data.password);
+        if (passwordError) {
+            throw new Error(passwordError);
         }
 
         if (data.password !== data.confirmPassword) {
@@ -170,7 +201,7 @@ class AuthManager {
             if (data.success) {
                 this.resetUserId = data.userId;
                 document.getElementById('reset-user-name').textContent = data.name;
-                document.getElementById('reset-security-question').textContent = 
+                document.getElementById('reset-security-question').textContent =
                     this.getSecurityQuestionText(data.securityQuestion);
                 this.showForm('reset-password-form');
                 AuthManager.clearMessage();
@@ -197,8 +228,10 @@ class AuthManager {
                 'Confirm Password'
             );
 
-            if (newPassword.length < 6) {
-                throw new Error('Password must be at least 6 characters long');
+            // Validate new password strength
+            const passwordError = AuthManager.validatePassword(newPassword);
+            if (passwordError) {
+                throw new Error(passwordError);
             }
 
             if (newPassword !== confirmPassword) {
@@ -262,7 +295,13 @@ class AuthManager {
     }
 
     showForm(formId) {
-        const forms = ['login-form', 'register-form', 'forgot-password-form', 'reset-password-form'];
+        const forms = [
+            'login-form',
+            'register-form',
+            'forgot-password-form',
+            'reset-password-form',
+            'forgot-username-form'
+        ];
         forms.forEach(id => {
             const element = document.getElementById(id);
             if (element) {
@@ -302,7 +341,68 @@ class AuthManager {
             console.error('Logout error:', error);
         }
     }
+
+    // Forgot Username functionality
+    async forgotUsername() {
+        console.log('forgotUsername function called');
+        try {
+            const emailInput = document.getElementById('forgot-username-email-input');
+            console.log('Email input element:', emailInput);
+
+            if (!emailInput) {
+                throw new Error('Email input field not found');
+            }
+
+            const email = AuthManager.validateInput(
+                emailInput.value,
+                'Email'
+            );
+
+            console.log('Email to send:', email);
+
+            if (!AuthManager.validateEmail(email)) {
+                throw new Error('Please enter a valid email address');
+            }
+
+            console.log('Making request to /api/forgot-username');
+
+            const response = await fetch('/api/forgot-username', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'credentials': 'include'
+                },
+                body: JSON.stringify({ email })
+            });
+
+            console.log('Response received:', response);
+
+            const data = await response.json();
+
+            console.log('Response data:', data);
+
+            if (data.success) {
+                AuthManager.showSuccess(`Username found: ${data.username} (${data.name})`);
+                // Optionally switch to login form and pre-fill username
+                setTimeout(() => {
+                    this.showForm('login-form');
+                    document.getElementById('login-username').value = data.username;
+                }, 2000);
+            } else {
+                AuthManager.showError(data.error);
+            }
+        } catch (error) {
+            console.error('Error in forgotUsername:', error);
+            AuthManager.showError(error.message || 'Failed to retrieve username');
+        }
+    }
+
+    showForgotUsernameForm() {
+        this.showForm('forgot-username-form');
+    }
 }
 
 // Global auth manager instance
 window.authManager = new AuthManager();
+
+// Global functions for HTML onclick handlers

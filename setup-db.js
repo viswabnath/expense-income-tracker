@@ -5,20 +5,20 @@ const { Pool } = require('pg');
 
 // Database connection configuration using environment variables
 const pool = new Pool({
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'expense_tracker',
-  password: process.env.DB_PASSWORD || 'expense-tracker-2025',
-  port: process.env.DB_PORT || 5432,
-  // For production SSL connection (required by most cloud providers)
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    user: process.env.DB_USER || 'postgres',
+    host: process.env.DB_HOST || 'localhost',
+    database: process.env.DB_NAME || 'expense_tracker',
+    password: process.env.DB_PASSWORD || 'expense-tracker-2025',
+    port: process.env.DB_PORT || 5432,
+    // For production SSL connection (required by most cloud providers)
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 // Database schema setup
 const createTables = async () => {
-  try {
+    try {
     // Users table
-    await pool.query(`
+        await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         username VARCHAR(50) UNIQUE NOT NULL,
@@ -33,8 +33,8 @@ const createTables = async () => {
       )
     `);
 
-    // Banks table
-    await pool.query(`
+        // Banks table
+        await pool.query(`
       CREATE TABLE IF NOT EXISTS banks (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -46,8 +46,8 @@ const createTables = async () => {
       )
     `);
 
-    // Credit cards table
-    await pool.query(`
+        // Credit cards table
+        await pool.query(`
       CREATE TABLE IF NOT EXISTS credit_cards (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -59,8 +59,8 @@ const createTables = async () => {
       )
     `);
 
-    // Income entries table
-    await pool.query(`
+        // Income entries table
+        await pool.query(`
       CREATE TABLE IF NOT EXISTS income_entries (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -75,8 +75,8 @@ const createTables = async () => {
       )
     `);
 
-    // Expenses table
-    await pool.query(`
+        // Expenses table
+        await pool.query(`
       CREATE TABLE IF NOT EXISTS expenses (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -91,8 +91,8 @@ const createTables = async () => {
       )
     `);
 
-    // Cash balance table
-    await pool.query(`
+        // Cash balance table
+        await pool.query(`
       CREATE TABLE IF NOT EXISTS cash_balance (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE UNIQUE,
@@ -102,20 +102,20 @@ const createTables = async () => {
       )
     `);
 
-    // Add migration for existing users table to include new columns
-    console.log('Adding new columns to existing users table if they don\'t exist...');
-    
-    try {
-      await pool.query(`
+        // Add migration for existing users table to include new columns
+        console.log('Adding new columns to existing users table if they don\'t exist...');
+
+        try {
+            await pool.query(`
         ALTER TABLE users 
         ADD COLUMN IF NOT EXISTS email VARCHAR(255),
         ADD COLUMN IF NOT EXISTS security_question VARCHAR(100),
         ADD COLUMN IF NOT EXISTS security_answer_hash VARCHAR(255),
         ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       `);
-      
-      // Add unique constraint on email if it doesn't exist
-      await pool.query(`
+
+            // Add unique constraint on email if it doesn't exist
+            await pool.query(`
         DO $$ 
         BEGIN
           IF NOT EXISTS (
@@ -126,18 +126,18 @@ const createTables = async () => {
           END IF;
         END $$;
       `);
-      
-      console.log('User table migration completed successfully!');
-    } catch (migrationError) {
-      console.log('Migration note:', migrationError.message);
-    }
 
-    console.log('Database tables created successfully!');
-  } catch (error) {
-    console.error('Error creating tables:', error);
-  } finally {
-    pool.end();
-  }
+            console.log('User table migration completed successfully!');
+        } catch (migrationError) {
+            console.log('Migration note:', migrationError.message);
+        }
+
+        console.log('Database tables created successfully!');
+    } catch (error) {
+        console.error('Error creating tables:', error);
+    } finally {
+        pool.end();
+    }
 };
 
 // Run the setup

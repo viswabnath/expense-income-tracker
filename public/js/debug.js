@@ -8,7 +8,7 @@ console.log('=== MODULE LOADING DEBUG ===');
 // Check if all manager instances exist
 const managers = [
     'ApiClient',
-    'apiClient', 
+    'apiClient',
     'authManager',
     'setupManager',
     'transactionManager',
@@ -32,7 +32,7 @@ managers.forEach(manager => {
 // Check if global functions are available
 const globalFunctions = [
     'login',
-    'register', 
+    'register',
     'setTrackingOption',
     'showSection',
     'addBank',

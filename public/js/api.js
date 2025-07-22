@@ -5,19 +5,40 @@
 
 class ApiClient {
     static async request(endpoint, options = {}) {
-        const defaultOptions = {
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        };
+        try {
+            const defaultOptions = {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include' // This ensures cookies are sent for authentication
+            };
 
-        const response = await fetch(endpoint, { ...defaultOptions, ...options });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const response = await fetch(endpoint, { ...defaultOptions, ...options });
+
+            if (!response.ok) {
+                // Try to get error message from response body
+                let errorMessage = `HTTP error! status: ${response.status}`;
+                try {
+                    const errorData = await response.json();
+                    if (errorData.error) {
+                        errorMessage = errorData.error;
+                    }
+                } catch {
+                    // If we can't parse the error response, use the default message
+                }
+                throw new Error(errorMessage);
+            }
+
+            return response.json();
+
+        } catch (error) {
+            // If it's already an Error object, re-throw it
+            if (error instanceof Error) {
+                throw error;
+            }
+            // If it's something else (like network error), wrap it
+            throw new Error(`Request failed: ${error.message || error}`);
         }
-
-        return response.json();
     }
 
     static async get(endpoint) {
@@ -53,12 +74,24 @@ class ApiClient {
         return this.post('/api/register', userData);
     }
 
+    static async forgotUsername(data) {
+        return this.post('/api/forgot-username', data);
+    }
+
     static async forgotPassword(data) {
         return this.post('/api/forgot-password', data);
     }
 
     static async resetPassword(data) {
         return this.post('/api/reset-password', data);
+    }
+
+    static async requestPasswordResetEmail(data) {
+        return this.post('/api/request-password-reset-email', data);
+    }
+
+    static async resetPasswordWithToken(data) {
+        return this.post('/api/reset-password-with-token', data);
     }
 
     static async logout() {
