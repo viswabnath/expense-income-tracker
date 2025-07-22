@@ -1,14 +1,17 @@
 
-
+// Add this to the top of both server.js and setup-db.js
+require('dotenv').config();
 const { Pool } = require('pg');
 
-// Database connection configuration
+// Database connection configuration using environment variables
 const pool = new Pool({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'expense_tracker',
-  password: 'expense-tracker-2025',
-  port: 5432,
+  user: process.env.DB_USER || 'postgres',
+  host: process.env.DB_HOST || 'localhost',
+  database: process.env.DB_NAME || 'expense_tracker',
+  password: process.env.DB_PASSWORD || 'expense-tracker-2025',
+  port: process.env.DB_PORT || 5432,
+  // For production SSL connection (required by most cloud providers)
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 // Database schema setup
@@ -21,8 +24,12 @@ const createTables = async () => {
         username VARCHAR(50) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
         name VARCHAR(100) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        security_question VARCHAR(100) NOT NULL,
+        security_answer_hash VARCHAR(255) NOT NULL,
         tracking_option VARCHAR(20) NOT NULL CHECK (tracking_option IN ('income', 'expenses', 'both')),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
@@ -94,6 +101,36 @@ const createTables = async () => {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Add migration for existing users table to include new columns
+    console.log('Adding new columns to existing users table if they don\'t exist...');
+    
+    try {
+      await pool.query(`
+        ALTER TABLE users 
+        ADD COLUMN IF NOT EXISTS email VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS security_question VARCHAR(100),
+        ADD COLUMN IF NOT EXISTS security_answer_hash VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      `);
+      
+      // Add unique constraint on email if it doesn't exist
+      await pool.query(`
+        DO $$ 
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint 
+            WHERE conname = 'users_email_key'
+          ) THEN
+            ALTER TABLE users ADD CONSTRAINT users_email_key UNIQUE (email);
+          END IF;
+        END $$;
+      `);
+      
+      console.log('User table migration completed successfully!');
+    } catch (migrationError) {
+      console.log('Migration note:', migrationError.message);
+    }
 
     console.log('Database tables created successfully!');
   } catch (error) {

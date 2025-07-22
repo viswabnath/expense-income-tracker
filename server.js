@@ -1,3 +1,5 @@
+// Add this to the top of both server.js and setup-db.js
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
@@ -10,11 +12,12 @@ const PORT = process.env.PORT || 3000;
 
 // Database connection
 const pool = new Pool({
-  user: 'postgres',
-  host: 'localhost',
-  database: 'expense_tracker',
-  password: 'your_password',
-  port: 5432,
+  user: process.env.DB_USER || 'postgres',
+  host: process.env.DB_HOST || 'localhost',
+  database: process.env.DB_NAME || 'expense_tracker',
+  password: process.env.DB_PASSWORD || 'expense-tracker-2025',
+  port: process.env.DB_PORT || 5432,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 // Middleware
@@ -44,18 +47,57 @@ const requireAuth = (req, res, next) => {
 // User Registration
 app.post('/api/register', async (req, res) => {
   try {
-    const { username, password, name } = req.body;
+    const { username, password, name, email, securityQuestion, securityAnswer } = req.body;
+    
+    // Server-side validation
+    if (!username || !password || !name || !email || !securityQuestion || !securityAnswer) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+    
+    // Validate password length
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+    
+    // Validate username format
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!usernameRegex.test(username)) {
+      return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores' });
+    }
+    
+    // Check if username already exists
+    const existingUser = await pool.query(
+      'SELECT id FROM users WHERE username = $1 OR email = $2',
+      [username, email]
+    );
+    
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ error: 'Username or email already exists' });
+    }
+    
     const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedSecurityAnswer = await bcrypt.hash(securityAnswer.toLowerCase().trim(), 10);
     
     const result = await pool.query(
-      'INSERT INTO users (username, password_hash, name, tracking_option) VALUES ($1, $2, $3, $4) RETURNING id',
-      [username, hashedPassword, name, 'both']
+      'INSERT INTO users (username, password_hash, name, email, security_question, security_answer_hash, tracking_option) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
+      [username, hashedPassword, name, email, securityQuestion, hashedSecurityAnswer, 'both']
     );
     
     req.session.userId = result.rows[0].id;
     res.json({ success: true, userId: result.rows[0].id });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    console.error('Registration error:', error);
+    if (error.code === '23505') { // Unique constraint violation
+      res.status(400).json({ error: 'Username or email already exists' });
+    } else {
+      res.status(400).json({ error: 'Registration failed. Please try again.' });
+    }
   }
 });
 
@@ -63,6 +105,17 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
+    
+    // Server-side validation
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
+    }
+    
+    // Validate username format
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!usernameRegex.test(username)) {
+      return res.status(400).json({ error: 'Invalid username format. Username can only contain letters, numbers, and underscores' });
+    }
     
     const result = await pool.query(
       'SELECT id, password_hash, name, tracking_option FROM users WHERE username = $1',
@@ -116,6 +169,104 @@ app.get('/api/user', requireAuth, async (req, res) => {
     res.json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Password Reset - Step 1: Verify user and security question
+app.post('/api/forgot-password', async (req, res) => {
+  try {
+    const { username, email } = req.body;
+    
+    if (!username && !email) {
+      return res.status(400).json({ error: 'Username or email is required' });
+    }
+    
+    // Validate email format if email is provided
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: 'Invalid email format' });
+      }
+    }
+    
+    // Validate username format if username is provided
+    if (username) {
+      const usernameRegex = /^[a-zA-Z0-9_]+$/;
+      if (!usernameRegex.test(username)) {
+        return res.status(400).json({ error: 'Invalid username format. Username can only contain letters, numbers, and underscores' });
+      }
+    }
+    
+    let query, params;
+    if (email) {
+      query = 'SELECT id, username, name, security_question FROM users WHERE email = $1';
+      params = [email];
+    } else {
+      query = 'SELECT id, username, name, security_question FROM users WHERE username = $1';
+      params = [username];
+    }
+    
+    const result = await pool.query(query, params);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = result.rows[0];
+    res.json({ 
+      success: true, 
+      userId: user.id,
+      username: user.username,
+      name: user.name,
+      securityQuestion: user.security_question 
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Server error. Please try again.' });
+  }
+});
+
+// Password Reset - Step 2: Verify security answer and reset password
+app.post('/api/reset-password', async (req, res) => {
+  try {
+    const { userId, securityAnswer, newPassword } = req.body;
+    
+    if (!userId || !securityAnswer || !newPassword) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+    
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    }
+    
+    // Get user's security answer hash
+    const result = await pool.query(
+      'SELECT security_answer_hash FROM users WHERE id = $1',
+      [userId]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = result.rows[0];
+    const isValidAnswer = await bcrypt.compare(securityAnswer.toLowerCase().trim(), user.security_answer_hash);
+    
+    if (!isValidAnswer) {
+      return res.status(400).json({ error: 'Incorrect security answer' });
+    }
+    
+    // Update password
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    await pool.query(
+      'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+      [hashedNewPassword, userId]
+    );
+    
+    res.json({ success: true, message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Server error. Please try again.' });
   }
 });
 
@@ -190,10 +341,26 @@ app.post('/api/cash-balance', requireAuth, async (req, res) => {
   try {
     const { balance } = req.body;
     
-    const result = await pool.query(
-      'INSERT INTO cash_balance (user_id, balance, initial_balance) VALUES ($1, $2, $2) ON CONFLICT (user_id) DO UPDATE SET balance = $2, initial_balance = $2 RETURNING *',
-      [req.session.userId, balance || 0]
+    // Check if user already has a cash balance record
+    const existingCash = await pool.query(
+      'SELECT * FROM cash_balance WHERE user_id = $1',
+      [req.session.userId]
     );
+    
+    let result;
+    if (existingCash.rows.length > 0) {
+      // Update existing record - only update balance, keep initial_balance unchanged
+      result = await pool.query(
+        'UPDATE cash_balance SET balance = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2 RETURNING *',
+        [balance || 0, req.session.userId]
+      );
+    } else {
+      // Insert new record - set both balance and initial_balance to the same value
+      result = await pool.query(
+        'INSERT INTO cash_balance (user_id, balance, initial_balance) VALUES ($1, $2, $2) RETURNING *',
+        [req.session.userId, balance || 0]
+      );
+    }
     
     res.json(result.rows[0]);
   } catch (error) {
@@ -375,34 +542,54 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
       [req.session.userId]
     );
 
-    // Calculate total income including all balances
-    const monthIncome = parseFloat(incomeResult.rows[0].month_income);
-    const totalBankBalance = parseFloat(bankResult.rows[0].total_bank_balance);
-    const cashBalance = parseFloat(cashResult.rows[0]?.cash_balance || 0);
+    // Calculate income and balances correctly
+    const monthIncome = parseFloat(incomeResult.rows[0]?.month_income) || 0;
+    const totalBankBalance = parseFloat(bankResult.rows[0]?.total_bank_balance) || 0;
+    const totalInitialBankBalance = parseFloat(bankResult.rows[0]?.total_initial_balance) || 0;
+    const cashBalance = parseFloat(cashResult.rows[0]?.cash_balance) || 0;
+    const initialCashBalance = parseFloat(cashResult.rows[0]?.initial_cash_balance) || 0;
 
-    // Total income = Monthly Income + Total Bank Balance + Cash Balance
-    const totalIncome = monthIncome + totalBankBalance + cashBalance;
+    // Log for debugging
+    console.log('Cash data:', cashResult.rows[0]);
+    console.log('Parsed cash balance:', cashBalance);
+    console.log('Parsed initial cash balance:', initialCashBalance);
 
-    // Get expenses for the month
+    // Total current wealth = Current Bank Balance + Cash Balance (these already reflect all historical transactions)
+    const totalCurrentWealth = totalBankBalance + cashBalance;
+    
+    // Total initial balances
+    const totalInitialBalance = totalInitialBankBalance + initialCashBalance;
+
+    // Get expenses for the month - Fixed table name from expense_entries to expenses
     const expenseResult = await pool.query(
-      'SELECT COALESCE(SUM(amount), 0) as total_expenses FROM expense_entries WHERE user_id = $1 AND month = $2 AND year = $3',
+      'SELECT COALESCE(SUM(amount), 0) as total_expenses FROM expenses WHERE user_id = $1 AND month = $2 AND year = $3',
       [req.session.userId, month, year]
     );
+
+    const monthExpenses = parseFloat(expenseResult.rows[0]?.total_expenses) || 0;
 
     // Get other account details
     const banks = await pool.query('SELECT * FROM banks WHERE user_id = $1', [req.session.userId]);
     const creditCards = await pool.query('SELECT * FROM credit_cards WHERE user_id = $1', [req.session.userId]);
 
+    // Calculate net savings as initial balance + income - expenses
+    const netSavings = totalInitialBalance + monthIncome - monthExpenses;
+
     res.json({
       monthlyIncome: monthIncome, // Income for just this month
-      totalIncome: totalIncome, // Total including all balances
-      totalExpenses: parseFloat(expenseResult.rows[0].total_expenses),
-      netSavings: totalIncome - parseFloat(expenseResult.rows[0].total_expenses),
+      totalCurrentWealth: totalCurrentWealth, // Current total wealth (bank + cash balances)
+      totalExpenses: monthExpenses, // Expenses for just this month
+      netSavings: netSavings, // Initial balance + income - expenses
+      totalInitialBalance: totalInitialBalance, // Total initial balances for reference
       banks: banks.rows,
       creditCards: creditCards.rows,
-      cash: cashResult.rows[0] || { balance: 0 }
+      cash: {
+        balance: cashResult.rows[0]?.cash_balance || 0,
+        initial_balance: cashResult.rows[0]?.initial_cash_balance || 0
+      }
     });
   } catch (error) {
+    console.error('Error in monthly-summary endpoint:', error);
     res.status(500).json({ error: error.message });
   }
 });
