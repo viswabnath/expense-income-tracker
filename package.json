@@ -38,12 +38,25 @@
     "supertest": "^6.3.4"
   },
   "jest": {
-    "testEnvironment": "jsdom",
+    "testEnvironment": "node",
     "setupFilesAfterEnv": [
       "<rootDir>/tests/setup.js"
     ],
-    "testMatch": [
-      "<rootDir>/tests/**/*.test.js"
+    "coverageReporters": ["text", "html", "lcov"],
+    "coverageDirectory": "coverage",
+    "projects": [
+      {
+        "displayName": "backend",
+        "testEnvironment": "node",
+        "testMatch": ["<rootDir>/tests/integration.test.js", "<rootDir>/tests/api.test.js", "<rootDir>/tests/server.test.js", "<rootDir>/tests/comprehensive-coverage.test.js", "<rootDir>/tests/edge-cases.test.js", "<rootDir>/tests/setup-db.test.js", "<rootDir>/tests/setup-db-coverage.test.js"],
+        "collectCoverageFrom": ["server.js", "setup-db.js"]
+      },
+      {
+        "displayName": "frontend",
+        "testEnvironment": "jsdom",
+        "testMatch": ["<rootDir>/tests/frontend-integration.test.js", "<rootDir>/tests/auth.test.js", "<rootDir>/tests/modular-architecture.test.js", "<rootDir>/tests/frontend-coverage.test.js"],
+        "collectCoverageFrom": ["public/js/**/*.js", "!public/js/lib/**"]
+      }
     ]
   }
 }
