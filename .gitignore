@@ -87,6 +87,7 @@ pids/
 # dotenv environment variables file
 .env
 .env.test
+.env.example
 
 # Parcel-bundler cache (if using Parcel)
 .cache
@@ -198,6 +199,9 @@ GIT-PUSH-GUIDE.md
 LINTING.md
 refactoring-report.md
 SECURITY-ANALYSIS.md
+API-Documentation.md
+PROJECT-COMPLETENESS-ANALYSIS.md
+refactoring-report.md
 # Development utility scripts
 check-schema.js
 reset-db.js
@@ -206,3 +210,8 @@ reset-db.js
 check-schema.js
 reset-db.js
 
+#docker-compose files
+deploy.sh
+docker-compose.yml
+Dockerfile
+ci-cd.yml

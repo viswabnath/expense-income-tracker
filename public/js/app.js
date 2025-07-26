@@ -8,14 +8,119 @@ class ExpenseTracker {
         this.currentUser = null;
         this.trackingOption = 'both';
         this.resetUserId = null;
+        this.isAuthenticated = false;
         this.init();
     }
 
-    init() {
+    async init() {
         this.setupDateInputs();
         this.setupYearDropdown();
         this.setCurrentMonth();
         this.setupGlobalFunctions();
+        
+        // Check authentication status
+        await this.checkAuthenticationStatus();
+    }
+
+    async checkAuthenticationStatus() {
+        try {
+            const authStatus = await window.authManager.checkAuthentication();
+            
+            if (authStatus.isAuthenticated) {
+                this.isAuthenticated = true;
+                this.currentUser = authStatus.user;
+                this.trackingOption = authStatus.user.tracking_option || 'both';
+                
+                // User is authenticated, show the main app
+                this.showMainApplication();
+            } else {
+                this.isAuthenticated = false;
+                // User is not authenticated, show login form
+                this.showAuthenticationForms();
+            }
+        } catch (error) {
+            console.error('Authentication check failed:', error);
+            this.isAuthenticated = false;
+            this.showAuthenticationForms();
+        }
+    }
+
+    showMainApplication() {
+        // Hide authentication forms
+        const authForms = document.querySelectorAll('.auth-form');
+        authForms.forEach(form => form.classList.add('hidden'));
+        
+        // Hide auth section
+        const authSection = document.getElementById('auth-section');
+        if (authSection) {
+            authSection.classList.add('hidden');
+        }
+        
+        // Show navigation bar
+        const navBar = document.getElementById('nav-bar');
+        if (navBar) {
+            navBar.style.display = 'flex';
+        }
+        
+        // Check if user has already set tracking option
+        if (this.trackingOption && this.trackingOption !== 'none') {
+            // User has tracking option set, go directly to main app
+            const welcomeSection = document.getElementById('welcome-section');
+            if (welcomeSection) {
+                welcomeSection.classList.add('hidden');
+            }
+            
+            const mainApp = document.getElementById('main-app');
+            if (mainApp) {
+                mainApp.classList.remove('hidden');
+                // Set user name in nav
+                const userName = document.getElementById('user-name');
+                if (userName && this.currentUser) {
+                    userName.textContent = this.currentUser.name || this.currentUser.username;
+                }
+                // Show setup section by default
+                window.navigationManager.showSection('setup');
+            }
+        } else {
+            // New user or no tracking option set, show welcome section
+            const welcomeSection = document.getElementById('welcome-section');
+            if (welcomeSection) {
+                welcomeSection.classList.remove('hidden');
+                // Set user name in welcome
+                const userName = document.getElementById('user-name');
+                if (userName && this.currentUser) {
+                    userName.textContent = this.currentUser.name || this.currentUser.username;
+                }
+            }
+        }
+    }
+
+    showAuthenticationForms() {
+        // Hide main app sections
+        const welcomeSection = document.getElementById('welcome-section');
+        if (welcomeSection) {
+            welcomeSection.classList.add('hidden');
+        }
+        
+        const mainApp = document.getElementById('main-app');
+        if (mainApp) {
+            mainApp.classList.add('hidden');
+        }
+        
+        // Hide navigation
+        const navBar = document.getElementById('nav-bar');
+        if (navBar) {
+            navBar.style.display = 'none';
+        }
+        
+        // Show auth section
+        const authSection = document.getElementById('auth-section');
+        if (authSection) {
+            authSection.classList.remove('hidden');
+        }
+        
+        // Show login form
+        window.authManager.showLoginForm();
     }
 
     setupDateInputs() {

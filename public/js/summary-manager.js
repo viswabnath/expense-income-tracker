@@ -1,8 +1,7 @@
 /**
- * Summary Manager Module
- * Handles monthly summary display and calculations
+ * Enhanced Summary Manager with Modern Dashboard UI
+ * Displays financial summaries with visual cards and highlighted amounts
  */
-
 class SummaryManager {
     constructor() {
         this.apiClient = window.apiClient;
@@ -14,40 +13,23 @@ class SummaryManager {
             const year = document.getElementById('summary-year').value;
 
             if (!month || !year) {
-                document.getElementById('summary-display').innerHTML =
-                    '<p style="color: #666; text-align: center;">Please select month and year to view summary</p>';
+                document.getElementById('summary-display').innerHTML = '<p class="error">Please select both month and year.</p>';
                 return;
             }
 
-            // Show loading message
-            document.getElementById('summary-display').innerHTML =
-                '<p style="color: #666; text-align: center;">Loading summary...</p>';
-
             const data = await this.apiClient.get(`/api/monthly-summary?month=${month}&year=${year}`);
-
-            if (data && data.error) {
-                throw new Error(data.error);
-            }
-
             this.displayMonthlySummary(data, month, year);
-
         } catch (error) {
             console.error('Error loading monthly summary:', error);
-
-            let errorMessage = 'Unknown error occurred';
-            if (error && error.message) {
-                errorMessage = error.message;
-            } else if (typeof error === 'string') {
-                errorMessage = error;
-            }
-
+            
             // Check if it's an authentication error
-            if (errorMessage.includes('Authentication required') || errorMessage.includes('401')) {
-                document.getElementById('summary-display').innerHTML =
-                    '<div class="error"><h3>Please log in</h3><p>You need to be logged in to view monthly summary. Please log in first.</p></div>';
+            if (error.message.includes('Authentication required') || error.message.includes('401')) {
+                // User is not authenticated, redirect to login
+                window.expenseTracker.isAuthenticated = false;
+                window.expenseTracker.showAuthenticationForms();
+                document.getElementById('summary-display').innerHTML = '<p class="error">Please log in to view your summary.</p>';
             } else {
-                document.getElementById('summary-display').innerHTML =
-                    '<div class="error"><h3>Error loading monthly summary</h3><p>' + errorMessage + '</p></div>';
+                document.getElementById('summary-display').innerHTML = `<p class="error">Error loading summary: ${error.message}</p>`;
             }
         }
     }
@@ -67,7 +49,9 @@ class SummaryManager {
             timeReference = `at End of ${monthName}`; // fallback
         }
 
-        let html = `<h2>Monthly Summary - ${monthName} ${year}</h2>`;
+        let html = `<h2 style="text-align: center; color: #495057; margin-bottom: 30px;">
+            📊 ${monthName} ${year} Financial Summary
+        </h2>`;
 
         // Check for no data message
         if (data.message) {
@@ -83,99 +67,163 @@ class SummaryManager {
             return;
         }
 
-        // Financial Summary
-        html += '<div class="summary">';
+        // Financial Dashboard Cards
+        html += '<div class="summary-dashboard">';
 
-        // Income
+        // Income Card
         if (data.monthlyIncome !== undefined && data.monthlyIncome !== null) {
-            html += `<h3>This Month's Income: ${parseFloat(data.monthlyIncome).toFixed(2)}</h3>`;
+            html += `
+                <div class="summary-card income">
+                    <h3>💰 Monthly Income</h3>
+                    <div class="summary-amount">₹${parseFloat(data.monthlyIncome).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div class="summary-subtitle">Money earned this month</div>
+                </div>`;
         } else {
-            html += '<h3 class="error">This Month\'s Income: No income data available</h3>';
+            html += `
+                <div class="summary-card income" style="opacity: 0.6;">
+                    <h3>💰 Monthly Income</h3>
+                    <div class="summary-amount">₹0.00</div>
+                    <div class="summary-subtitle">No income data available</div>
+                </div>`;
         }
 
-        // Total Wealth
-        if (data.totalCurrentWealth !== undefined && data.totalCurrentWealth !== null) {
-            html += `<h3>Total Wealth (Bank + Cash) ${timeReference}: ${parseFloat(data.totalCurrentWealth).toFixed(2)}</h3>`;
-        } else {
-            html += '<h3 class="error">Total Wealth: Unable to calculate wealth</h3>';
-        }
-
-        // Expenses
+        // Expenses Card
         if (data.totalExpenses !== undefined && data.totalExpenses !== null) {
-            html += `<h3>This Month's Expenses: ${parseFloat(data.totalExpenses).toFixed(2)}</h3>`;
+            html += `
+                <div class="summary-card expense">
+                    <h3>💸 Monthly Expenses</h3>
+                    <div class="summary-amount">₹${parseFloat(data.totalExpenses).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div class="summary-subtitle">Money spent this month</div>
+                </div>`;
         } else {
-            html += '<h3 class="error">This Month\'s Expenses: No expense data available</h3>';
+            html += `
+                <div class="summary-card expense" style="opacity: 0.6;">
+                    <h3>💸 Monthly Expenses</h3>
+                    <div class="summary-amount">₹0.00</div>
+                    <div class="summary-subtitle">No expense data available</div>
+                </div>`;
         }
 
-        // Net Savings with breakdown
-        if (data.netSavings !== undefined && data.netSavings !== null &&
-            data.totalInitialBalance !== undefined && data.monthlyIncome !== undefined &&
-            data.totalExpenses !== undefined) {
-            html += `<h3>Net Savings (Initial + Income - Expenses): ${parseFloat(data.netSavings).toFixed(2)}</h3>`;
-            html += `<p style="color: #666; font-size: 14px;">Initial Balance: ${parseFloat(data.totalInitialBalance || 0).toFixed(2)} + Income: ${parseFloat(data.monthlyIncome || 0).toFixed(2)} - Expenses: ${parseFloat(data.totalExpenses || 0).toFixed(2)}</p>`;
+        // Total Wealth Card
+        if (data.totalCurrentWealth !== undefined && data.totalCurrentWealth !== null) {
+            html += `
+                <div class="summary-card wealth">
+                    <h3>💎 Total Wealth</h3>
+                    <div class="summary-amount">₹${parseFloat(data.totalCurrentWealth).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div class="summary-subtitle">Banks + Cash ${timeReference}</div>
+                </div>`;
         } else {
-            html += '<h3 class="error">Net Savings: Unable to calculate savings</h3>';
+            html += `
+                <div class="summary-card wealth" style="opacity: 0.6;">
+                    <h3>💎 Total Wealth</h3>
+                    <div class="summary-amount">₹0.00</div>
+                    <div class="summary-subtitle">Unable to calculate wealth</div>
+                </div>`;
         }
 
-        html += '</div>';
+        // Net Savings Card
+        if (data.netSavings !== undefined && data.netSavings !== null) {
+            const savingsIcon = parseFloat(data.netSavings) >= 0 ? '📈' : '📉';
+            html += `
+                <div class="summary-card savings">
+                    <h3>${savingsIcon} Net Savings</h3>
+                    <div class="summary-amount">₹${parseFloat(data.netSavings).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div class="summary-subtitle">Income - Expenses + Initial</div>
+                </div>`;
+        } else {
+            html += `
+                <div class="summary-card savings" style="opacity: 0.6;">
+                    <h3>📊 Net Savings</h3>
+                    <div class="summary-amount">₹0.00</div>
+                    <div class="summary-subtitle">Unable to calculate savings</div>
+                </div>`;
+        }
 
-        // Bank Balances (as they were at end of selected month or as of now)
+        html += '</div>'; // Close summary-dashboard
+
+        // Account Balances Section
+        html += '<div class="accounts-section">';
+        html += `<h3 style="color: #495057; margin-bottom: 20px;">💳 Account Balances ${timeReference}</h3>`;
+        html += '<div class="accounts-grid">';
+
+        // Cash Balance
+        if (data.cash) {
+            const cashBalance = data.cash.balance;
+            if (cashBalance !== undefined && cashBalance !== null && !isNaN(cashBalance)) {
+                html += `
+                    <div class="account-card cash">
+                        <h4>💵 Cash Balance</h4>
+                        <div class="account-balance">₹${parseFloat(cashBalance).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    </div>`;
+            } else {
+                html += `
+                    <div class="account-card cash" style="opacity: 0.6;">
+                        <h4>💵 Cash Balance</h4>
+                        <div class="account-balance" style="color: #6c757d;">Unavailable</div>
+                    </div>`;
+            }
+        }
+
+        // Bank Balances
         if (data.banks && data.banks.length > 0) {
-            html += `<h3>Bank Balances ${timeReference.replace('at End of', 'at End of').replace('as of now', 'as of now')}:</h3>`;
-            html += '<table><tr><th>Bank</th><th>Balance</th></tr>';
             data.banks.forEach(bank => {
                 const bankName = bank.name || 'Unknown Bank';
                 const balance = bank.current_balance;
-                if (balance === undefined || balance === null) {
-                    html += `<tr><td>${bankName}</td><td class="error">Balance unavailable for this period</td></tr>`;
+                if (balance !== undefined && balance !== null) {
+                    html += `
+                        <div class="account-card bank">
+                            <h4>🏦 ${bankName}</h4>
+                            <div class="account-balance">₹${parseFloat(balance).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                        </div>`;
                 } else {
-                    html += `<tr><td>${bankName}</td><td>${parseFloat(balance).toFixed(2)}</td></tr>`;
+                    html += `
+                        <div class="account-card bank" style="opacity: 0.6;">
+                            <h4>🏦 ${bankName}</h4>
+                            <div class="account-balance" style="color: #6c757d;">Unavailable</div>
+                        </div>`;
                 }
             });
-            html += '</table>';
-        } else {
-            html += `<h3>Bank Balances: No banks configured in ${monthName} ${year}</h3>`;
-        }
-
-        // Cash Balance (as it was at end of selected month or as of now)
-        if (data.cash) {
-            const cashBalance = data.cash.balance;
-            if (cashBalance === undefined || cashBalance === null || isNaN(cashBalance)) {
-                html += `<h3 class="error">Cash Balance ${timeReference}: Balance unavailable for this period</h3>`;
-            } else {
-                html += `<h3>Cash Balance ${timeReference}: ${parseFloat(cashBalance).toFixed(2)}</h3>`;
-            }
-        } else {
-            html += `<h3>Cash Balance: No cash balance configured in ${monthName} ${year}</h3>`;
         }
 
         // Credit Cards (only show if user tracks expenses or both)
         if (data.trackingOption === 'expenses' || data.trackingOption === 'both') {
             if (data.creditCards && data.creditCards.length > 0) {
-                html += `<h3>Credit Cards in ${monthName} ${year}:</h3>`;
-                html += '<table><tr><th>Card</th><th>Limit</th><th>Used</th><th>Available</th></tr>';
                 data.creditCards.forEach(card => {
                     const cardName = card.name || 'Unknown Card';
-                    const creditLimit = card.credit_limit;
-                    const usedLimit = card.used_limit;
-
-                    if (creditLimit === undefined || creditLimit === null ||
-                        usedLimit === undefined || usedLimit === null) {
-                        html += `<tr><td>${cardName}</td><td colspan="3" class="error">Card data unavailable</td></tr>`;
-                    } else {
-                        const available = parseFloat(creditLimit) - parseFloat(usedLimit);
-                        html += `<tr>
-                            <td>${cardName}</td>
-                            <td>${parseFloat(creditLimit).toFixed(2)}</td>
-                            <td>${parseFloat(usedLimit).toFixed(2)}</td>
-                            <td>${available.toFixed(2)}</td>
-                        </tr>`;
-                    }
+                    const creditLimit = card.credit_limit || 0;
+                    const usedLimit = card.current_balance || 0;
+                    const availableCredit = parseFloat(creditLimit) - parseFloat(usedLimit);
+                    
+                    html += `
+                        <div class="account-card credit">
+                            <h4>💳 ${cardName}</h4>
+                            <div class="account-balance" style="color: #dc3545;">₹${parseFloat(usedLimit).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} used</div>
+                            <div style="font-size: 12px; color: #6c757d; margin-top: 5px;">
+                                ₹${availableCredit.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} available of ₹${parseFloat(creditLimit).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                            </div>
+                        </div>`;
                 });
-                html += '</table>';
-            } else {
-                html += `<h3>Credit Cards: No credit cards configured in ${monthName} ${year}</h3>`;
             }
+        }
+
+        html += '</div>'; // Close accounts-grid
+        html += '</div>'; // Close accounts-section
+
+        // Breakdown Details (Collapsible)
+        if (data.netSavings !== undefined && data.netSavings !== null &&
+            data.totalInitialBalance !== undefined && data.monthlyIncome !== undefined &&
+            data.totalExpenses !== undefined) {
+            html += `
+                <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
+                    <h4 style="color: #495057; margin-bottom: 10px;">📋 Calculation Breakdown</h4>
+                    <div style="font-size: 14px; color: #6c757d; line-height: 1.6;">
+                        <strong>Net Savings Formula:</strong><br>
+                        Initial Balance (₹${parseFloat(data.totalInitialBalance || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}) + 
+                        Income (₹${parseFloat(data.monthlyIncome || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}) - 
+                        Expenses (₹${parseFloat(data.totalExpenses || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}) = 
+                        <strong>₹${parseFloat(data.netSavings).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
+                    </div>
+                </div>`;
         }
 
         document.getElementById('summary-display').innerHTML = html;

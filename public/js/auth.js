@@ -6,6 +6,32 @@
 class AuthManager {
     constructor() {
         this.resetUserId = null;
+        this.apiClient = window.apiClient;
+    }
+
+    async checkAuthentication() {
+        try {
+            const response = await this.apiClient.get('/api/user');
+            // If successful, user is authenticated
+            return {
+                isAuthenticated: true,
+                user: response
+            };
+        } catch (error) {
+            // If it fails with 401, user is not authenticated
+            if (error.message.includes('Authentication required') || error.message.includes('401')) {
+                return {
+                    isAuthenticated: false,
+                    error: error.message
+                };
+            }
+            // For other errors, still consider not authenticated but log the error
+            console.error('Authentication check failed:', error);
+            return {
+                isAuthenticated: false,
+                error: error.message
+            };
+        }
     }
 
     static validateEmail(email) {
@@ -101,9 +127,10 @@ class AuthManager {
             if (data.success) {
                 window.expenseTracker.currentUser = data;
                 window.expenseTracker.trackingOption = data.trackingOption;
+                window.expenseTracker.isAuthenticated = true;
                 document.getElementById('user-name').textContent = data.name;
                 this.hideAuthSection();
-                this.showMainApp();
+                window.expenseTracker.showMainApplication();
             } else {
                 AuthManager.showError(data.error);
             }
@@ -127,9 +154,11 @@ class AuthManager {
 
             if (data.success) {
                 window.expenseTracker.currentUser = { name: formData.name, userId: data.userId };
+                window.expenseTracker.isAuthenticated = true;
+                window.expenseTracker.trackingOption = 'none'; // Force welcome section
                 document.getElementById('user-name').textContent = formData.name;
                 this.hideAuthSection();
-                this.showWelcomeSection();
+                window.authManager.showWelcomeSection();
             } else {
                 AuthManager.showError(data.error);
             }
@@ -330,18 +359,6 @@ class AuthManager {
         }
     }
 
-    async logout() {
-        try {
-            await fetch('/api/logout', { method: 'POST' });
-            window.expenseTracker.currentUser = null;
-            document.getElementById('main-app').classList.add('hidden');
-            document.getElementById('auth-section').classList.remove('hidden');
-            this.showLoginForm();
-        } catch (error) {
-            console.error('Logout error:', error);
-        }
-    }
-
     // Forgot Username functionality
     async forgotUsername() {
         console.log('forgotUsername function called');
@@ -399,6 +416,52 @@ class AuthManager {
 
     showForgotUsernameForm() {
         this.showForm('forgot-username-form');
+    }
+
+    async logout() {
+        try {
+            const response = await fetch('/api/logout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+
+            // Clear local state regardless of server response
+            window.expenseTracker.isAuthenticated = false;
+            window.expenseTracker.currentUser = null;
+            window.expenseTracker.trackingOption = 'both';
+            
+            // Show authentication forms
+            window.expenseTracker.showAuthenticationForms();
+            
+            // Clear any cached data
+            this.clearCachedData();
+            
+        } catch (error) {
+            console.error('Logout error:', error);
+            // Still clear local state even if logout request fails
+            window.expenseTracker.isAuthenticated = false;
+            window.expenseTracker.showAuthenticationForms();
+        }
+    }
+
+    clearCachedData() {
+        // Clear any cached data in the UI
+        const summaryDisplay = document.getElementById('summary-display');
+        if (summaryDisplay) {
+            summaryDisplay.innerHTML = '';
+        }
+        
+        // Clear transaction tables
+        const incomeTableBody = document.getElementById('income-table-body');
+        if (incomeTableBody) {
+            incomeTableBody.innerHTML = '';
+        }
+        
+        const expenseTableBody = document.getElementById('expense-table-body');
+        if (expenseTableBody) {
+            expenseTableBody.innerHTML = '';
+        }
     }
 }
 

@@ -141,8 +141,8 @@ class SetupManager {
                     const row = table.insertRow();
                     row.innerHTML = `
                         <td>${bank.name}</td>
-                        <td>${parseFloat(bank.initial_balance).toFixed(2)}</td>
-                        <td>${parseFloat(bank.current_balance).toFixed(2)}</td>
+                        <td>₹${parseFloat(bank.initial_balance).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td>₹${parseFloat(bank.current_balance).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                     `;
                 });
 
@@ -217,9 +217,9 @@ class SetupManager {
                     const available = parseFloat(card.credit_limit) - parseFloat(card.used_limit);
                     row.innerHTML = `
                         <td>${card.name}</td>
-                        <td>${parseFloat(card.credit_limit).toFixed(2)}</td>
-                        <td>${parseFloat(card.used_limit).toFixed(2)}</td>
-                        <td>${available.toFixed(2)}</td>
+                        <td>₹${parseFloat(card.credit_limit).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td>₹${parseFloat(card.used_limit).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td>₹${available.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                     `;
                 });
 
@@ -263,7 +263,7 @@ class SetupManager {
             const cashData = await this.apiClient.get('/api/cash-balance');
 
             const cashDiv = document.getElementById('cash-display');
-            cashDiv.innerHTML = `<h4>Cash Balance: ${parseFloat(cashData.balance || 0).toFixed(2)}</h4>`;
+            cashDiv.innerHTML = `<h4>Cash Balance: ₹${parseFloat(cashData.balance || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h4>`;
         } catch (error) {
             console.error('Error loading cash balance:', error);
         }

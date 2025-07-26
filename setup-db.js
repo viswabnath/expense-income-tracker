@@ -1,5 +1,3 @@
-
-// Add this to the top of both server.js and setup-db.js
 require('dotenv').config();
 const { Pool } = require('pg');
 
@@ -39,8 +37,8 @@ const createTables = async () => {
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         name VARCHAR(100) NOT NULL,
-        initial_balance DECIMAL(10,2) DEFAULT 0.00,
-        current_balance DECIMAL(10,2) DEFAULT 0.00,
+        initial_balance DECIMAL(20,2) DEFAULT 0.00,
+        current_balance DECIMAL(20,2) DEFAULT 0.00,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(user_id, name)
       )
@@ -52,8 +50,8 @@ const createTables = async () => {
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         name VARCHAR(100) NOT NULL,
-        credit_limit DECIMAL(10,2) NOT NULL,
-        used_limit DECIMAL(10,2) DEFAULT 0.00,
+        credit_limit DECIMAL(20,2) NOT NULL,
+        used_limit DECIMAL(20,2) DEFAULT 0.00,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(user_id, name)
       )
@@ -65,7 +63,7 @@ const createTables = async () => {
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         source VARCHAR(100) NOT NULL,
-        amount DECIMAL(10,2) NOT NULL,
+        amount DECIMAL(20,2) NOT NULL,
         credited_to_type VARCHAR(10) NOT NULL CHECK (credited_to_type IN ('bank', 'cash')),
         credited_to_id INTEGER,
         date DATE NOT NULL,
@@ -81,7 +79,7 @@ const createTables = async () => {
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
         title VARCHAR(200) NOT NULL,
-        amount DECIMAL(10,2) NOT NULL,
+        amount DECIMAL(20,2) NOT NULL,
         payment_method VARCHAR(15) NOT NULL CHECK (payment_method IN ('cash', 'bank', 'credit_card')),
         payment_source_id INTEGER,
         date DATE NOT NULL,
@@ -96,8 +94,8 @@ const createTables = async () => {
       CREATE TABLE IF NOT EXISTS cash_balance (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES users(id) ON DELETE CASCADE UNIQUE,
-        balance DECIMAL(10,2) DEFAULT 0.00,
-        initial_balance DECIMAL(10,2) DEFAULT 0.00,
+        balance DECIMAL(20,2) DEFAULT 0.00,
+        initial_balance DECIMAL(20,2) DEFAULT 0.00,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);

@@ -88,6 +88,15 @@ class TransactionManager {
             }
         } catch (error) {
             console.error('Error adding income:', error);
+            
+            // Check if it's an authentication error
+            if (error.message.includes('Authentication required') || error.message.includes('401')) {
+                window.expenseTracker.isAuthenticated = false;
+                window.expenseTracker.showAuthenticationForms();
+                this.showTransactionMessage('Please log in to add income.', 'error');
+                return;
+            }
+            
             // Try to extract the actual error message from the API response
             let errorMessage = 'Error adding income';
             if (error && error.message) {
@@ -138,6 +147,15 @@ class TransactionManager {
             }
         } catch (error) {
             console.error('Error adding expense:', error);
+            
+            // Check if it's an authentication error
+            if (error.message.includes('Authentication required') || error.message.includes('401')) {
+                window.expenseTracker.isAuthenticated = false;
+                window.expenseTracker.showAuthenticationForms();
+                this.showTransactionMessage('Please log in to add expenses.', 'error');
+                return;
+            }
+            
             // Try to extract the actual error message from the API response
             let errorMessage = 'Error adding expense';
             if (error && error.message) {
@@ -196,7 +214,7 @@ class TransactionManager {
                     row.innerHTML = `
                         <td>${date}</td>
                         <td>${income.source}</td>
-                        <td>${parseFloat(income.amount).toFixed(2)}</td>
+                        <td>₹${parseFloat(income.amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                         <td>${creditedTo}</td>
                     `;
                     incomeTableBody.appendChild(row);
@@ -232,7 +250,7 @@ class TransactionManager {
                     row.innerHTML = `
                         <td>${date}</td>
                         <td>${expense.title}</td>
-                        <td>${parseFloat(expense.amount).toFixed(2)}</td>
+                        <td>₹${parseFloat(expense.amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                         <td>${paymentMethod}</td>
                     `;
                     expenseTableBody.appendChild(row);
@@ -243,6 +261,12 @@ class TransactionManager {
 
         } catch (error) {
             console.error('Error loading transactions:', error);
+            
+            // Check if it's an authentication error
+            if (error.message.includes('Authentication required') || error.message.includes('401')) {
+                window.expenseTracker.isAuthenticated = false;
+                window.expenseTracker.showAuthenticationForms();
+            }
         }
     }
 

@@ -23,16 +23,16 @@ const pool = new Pool({
 
 // Rate limiting for authentication endpoints
 // DEVELOPMENT: Rate limiting disabled for easier development
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 attempts per window per IP
-    message: { error: 'Too many authentication attempts. Please try again in 15 minutes.' },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
+// const authLimiter = rateLimit({
+//     windowMs: 15 * 60 * 1000, // 15 minutes
+//     max: 5, // 5 attempts per window per IP
+//     message: { error: 'Too many authentication attempts. Please try again in 15 minutes.' },
+//     standardHeaders: true,
+//     legacyHeaders: false,
+// });
 
 // Development bypass - no rate limiting
-// const authLimiter = (req, res, next) => next();
+const authLimiter = (req, res, next) => next();
 
 // General rate limiting
 const generalLimiter = rateLimit({
@@ -781,7 +781,20 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
                 'SELECT * FROM credit_cards WHERE user_id = $1 AND created_at <= $2',
                 [userId, endOfSelectedMonth]
             );
-            creditCards = creditCardResult.rows;
+            // For each card, calculate used_limit as of end of selected month
+            creditCards = await Promise.all(creditCardResult.rows.map(async card => {
+                const usedResult = await pool.query(
+                    `SELECT COALESCE(SUM(amount), 0) AS used_limit
+                     FROM expenses
+                     WHERE user_id = $1 AND payment_method = 'credit_card' AND payment_source_id = $2 AND date <= $3`,
+                    [userId, card.id, endOfSelectedMonth]
+                );
+                return {
+                    ...card,
+                    current_balance: usedResult.rows[0].used_limit,
+                    used_limit: usedResult.rows[0].used_limit
+                };
+            }));
         }
 
         // Calculate totals

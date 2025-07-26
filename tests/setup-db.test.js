@@ -99,21 +99,21 @@ describe('Database Setup Tests', () => {
         test('should contain banks table creation with foreign key constraints', () => {
             expect(setupDbCode).toContain('CREATE TABLE IF NOT EXISTS banks');
             expect(setupDbCode).toContain('user_id INTEGER REFERENCES users(id) ON DELETE CASCADE');
-            expect(setupDbCode).toContain('initial_balance DECIMAL(10,2) DEFAULT 0.00');
-            expect(setupDbCode).toContain('current_balance DECIMAL(10,2) DEFAULT 0.00');
+            expect(setupDbCode).toContain('initial_balance DECIMAL(20,2) DEFAULT 0.00');
+            expect(setupDbCode).toContain('current_balance DECIMAL(20,2) DEFAULT 0.00');
             expect(setupDbCode).toContain('UNIQUE(user_id, name)');
         });
 
         test('should contain credit_cards table creation', () => {
             expect(setupDbCode).toContain('CREATE TABLE IF NOT EXISTS credit_cards');
-            expect(setupDbCode).toContain('credit_limit DECIMAL(10,2) NOT NULL');
-            expect(setupDbCode).toContain('used_limit DECIMAL(10,2) DEFAULT 0.00');
+            expect(setupDbCode).toContain('credit_limit DECIMAL(20,2) NOT NULL');
+            expect(setupDbCode).toContain('used_limit DECIMAL(20,2) DEFAULT 0.00');
         });
 
         test('should contain income_entries table with proper constraints', () => {
             expect(setupDbCode).toContain('CREATE TABLE IF NOT EXISTS income_entries');
             expect(setupDbCode).toContain('credited_to_type VARCHAR(10) NOT NULL CHECK (credited_to_type IN (\'bank\', \'cash\'))');
-            expect(setupDbCode).toContain('amount DECIMAL(10,2) NOT NULL');
+            expect(setupDbCode).toContain('amount DECIMAL(20,2) NOT NULL');
         });
 
         test('should contain expenses table with payment method checks', () => {
@@ -191,8 +191,8 @@ describe('Database Setup Tests', () => {
                             id SERIAL PRIMARY KEY,
                             user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
                             name VARCHAR(100) NOT NULL,
-                            initial_balance DECIMAL(10,2) DEFAULT 0.00,
-                            current_balance DECIMAL(10,2) DEFAULT 0.00,
+                            initial_balance DECIMAL(20,2) DEFAULT 0.00,
+                            current_balance DECIMAL(20,2) DEFAULT 0.00,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             UNIQUE(user_id, name)
                         )\`);

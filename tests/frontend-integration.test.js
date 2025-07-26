@@ -248,9 +248,9 @@ describe('Frontend JavaScript Integration Tests', () => {
             expect(window.apiClient.get).toHaveBeenCalledWith('/api/monthly-summary?month=7&year=2025');
             
             const displayContent = document.getElementById('summary-display').innerHTML;
-            expect(displayContent).toContain('Monthly Summary - July 2025');
+            expect(displayContent).toContain('📊 July 2025 Financial Summary');
             expect(displayContent).toContain('as of now'); // Current month reference
-            expect(displayContent).toContain('1000.00'); // Income amount
+            expect(displayContent).toContain('₹1,000.00'); // Income amount with INR formatting
         });
     });
 

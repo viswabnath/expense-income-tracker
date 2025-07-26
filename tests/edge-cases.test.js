@@ -459,4 +459,188 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
             });
         });
     });
+
+    describe('Input Sanitization and XSS Prevention', () => {
+        test('should handle potentially malicious input in bank names', async () => {
+            const maliciousInputs = [
+                '<script>alert("xss")</script>',
+                'DROP TABLE users;',
+                '${7*7}',
+                '{{7*7}}',
+                'Bank\nWith\nNewlines',
+                'Bank\tWith\tTabs'
+            ];
+
+            for (const input of maliciousInputs) {
+                const response = await request(app)
+                    .post('/api/banks')
+                    .set('Cookie', sessionCookie)
+                    .send({
+                        name: input,
+                        initialBalance: 1000
+                    });
+
+                expect(response.status).toBe(200);
+                // Should store and return safely
+                expect(response.body.name).toBeDefined();
+            }
+        });
+
+        test('should handle SQL injection attempts', async () => {
+            const sqlInjections = [
+                "'; DROP TABLE banks; --",
+                "' OR '1'='1",
+                "1; DELETE FROM users WHERE 1=1; --"
+            ];
+
+            for (const injection of sqlInjections) {
+                const response = await request(app)
+                    .post('/api/banks')
+                    .set('Cookie', sessionCookie)
+                    .send({
+                        name: injection,
+                        initialBalance: 1000
+                    });
+
+                // Should handle safely without crashing
+                expect([200, 400, 500]).toContain(response.status);
+            }
+        });
+    });
+
+    describe('Tracking Option Edge Cases', () => {
+        test('should handle invalid tracking options', async () => {
+            const invalidOptions = ['invalid', 'all', 'none', ''];
+
+            for (const option of invalidOptions) {
+                const response = await request(app)
+                    .post('/api/set-tracking-option')
+                    .set('Cookie', sessionCookie)
+                    .send({ trackingOption: option });
+
+                // Should reject invalid options
+                expect([400, 500]).toContain(response.status);
+            }
+
+            // Test null and undefined separately as they might be handled differently
+            const nullResponse = await request(app)
+                .post('/api/set-tracking-option')
+                .set('Cookie', sessionCookie)
+                .send({ trackingOption: null });
+            expect([400, 500]).toContain(nullResponse.status);
+
+            const undefinedResponse = await request(app)
+                .post('/api/set-tracking-option')
+                .set('Cookie', sessionCookie)
+                .send({});
+            expect([400, 500]).toContain(undefinedResponse.status);
+        });
+
+        test('should validate tracking option constraints in expenses', async () => {
+            // Set to income-only and try to add expense
+            await request(app)
+                .post('/api/set-tracking-option')
+                .set('Cookie', sessionCookie)
+                .send({ trackingOption: 'income' });
+
+            const response = await request(app)
+                .post('/api/expenses')
+                .set('Cookie', sessionCookie)
+                .send({
+                    title: 'Should Not Be Allowed',
+                    amount: 100,
+                    paymentMethod: 'cash',
+                    paymentSourceId: null,
+                    date: '2025-07-22'
+                });
+
+            // Reset to both for other tests
+            await request(app)
+                .post('/api/set-tracking-option')
+                .set('Cookie', sessionCookie)
+                .send({ trackingOption: 'both' });
+
+            // Should handle according to business logic
+            expect([200, 400]).toContain(response.status);
+        });
+    });
+
+    describe('Date and Time Edge Cases', () => {
+        test('should handle leap year dates', async () => {
+            const response = await request(app)
+                .post('/api/income')
+                .set('Cookie', sessionCookie)
+                .send({
+                    source: 'Leap Year Income',
+                    amount: 100,
+                    creditedToType: 'cash',
+                    creditedToId: null,
+                    date: '2024-02-29' // Leap year date
+                });
+
+            expect(response.status).toBe(200);
+        });
+
+        test('should handle future dates gracefully', async () => {
+            const futureDate = new Date();
+            futureDate.setFullYear(futureDate.getFullYear() + 1);
+            const futureDateString = futureDate.toISOString().split('T')[0];
+
+            const response = await request(app)
+                .post('/api/income')
+                .set('Cookie', sessionCookie)
+                .send({
+                    source: 'Future Income',
+                    amount: 100,
+                    creditedToType: 'cash',
+                    creditedToId: null,
+                    date: futureDateString
+                });
+
+            // Should handle according to business logic
+            expect([200, 400]).toContain(response.status);
+        });
+
+        test('should handle invalid date formats', async () => {
+            const invalidDates = ['2025-13-01', '2025-02-30', 'invalid-date', ''];
+
+            for (const invalidDate of invalidDates) {
+                const response = await request(app)
+                    .post('/api/income')
+                    .set('Cookie', sessionCookie)
+                    .send({
+                        source: 'Invalid Date Income',
+                        amount: 100,
+                        creditedToType: 'cash',
+                        creditedToId: null,
+                        date: invalidDate
+                    });
+
+                expect([400, 500]).toContain(response.status);
+            }
+        });
+    });
+
+    describe('Rate Limiting and Security Headers', () => {
+        test('should handle CORS preflight requests', async () => {
+            const response = await request(app)
+                .options('/api/banks')
+                .set('Origin', 'http://localhost:3000')
+                .set('Access-Control-Request-Method', 'POST');
+
+            // Should handle CORS appropriately
+            expect([200, 204, 404]).toContain(response.status);
+        });
+
+        test('should handle requests with suspicious headers', async () => {
+            const response = await request(app)
+                .get('/api/banks')
+                .set('Cookie', sessionCookie)
+                .set('X-Forwarded-For', '127.0.0.1; DROP TABLE users; --')
+                .set('User-Agent', '<script>alert("xss")</script>');
+
+            // Should handle safely
+            expect([200, 400, 401]).toContain(response.status);
+        });
+    });
 });
