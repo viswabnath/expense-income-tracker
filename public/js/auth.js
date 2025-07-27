@@ -63,9 +63,9 @@ class AuthManager {
             return 'Password must contain at least one number';
         }
 
-        // Check for at least one special character (_ - &)
-        if (!/[_\-&]/.test(password)) {
-            return 'Password must contain at least one special character (_, -, or &)';
+        // Check for at least one special character (_ - &@)
+        if (!/[_\-&@:]/.test(password)) {
+            return 'Password must contain at least one special character (_, -, @, :,or &)';
         }
 
         return null; // Password is valid

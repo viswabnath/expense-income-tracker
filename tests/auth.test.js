@@ -43,8 +43,8 @@ class AuthManager {
         }
 
         // Check for at least one special character (_ - &)
-        if (!/[_\-&]/.test(password)) {
-            return 'Password must contain at least one special character (_, -, or &)';
+        if (!/[_\-&@:]/.test(password)) {
+            return 'Password must contain at least one special character (_, -, @, :,or &)';
         }
 
         return null; // Password is valid
@@ -172,14 +172,15 @@ describe('AuthManager', () => {
         });
 
         test('should reject passwords missing special characters', () => {
-            expect(AuthManager.validatePassword('Password123')).toBe('Password must contain at least one special character (_, -, or &)');
-            expect(AuthManager.validatePassword('TestPass123')).toBe('Password must contain at least one special character (_, -, or &)');
+            expect(AuthManager.validatePassword('Password123')).toBe('Password must contain at least one special character (_, -, @, :,or &)');
+            expect(AuthManager.validatePassword('TestPass123')).toBe('Password must contain at least one special character (_, -, @, :,or &)');
         });
 
         test('should reject passwords with invalid special characters', () => {
-            expect(AuthManager.validatePassword('Password123!')).toBe('Password must contain at least one special character (_, -, or &)');
-            expect(AuthManager.validatePassword('Password123@')).toBe('Password must contain at least one special character (_, -, or &)');
-            expect(AuthManager.validatePassword('Password123#')).toBe('Password must contain at least one special character (_, -, or &)');
+            expect(AuthManager.validatePassword('Password123!')).toBe('Password must contain at least one special character (_, -, @, :,or &)');
+            expect(AuthManager.validatePassword('Password123#')).toBe('Password must contain at least one special character (_, -, @, :,or &)');
+            // '@' is allowed, so this should be valid
+            expect(AuthManager.validatePassword('Password123@')).toBeNull();
         });
 
         test('should accept passwords with valid special characters', () => {
@@ -270,7 +271,7 @@ describe('AuthManager', () => {
             // Missing special character
             const noSpecial = { ...validData, password: 'Password123', confirmPassword: 'Password123' };
             expect(() => authManager.validateRegistrationData(noSpecial))
-                .toThrow('Password must contain at least one special character (_, -, or &)');
+                .toThrow('Password must contain at least one special character (_, -, @, :,or &)');
         });
 
         test('should throw error for password mismatch', () => {

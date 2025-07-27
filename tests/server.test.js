@@ -41,7 +41,7 @@ function validatePassword(password) {
 
     // Check for at least one special character (_ - &)
     if (!/[_\-&]/.test(password)) {
-        return 'Password must contain at least one special character (_, -, or &)';
+        return 'Password must contain at least one special character (_, -, @, :,or &)';
     }
 
     return null; // Password is valid
@@ -178,14 +178,14 @@ describe('Password Validation Function', () => {
     });
 
     test('should reject passwords missing special characters', () => {
-        expect(validatePassword('Password123')).toBe('Password must contain at least one special character (_, -, or &)');
-        expect(validatePassword('TestPass123')).toBe('Password must contain at least one special character (_, -, or &)');
+        expect(validatePassword('Password123')).toBe('Password must contain at least one special character (_, -, @, :,or &)');
+        expect(validatePassword('TestPass123')).toBe('Password must contain at least one special character (_, -, @, :,or &)');
     });
 
     test('should reject passwords with invalid special characters', () => {
-        expect(validatePassword('Password123!')).toBe('Password must contain at least one special character (_, -, or &)');
-        expect(validatePassword('Password123@')).toBe('Password must contain at least one special character (_, -, or &)');
-        expect(validatePassword('Password123#')).toBe('Password must contain at least one special character (_, -, or &)');
+        expect(validatePassword('Password123!')).toBe('Password must contain at least one special character (_, -, @, :,or &)');
+        expect(validatePassword('Password123@')).toBe('Password must contain at least one special character (_, -, @, :,or &)');
+        expect(validatePassword('Password123#')).toBe('Password must contain at least one special character (_, -, @, :,or &)');
     });
 
     test('should accept passwords with valid special characters', () => {
@@ -299,7 +299,7 @@ describe('Server API Endpoints', () => {
                 .post('/api/register')
                 .send(invalidData)
                 .expect(400);
-            expect(response.body.error).toBe('Password must contain at least one special character (_, -, or &)');
+            expect(response.body.error).toBe('Password must contain at least one special character (_, -, @, :,or &)');
 
             // Test too long password
             invalidData = { ...validRegistrationData, password: 'Password123_TooLong' };

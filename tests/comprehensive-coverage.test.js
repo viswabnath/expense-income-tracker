@@ -176,8 +176,8 @@ describe('Comprehensive Coverage Tests', () => {
                 { password: 'NOLOWERCASE123&', error: 'Password must contain at least one lowercase letter' },
                 { password: 'nouppercase123&', error: 'Password must contain at least one uppercase letter' },
                 { password: 'NoNumbers&', error: 'Password must contain at least one number' },
-                { password: 'NoSpecialChar123', error: 'Password must contain at least one special character (_, -, or &)' },
-                { password: 'InvalidChar123!', error: 'Password must contain at least one special character (_, -, or &)' }
+                { password: 'NoSpecialChar123', error: 'Password must contain at least one special character (_, -, @, :,or &)' },
+                { password: 'InvalidChar123!', error: 'Password must contain at least one special character (_, -, @, :,or &)' }
             ];
 
             for (const testCase of testCases) {

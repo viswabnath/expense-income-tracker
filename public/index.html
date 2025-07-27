@@ -26,9 +26,7 @@
                 <div class="form-group">
                     <div class="password-container">
                         <input type="password" id="login-password" required placeholder="Enter your password">
-                        <button type="button" class="password-toggle" onclick="togglePassword('login-password')" aria-label="Toggle password visibility">
-                            👁️
-                        </button>
+                       
                     </div>
                 </div>
                 <button onclick="login()">
@@ -62,20 +60,16 @@
                 <div class="form-group">
                     <div class="password-container">
                         <input type="password" id="register-password" required placeholder="Create a strong password">
-                        <button type="button" class="password-toggle" onclick="togglePassword('register-password')" aria-label="Toggle password visibility">
-                            👁️
-                        </button>
+                       
                     </div>
                     <small id="register-password-help" class="field-help hidden">
-                        8-16 characters with at least one uppercase, one lowercase, one number, and one special character (_, -, or &)
+                        8-16 characters with at least one uppercase, one lowercase, one number, and one special character (_, -, &, @, :, or &)
                     </small>
                 </div>
                 <div class="form-group">
                     <div class="password-container">
                         <input type="password" id="register-confirm-password" required placeholder="Confirm your password">
-                        <button type="button" class="password-toggle" onclick="togglePassword('register-confirm-password')" aria-label="Toggle password visibility">
-                            👁️
-                        </button>
+                       
                     </div>
                 </div>
                 <div class="form-group">
@@ -141,21 +135,17 @@
                     <label>New Password:</label>
                     <div class="password-container">
                         <input type="password" id="reset-new-password" required placeholder="Create a new password">
-                        <button type="button" class="password-toggle" onclick="togglePassword('reset-new-password')" aria-label="Toggle password visibility">
-                            👁️
-                        </button>
+                       
                     </div>
                     <small id="reset-new-password-help" class="field-help hidden">
-                        8-16 characters with at least one uppercase, one lowercase, one number, and one special character (_, -, or &)
+                        8-16 characters with at least one uppercase, one lowercase, one number, and one special character (_, -, @, :, or &)
                     </small>
                 </div>
                 <div class="form-group">
                     <label>Confirm New Password:</label>
                     <div class="password-container">
                         <input type="password" id="reset-confirm-password" required placeholder="Confirm your new password">
-                        <button type="button" class="password-toggle" onclick="togglePassword('reset-confirm-password')" aria-label="Toggle password visibility">
-                            👁️
-                        </button>
+                        
                     </div>
                 </div>
                 <button onclick="resetPassword()">Reset Password</button>
