@@ -12,29 +12,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Database connection
-let pool;
-if (process.env.DATABASE_URL) {
-  pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-  });
-} else {
-  // Fail fast if any required env var is missing
-  const required = ['DB_USER', 'DB_HOST', 'DB_NAME', 'DB_PASSWORD', 'DB_PORT'];
-  required.forEach((key) => {
-    if (!process.env[key]) {
-      throw new Error(`Missing required environment variable: ${key}`);
-    }
-  });
-  pool = new Pool({
+const pool = new Pool({
     user: process.env.DB_USER,
     host: process.env.DB_HOST,
     database: process.env.DB_NAME,
     password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT,
-    ssl: false
-  });
-}
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
 // Rate limiting for authentication endpoints
 // DEVELOPMENT: Rate limiting disabled for easier development
@@ -61,15 +46,17 @@ app.use(generalLimiter);
 app.use(bodyParser.json({ limit: '10mb' })); // Limit request size
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'fallback-secret-for-development',
+    secret: process.env.SESSION_SECRET || require('crypto').randomBytes(64).toString('hex'),
     resave: false,
     saveUninitialized: false,
+    name: 'sessionId', // Don't use default session name
     cookie: {
         secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        httpOnly: true, // Prevent XSS attacks
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+        sameSite: 'strict' // CSRF protection
     }
 }));
-
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -164,7 +151,6 @@ app.post('/api/register', authLimiter, async (req, res) => {
         req.session.userId = result.rows[0].id;
         res.json({ success: true, userId: result.rows[0].id });
     } catch (error) {
-        console.error('Registration error:', error);
         if (error.code === '23505') { // Unique constraint violation
             res.status(400).json({ error: 'Username or email already exists' });
         } else {
@@ -276,7 +262,6 @@ app.post('/api/forgot-username', authLimiter, async (req, res) => {
             message: 'Username found successfully'
         });
     } catch (error) {
-        console.error('Forgot username error:', error);
         res.status(500).json({ error: 'Server error. Please try again.' });
     }
 });
@@ -330,7 +315,6 @@ app.post('/api/forgot-password', authLimiter, async (req, res) => {
             securityQuestion: user.security_question
         });
     } catch (error) {
-        console.error('Forgot password error:', error);
         res.status(500).json({ error: 'Server error. Please try again.' });
     }
 });
@@ -376,7 +360,6 @@ app.post('/api/reset-password', authLimiter, async (req, res) => {
 
         res.json({ success: true, message: 'Password reset successfully' });
     } catch (error) {
-        console.error('Reset password error:', error);
         res.status(500).json({ error: 'Server error. Please try again.' });
     }
 });
@@ -859,7 +842,6 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Monthly summary error:', error);
         res.status(500).json({ error: 'Failed to load monthly summary' });
     }
 });
@@ -876,10 +858,15 @@ app.get('/', (req, res) => {
 
 // Only start the server if this file is run directly (not during testing)
 if (require.main === module) {
+    app.listen(PORT, '0.0.0.0', () => {});
+}
+
+// Export the app for testing
+module.exports = app;
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`Server running on port ${PORT}`);
     });
-}
+
 
 // Export the app for testing
 module.exports = app;

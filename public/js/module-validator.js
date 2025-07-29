@@ -26,11 +26,6 @@ function validateModules() {
         }
     });
 
-    console.log('✅ Loaded Modules:', loadedModules);
-    if (missingModules.length > 0) {
-        console.log('❌ Missing Modules:', missingModules);
-    }
-
     return missingModules.length === 0;
 }
 
@@ -52,16 +47,11 @@ function checkForDuplicates() {
         }
     });
 
-    console.log('Global Functions Check:', duplicateCheck);
     return Object.keys(duplicateCheck).length > 0;
 }
 
 // Run validation
-console.log('=== Module Validation Report ===');
-const modulesLoaded = validateModules();
-const globalFunctionsExist = checkForDuplicates();
+validateModules();
+checkForDuplicates();
 
-console.log('=== Summary ===');
-console.log('All modules loaded:', modulesLoaded);
-console.log('Global functions available:', globalFunctionsExist);
-console.log('Modularization status:', modulesLoaded && globalFunctionsExist ? '✅ SUCCESS' : '❌ ISSUES DETECTED');
+

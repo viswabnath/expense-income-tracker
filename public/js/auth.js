@@ -26,7 +26,7 @@ class AuthManager {
                 };
             }
             // For other errors, still consider not authenticated but log the error
-            console.error('Authentication check failed:', error);
+            console.error('Authentication check error:', error);
             return {
                 isAuthenticated: false,
                 error: error.message
@@ -135,6 +135,7 @@ class AuthManager {
                 AuthManager.showError(data.error);
             }
         } catch (error) {
+            console.error('Login error:', error);
             AuthManager.showError(error.message || 'Login failed');
         }
     }
@@ -163,6 +164,7 @@ class AuthManager {
                 AuthManager.showError(data.error);
             }
         } catch (error) {
+            console.error('Registration error:', error);
             AuthManager.showError(error.message || 'Registration failed');
         }
     }
@@ -238,6 +240,7 @@ class AuthManager {
                 AuthManager.showError(data.error);
             }
         } catch (error) {
+            console.error('Request password reset error:', error);
             AuthManager.showError(error.message || 'Error occurred. Please try again.');
         }
     }
@@ -287,6 +290,7 @@ class AuthManager {
                 AuthManager.showError(data.error);
             }
         } catch (error) {
+            console.error('Reset password error:', error);
             AuthManager.showError(error.message || 'Error occurred. Please try again.');
         }
     }
@@ -361,10 +365,8 @@ class AuthManager {
 
     // Forgot Username functionality
     async forgotUsername() {
-        console.log('forgotUsername function called');
         try {
             const emailInput = document.getElementById('forgot-username-email-input');
-            console.log('Email input element:', emailInput);
 
             if (!emailInput) {
                 throw new Error('Email input field not found');
@@ -375,13 +377,9 @@ class AuthManager {
                 'Email'
             );
 
-            console.log('Email to send:', email);
-
             if (!AuthManager.validateEmail(email)) {
                 throw new Error('Please enter a valid email address');
             }
-
-            console.log('Making request to /api/forgot-username');
 
             const response = await fetch('/api/forgot-username', {
                 method: 'POST',
@@ -392,11 +390,7 @@ class AuthManager {
                 body: JSON.stringify({ email })
             });
 
-            console.log('Response received:', response);
-
             const data = await response.json();
-
-            console.log('Response data:', data);
 
             if (data.success) {
                 AuthManager.showSuccess(`Username found: ${data.username} (${data.name})`);
@@ -409,7 +403,7 @@ class AuthManager {
                 AuthManager.showError(data.error);
             }
         } catch (error) {
-            console.error('Error in forgotUsername:', error);
+            console.error('Forgot username error:', error);
             AuthManager.showError(error.message || 'Failed to retrieve username');
         }
     }
@@ -438,8 +432,8 @@ class AuthManager {
             this.clearCachedData();
             
         } catch (error) {
-            console.error('Logout error:', error);
             // Still clear local state even if logout request fails
+            console.error('Logout error:', error);
             window.expenseTracker.isAuthenticated = false;
             window.expenseTracker.showAuthenticationForms();
         }
@@ -464,6 +458,19 @@ class AuthManager {
         }
     }
 }
+
+// Global auth manager instance
+window.authManager = new AuthManager();
+
+// Global functions for HTML onclick handlers
+        
+        
+        const expenseTableBody = document.getElementById('expense-table-body');
+        if (expenseTableBody) {
+            expenseTableBody.innerHTML = '';
+        }
+    
+
 
 // Global auth manager instance
 window.authManager = new AuthManager();

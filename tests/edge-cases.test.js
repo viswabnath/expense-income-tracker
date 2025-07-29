@@ -28,8 +28,6 @@ const testPool = new Pool({
 describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
     let testUserId;
     let sessionCookie;
-    let bankId;
-    let creditCardId;
 
     beforeAll(async () => {
         // Register test user
@@ -59,23 +57,21 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
         sessionCookie = loginResponse.headers['set-cookie'];
 
         // Create bank and credit card for testing
-        const bankResponse = await request(app)
+        await request(app)
             .post('/api/banks')
             .set('Cookie', sessionCookie)
             .send({
                 name: 'EDGE TEST BANK',
                 initialBalance: 1000
             });
-        bankId = bankResponse.body.id;
 
-        const cardResponse = await request(app)
+        await request(app)
             .post('/api/credit-cards')
             .set('Cookie', sessionCookie)
             .send({
                 name: 'EDGE TEST CARD',
                 creditLimit: 5000
             });
-        creditCardId = cardResponse.body.id;
 
         // Set initial cash balance
         await request(app)
@@ -93,8 +89,8 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
             await testPool.query('DELETE FROM banks WHERE user_id = $1', [testUserId]);
             await testPool.query('DELETE FROM cash_balance WHERE user_id = $1', [testUserId]);
             await testPool.query('DELETE FROM users WHERE id = $1', [testUserId]);
-        } catch (error) {
-            console.warn('Test cleanup warning:', error.message);
+        } catch {
+            // intentionally empty: cleanup failure is non-fatal
         }
         await testPool.end();
     });

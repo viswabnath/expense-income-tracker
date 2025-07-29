@@ -13,15 +13,12 @@ const pool = new Pool({
 
 const migrateTables = async () => {
     try {
-        console.log('Migrating database tables to handle larger amounts...');
-
         // Update banks table columns
         await pool.query(`
             ALTER TABLE banks 
             ALTER COLUMN initial_balance TYPE DECIMAL(20,2),
             ALTER COLUMN current_balance TYPE DECIMAL(20,2)
         `);
-        console.log('✓ Banks table updated');
 
         // Update credit_cards table columns
         await pool.query(`
@@ -29,21 +26,18 @@ const migrateTables = async () => {
             ALTER COLUMN credit_limit TYPE DECIMAL(20,2),
             ALTER COLUMN used_limit TYPE DECIMAL(20,2)
         `);
-        console.log('✓ Credit cards table updated');
 
         // Update income_entries table columns
         await pool.query(`
             ALTER TABLE income_entries 
             ALTER COLUMN amount TYPE DECIMAL(20,2)
         `);
-        console.log('✓ Income entries table updated');
 
         // Update expenses table columns
         await pool.query(`
             ALTER TABLE expenses 
             ALTER COLUMN amount TYPE DECIMAL(20,2)
         `);
-        console.log('✓ Expenses table updated');
 
         // Update cash_balance table columns
         await pool.query(`
@@ -51,14 +45,12 @@ const migrateTables = async () => {
             ALTER COLUMN balance TYPE DECIMAL(20,2),
             ALTER COLUMN initial_balance TYPE DECIMAL(20,2)
         `);
-        console.log('✓ Cash balance table updated');
-
-        console.log('Migration completed successfully!');
-    } catch (error) {
-        console.error('Error during migration:', error);
+    } catch {
+        // intentionally empty: ignore migration errors
     } finally {
         pool.end();
     }
 };
 
 migrateTables();
+

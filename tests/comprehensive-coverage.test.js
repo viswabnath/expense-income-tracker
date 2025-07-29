@@ -115,7 +115,7 @@ describe('Comprehensive Coverage Tests', () => {
                 )
             `);
         } catch (error) {
-            console.warn('Test database setup warning:', error.message);
+            // ...removed console.warn...
         }
     });
 
@@ -129,7 +129,7 @@ describe('Comprehensive Coverage Tests', () => {
             await testPool.query('DELETE FROM cash_balance WHERE user_id = $1', [testUserId]);
             await testPool.query('DELETE FROM users WHERE id = $1', [testUserId]);
         } catch (error) {
-            console.warn('Test cleanup warning:', error.message);
+            // ...removed console.warn...
         }
         await testPool.end();
     });

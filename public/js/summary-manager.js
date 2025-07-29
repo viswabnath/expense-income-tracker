@@ -21,7 +21,6 @@ class SummaryManager {
             this.displayMonthlySummary(data, month, year);
         } catch (error) {
             console.error('Error loading monthly summary:', error);
-            
             // Check if it's an authentication error
             if (error.message.includes('Authentication required') || error.message.includes('401')) {
                 // User is not authenticated, redirect to login
@@ -230,5 +229,7 @@ class SummaryManager {
     }
 }
 
+// Global summary manager instance
+window.summaryManager = new SummaryManager();
 // Global summary manager instance
 window.summaryManager = new SummaryManager();

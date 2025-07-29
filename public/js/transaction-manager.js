@@ -88,7 +88,6 @@ class TransactionManager {
             }
         } catch (error) {
             console.error('Error adding income:', error);
-            
             // Check if it's an authentication error
             if (error.message.includes('Authentication required') || error.message.includes('401')) {
                 window.expenseTracker.isAuthenticated = false;
@@ -96,7 +95,6 @@ class TransactionManager {
                 this.showTransactionMessage('Please log in to add income.', 'error');
                 return;
             }
-            
             // Try to extract the actual error message from the API response
             let errorMessage = 'Error adding income';
             if (error && error.message) {
@@ -147,7 +145,6 @@ class TransactionManager {
             }
         } catch (error) {
             console.error('Error adding expense:', error);
-            
             // Check if it's an authentication error
             if (error.message.includes('Authentication required') || error.message.includes('401')) {
                 window.expenseTracker.isAuthenticated = false;
@@ -155,7 +152,6 @@ class TransactionManager {
                 this.showTransactionMessage('Please log in to add expenses.', 'error');
                 return;
             }
-            
             // Try to extract the actual error message from the API response
             let errorMessage = 'Error adding expense';
             if (error && error.message) {
@@ -261,7 +257,6 @@ class TransactionManager {
 
         } catch (error) {
             console.error('Error loading transactions:', error);
-            
             // Check if it's an authentication error
             if (error.message.includes('Authentication required') || error.message.includes('401')) {
                 window.expenseTracker.isAuthenticated = false;

@@ -114,6 +114,7 @@ class SetupManager {
             // Clear success message after 3 seconds
             setTimeout(() => this.clearMessage('bank-message'), 3000);
         } catch (error) {
+            console.error('Error adding bank:', error);
             this.showError('bank-message', error.message || 'Error adding bank');
         }
     }
@@ -270,5 +271,7 @@ class SetupManager {
     }
 }
 
+// Global setup manager instance
+window.setupManager = new SetupManager();
 // Global setup manager instance
 window.setupManager = new SetupManager();

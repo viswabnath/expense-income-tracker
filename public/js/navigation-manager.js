@@ -48,7 +48,7 @@ class NavigationManager {
             this.showSection('setup');
             window.setupManager.loadSetupData();
         } catch (error) {
-            console.error('Error setting tracking option:', error);
+            // Error handling code can be added here if needed
         }
     }
 

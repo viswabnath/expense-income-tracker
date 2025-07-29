@@ -25,11 +25,6 @@ beforeAll(() => {
     // Mock fetch globally
     global.fetch = jest.fn();
     
-    // Mock console methods
-    global.console.log = jest.fn();
-    global.console.error = jest.fn();
-    global.console.warn = jest.fn();
-    
     // Mock window.location
     Object.defineProperty(window, 'location', {
         value: {
@@ -482,3 +477,6 @@ describe('Frontend JavaScript Execution Coverage', () => {
         });
     });
 });
+            const result = window.validateModules();
+            expect(typeof result).toBe('boolean');
+        

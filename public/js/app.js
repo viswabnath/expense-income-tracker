@@ -39,7 +39,6 @@ class ExpenseTracker {
                 this.showAuthenticationForms();
             }
         } catch (error) {
-            console.error('Authentication check failed:', error);
             this.isAuthenticated = false;
             this.showAuthenticationForms();
         }
