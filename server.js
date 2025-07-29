@@ -9,7 +9,11 @@ const bodyParser = require('body-parser');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
+
 const PORT = process.env.PORT || 3000;
+
+// Trust proxy for correct client IP detection behind Railway/Heroku/etc
+app.set('trust proxy', true);
 
 // Database connection
 const pool = new Pool({
