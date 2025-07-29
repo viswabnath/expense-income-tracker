@@ -12,27 +12,31 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Database connection
-const pool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'expense_tracker',
-    password: process.env.DB_PASSWORD || 'expense-tracker-2025',
+const dbConfig = {
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT || 5432,
+    // For Railway PostgreSQL, use SSL
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+};
+
+// Or use DATABASE_URL directly
+const connectionString = process.env.DATABASE_URL;
 
 // Rate limiting for authentication endpoints
 // DEVELOPMENT: Rate limiting disabled for easier development
-// const authLimiter = rateLimit({
-//     windowMs: 15 * 60 * 1000, // 15 minutes
-//     max: 5, // 5 attempts per window per IP
-//     message: { error: 'Too many authentication attempts. Please try again in 15 minutes.' },
-//     standardHeaders: true,
-//     legacyHeaders: false,
-// });
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 attempts per window per IP
+    message: { error: 'Too many authentication attempts. Please try again in 15 minutes.' },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
 // Development bypass - no rate limiting
-const authLimiter = (req, res, next) => next();
+// const authLimiter = (req, res, next) => next();
 
 // General rate limiting
 const generalLimiter = rateLimit({
@@ -46,17 +50,15 @@ app.use(generalLimiter);
 app.use(bodyParser.json({ limit: '10mb' })); // Limit request size
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 app.use(session({
-    secret: process.env.SESSION_SECRET || require('crypto').randomBytes(64).toString('hex'),
+    secret: process.env.SESSION_SECRET || 'fallback-secret-for-development',
     resave: false,
     saveUninitialized: false,
-    name: 'sessionId', // Don't use default session name
     cookie: {
         secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-        httpOnly: true, // Prevent XSS attacks
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        sameSite: 'strict' // CSRF protection
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }));
+
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -863,7 +865,7 @@ app.get('/', (req, res) => {
 
 // Only start the server if this file is run directly (not during testing)
 if (require.main === module) {
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
         console.log(`Server running on port ${PORT}`);
     });
 }
