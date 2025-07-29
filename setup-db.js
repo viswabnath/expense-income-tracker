@@ -2,15 +2,29 @@ require('dotenv').config();
 const { Pool } = require('pg');
 
 // Database connection configuration using environment variables
-const pool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'expense_tracker',
-    password: process.env.DB_PASSWORD || 'expense-tracker-2025',
-    port: process.env.DB_PORT || 5432,
-    // For production SSL connection (required by most cloud providers)
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+let pool;
+if (process.env.DATABASE_URL) {
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  });
+} else {
+  // Fail fast if any required env var is missing
+  const required = ['DB_USER', 'DB_HOST', 'DB_NAME', 'DB_PASSWORD', 'DB_PORT'];
+  required.forEach((key) => {
+    if (!process.env[key]) {
+      throw new Error(`Missing required environment variable: ${key}`);
+    }
+  });
+  pool = new Pool({
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    port: process.env.DB_PORT,
+    ssl: false
+  });
+}
 
 // Database schema setup
 const createTables = async () => {
