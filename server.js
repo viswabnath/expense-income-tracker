@@ -61,10 +61,8 @@ app.use(bodyParser.json({ limit: '10mb' })); // Limit request size
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 app.use(
     session({
-        store: new pgSession({ pool }),
-        secret:
-      process.env.SESSION_SECRET ||
-      require('crypto').randomBytes(64).toString('hex'),
+        store: new pgSession({ pool, createTableIfMissing: true  }),
+        secret: process.env.SESSION_SECRET || require('crypto').randomBytes(64).toString('hex'),
         resave: false,
         saveUninitialized: false,
         name: 'sessionId', // Don't use default session name
