@@ -424,13 +424,13 @@ class AuthManager {
             window.expenseTracker.isAuthenticated = false;
             window.expenseTracker.currentUser = null;
             window.expenseTracker.trackingOption = 'both';
-            
+
             // Show authentication forms
             window.expenseTracker.showAuthenticationForms();
-            
+
             // Clear any cached data
             this.clearCachedData();
-            
+
         } catch (error) {
             // Still clear local state even if logout request fails
             console.error('Logout error:', error);
@@ -445,13 +445,13 @@ class AuthManager {
         if (summaryDisplay) {
             summaryDisplay.innerHTML = '';
         }
-        
+
         // Clear transaction tables
         const incomeTableBody = document.getElementById('income-table-body');
         if (incomeTableBody) {
             incomeTableBody.innerHTML = '';
         }
-        
+
         const expenseTableBody = document.getElementById('expense-table-body');
         if (expenseTableBody) {
             expenseTableBody.innerHTML = '';
@@ -463,13 +463,13 @@ class AuthManager {
 window.authManager = new AuthManager();
 
 // Global functions for HTML onclick handlers
-        
-        
-        const expenseTableBody = document.getElementById('expense-table-body');
-        if (expenseTableBody) {
-            expenseTableBody.innerHTML = '';
-        }
-    
+
+
+const expenseTableBody = document.getElementById('expense-table-body');
+if (expenseTableBody) {
+    expenseTableBody.innerHTML = '';
+}
+
 
 
 // Global auth manager instance

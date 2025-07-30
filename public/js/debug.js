@@ -51,5 +51,5 @@ if (window.apiClient && typeof window.apiClient.get === 'function') {
         // intentionally empty
     }
 }
-    // Do nothing
+// Do nothing
 

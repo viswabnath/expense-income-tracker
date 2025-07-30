@@ -124,7 +124,8 @@ class SetupManager {
             const banks = await this.apiClient.get('/api/banks');
 
             const banksDiv = document.getElementById('banks-list');
-            banksDiv.innerHTML = '<h4>Your Banks:</h4>';
+            banksDiv.innerHTML = '';
+
 
             if (banks.length === 0) {
                 banksDiv.innerHTML += '<p>No banks added yet.</p>';
@@ -142,11 +143,10 @@ class SetupManager {
                     const row = table.insertRow();
                     row.innerHTML = `
                         <td>${bank.name}</td>
-                        <td>₹${parseFloat(bank.initial_balance).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td>₹${parseFloat(bank.current_balance).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td>₹${parseFloat(bank.initial_balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>₹${parseFloat(bank.current_balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     `;
                 });
-
                 banksDiv.appendChild(table);
             }
         } catch (error) {
@@ -198,7 +198,8 @@ class SetupManager {
             const cards = await this.apiClient.get('/api/credit-cards');
 
             const cardsDiv = document.getElementById('credit-cards-list');
-            cardsDiv.innerHTML = '<h4>Your Credit Cards:</h4>';
+            cardsDiv.innerHTML = ''; // Clear previous content
+
 
             if (cards.length === 0) {
                 cardsDiv.innerHTML += '<p>No credit cards added yet.</p>';
@@ -218,9 +219,9 @@ class SetupManager {
                     const available = parseFloat(card.credit_limit) - parseFloat(card.used_limit);
                     row.innerHTML = `
                         <td>${card.name}</td>
-                        <td>₹${parseFloat(card.credit_limit).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td>₹${parseFloat(card.used_limit).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td>₹${available.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                        <td>₹${parseFloat(card.credit_limit).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>₹${parseFloat(card.used_limit).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td>₹${available.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     `;
                 });
 
@@ -254,7 +255,7 @@ class SetupManager {
             // Clear success message after 3 seconds
             setTimeout(() => this.clearMessage('cash-message'), 3000);
         } catch (error) {
-            console.error('Error setting cash balance:', error);
+            console.error('Error setting cash balance', error);
             this.showError('cash-message', error.message || 'Error setting cash balance');
         }
     }
@@ -264,9 +265,9 @@ class SetupManager {
             const cashData = await this.apiClient.get('/api/cash-balance');
 
             const cashDiv = document.getElementById('cash-display');
-            cashDiv.innerHTML = `<h4>Cash Balance: ₹${parseFloat(cashData.balance || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h4>`;
+            cashDiv.innerHTML = `<h4>Cash Balance <br> ₹${parseFloat(cashData.balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h4>`;
         } catch (error) {
-            console.error('Error loading cash balance:', error);
+            console.error('Error loading cash balance', error);
         }
     }
 }
