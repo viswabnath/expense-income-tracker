@@ -418,7 +418,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
 
         test('should handle root path variations', async () => {
             const paths = ['/', '/index.html', '/public/index.html'];
-            
+
             for (const path of paths) {
                 const response = await request(app).get(path);
                 // Should handle gracefully - either serve file or 404
@@ -431,7 +431,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
         test('should handle concurrent balance operations', async () => {
             // Create multiple concurrent requests that modify balance
             const promises = [];
-            
+
             for (let i = 0; i < 5; i++) {
                 promises.push(
                     request(app)
@@ -448,7 +448,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
             }
 
             const responses = await Promise.all(promises);
-            
+
             // All should succeed (or fail consistently due to balance constraints)
             responses.forEach(response => {
                 expect([200, 400]).toContain(response.status);
@@ -484,9 +484,9 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
 
         test('should handle SQL injection attempts', async () => {
             const sqlInjections = [
-                "'; DROP TABLE banks; --",
-                "' OR '1'='1",
-                "1; DELETE FROM users WHERE 1=1; --"
+                '\'; DROP TABLE banks; --',
+                '\' OR \'1\'=\'1',
+                '1; DELETE FROM users WHERE 1=1; --'
             ];
 
             for (const injection of sqlInjections) {

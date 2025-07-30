@@ -41,11 +41,11 @@ describe('Database Setup Execution Coverage', () => {
         // Clear mocks between tests
         consoleLogSpy.mockClear();
         consoleErrorSpy.mockClear();
-        
+
         // Clear module cache to ensure fresh execution
         const setupDbPath = path.resolve(__dirname, '../setup-db.js');
         delete require.cache[setupDbPath];
-        
+
         // Clear any existing dotenv config
         delete require.cache[require.resolve('dotenv')];
     });
@@ -54,18 +54,18 @@ describe('Database Setup Execution Coverage', () => {
         // Set test environment variables
         process.env.DB_USER = 'testuser';
         process.env.DB_HOST = 'testhost';
-        
+
         // Require setup-db.js to execute the configuration code
         const setupDb = require('../setup-db.js');
-        
+
         // The require itself should create coverage for:
         // - dotenv.config() call
         // - Pool instantiation
         // - Environment variable processing
         // - SSL configuration logic
-        
+
         expect(setupDb).toBeDefined();
-        
+
         // Clean up test environment
         delete process.env.DB_USER;
         delete process.env.DB_HOST;
@@ -73,13 +73,13 @@ describe('Database Setup Execution Coverage', () => {
 
     test('should execute setup-db.js with production SSL configuration', () => {
         process.env.NODE_ENV = 'production';
-        
+
         // Require setup-db.js to execute SSL configuration logic
         require('../setup-db.js');
-        
+
         // This should cover the SSL configuration branch
         expect(process.env.NODE_ENV).toBe('production');
-        
+
         delete process.env.NODE_ENV;
     });
 
@@ -91,10 +91,10 @@ describe('Database Setup Execution Coverage', () => {
         delete process.env.DB_PASSWORD;
         delete process.env.DB_PORT;
         delete process.env.NODE_ENV;
-        
+
         // Require setup-db.js to execute default configuration logic
         require('../setup-db.js');
-        
+
         // This should cover the default value branches
         expect(true).toBe(true); // Test passes if no errors during require
     });
@@ -102,17 +102,17 @@ describe('Database Setup Execution Coverage', () => {
     test('should create and execute createTables function manually for coverage', async () => {
         // Read the setup-db.js file content
         const setupDbCode = fs.readFileSync(path.join(__dirname, '../setup-db.js'), 'utf8');
-        
+
         // Mock the Pool to be available in the execution context
         const { Pool } = require('pg');
         const mockPool = new Pool();
-        
+
         // Extract and execute the createTables function manually to get coverage
         const createTablesMatch = setupDbCode.match(/const createTables = async \(\) => \{([\s\S]*?)\};/);
-        
+
         if (createTablesMatch) {
             const createTablesBody = createTablesMatch[1];
-            
+
             // Create a version of createTables we can execute
             const createTablesFunction = new Function('pool', 'console', `
                 return (async () => {
@@ -125,10 +125,10 @@ describe('Database Setup Execution Coverage', () => {
                     }
                 })();
             `);
-            
+
             // Execute the function with our mocked pool
             await createTablesFunction(mockPool, { log: consoleLogSpy, error: consoleErrorSpy });
-            
+
             // Verify the function executed
             expect(mockPool.query).toHaveBeenCalled();
         }
@@ -138,10 +138,10 @@ describe('Database Setup Execution Coverage', () => {
         const setupDbCode = fs.readFileSync(path.join(__dirname, '../setup-db.js'), 'utf8');
         const { Pool } = require('pg');
         const mockPool = new Pool();
-        
+
         // Extract migration logic and execute it
         const migrationMatch = setupDbCode.match(/console\.log\('Adding new columns.*?\);/s);
-        
+
         if (migrationMatch) {
             // Create a function that includes the migration logic
             const migrationFunction = new Function('pool', 'console', `
@@ -175,9 +175,9 @@ describe('Database Setup Execution Coverage', () => {
                     }
                 })();
             `);
-            
+
             await migrationFunction(mockPool, { log: consoleLogSpy, error: consoleErrorSpy });
-            expect(consoleLogSpy).toHaveBeenCalledWith("Adding new columns to existing users table if they don't exist...");
+            expect(consoleLogSpy).toHaveBeenCalledWith('Adding new columns to existing users table if they don\'t exist...');
         }
     });
 
@@ -187,7 +187,7 @@ describe('Database Setup Execution Coverage', () => {
             query: jest.fn().mockRejectedValue(new Error('Database connection failed')),
             end: jest.fn()
         };
-        
+
         // Create a function that simulates the error path
         const errorFunction = new Function('pool', 'console', `
             return (async () => {
@@ -201,9 +201,9 @@ describe('Database Setup Execution Coverage', () => {
                 }
             })();
         `);
-        
+
         await errorFunction(mockPool, { log: consoleLogSpy, error: consoleErrorSpy });
-        
+
         expect(consoleErrorSpy).toHaveBeenCalledWith('Error creating tables:', expect.any(Error));
         expect(mockPool.end).toHaveBeenCalled();
     });
@@ -212,10 +212,10 @@ describe('Database Setup Execution Coverage', () => {
         const setupDbCode = fs.readFileSync(path.join(__dirname, '../setup-db.js'), 'utf8');
         const { Pool } = require('pg');
         const mockPool = new Pool();
-        
+
         // Extract all CREATE TABLE statements
         const createTableMatches = setupDbCode.match(/await pool\.query\(`[\s\S]*?CREATE TABLE IF NOT EXISTS[\s\S]*?`\);/g);
-        
+
         if (createTableMatches) {
             for (const createStatement of createTableMatches) {
                 // Execute each CREATE TABLE statement for coverage
@@ -229,7 +229,7 @@ describe('Database Setup Execution Coverage', () => {
                     }
                 }
             }
-            
+
             // Verify queries were executed
             expect(mockPool.query).toHaveBeenCalled();
         }
@@ -240,20 +240,20 @@ describe('Database Setup Execution Coverage', () => {
         process.env.DB_USER = '';
         process.env.DB_HOST = '';
         process.env.DB_NAME = '';
-        
+
         // This should cover the || fallback logic
         require('../setup-db.js');
-        
+
         // Test with undefined values
         delete process.env.DB_USER;
         delete process.env.DB_HOST;
         delete process.env.DB_NAME;
-        
+
         // Clear cache and require again
         const setupDbPath = path.resolve(__dirname, '../setup-db.js');
         delete require.cache[setupDbPath];
         require('../setup-db.js');
-        
+
         expect(true).toBe(true); // Test passes if no errors
     });
 });

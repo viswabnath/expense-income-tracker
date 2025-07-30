@@ -7,6 +7,8 @@ const { Pool } = require('pg');
 const path = require('path');
 const bodyParser = require('body-parser');
 const rateLimit = require('express-rate-limit');
+const pgSession = require('connect-pg-simple')(session);
+const helmet = require('helmet');
 
 const app = express();
 
@@ -22,7 +24,10 @@ const pool = new Pool({
     database: process.env.DB_NAME,
     password: process.env.DB_PASSWORD,
     port: process.env.DB_PORT,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    ssl:
+    process.env.NODE_ENV === 'production'
+        ? { rejectUnauthorized: false }
+        : false,
 });
 
 // Rate limiting for authentication endpoints
@@ -30,7 +35,9 @@ const pool = new Pool({
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 5, // 5 attempts per window per IP
-    message: { error: 'Too many authentication attempts. Please try again in 15 minutes.' },
+    message: {
+        error: 'Too many authentication attempts. Please try again in 15 minutes.',
+    },
     standardHeaders: true,
     legacyHeaders: false,
 });
@@ -42,25 +49,33 @@ const authLimiter = rateLimit({
 const generalLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
     max: 100, // 100 requests per minute per IP
-    message: { error: 'Too many requests. Please slow down.' }
+    message: { error: 'Too many requests. Please slow down.' },
 });
 
 // Middleware
+app.use(helmet({
+    contentSecurityPolicy: false, // Disable CSP for development
+}));
 app.use(generalLimiter);
 app.use(bodyParser.json({ limit: '10mb' })); // Limit request size
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
-app.use(session({
-    secret: process.env.SESSION_SECRET || require('crypto').randomBytes(64).toString('hex'),
-    resave: false,
-    saveUninitialized: false,
-    name: 'sessionId', // Don't use default session name
-    cookie: {
-        secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-        httpOnly: true, // Prevent XSS attacks
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-        sameSite: 'strict' // CSRF protection
-    }
-}));
+app.use(
+    session({
+        store: new pgSession({ pool }),
+        secret:
+      process.env.SESSION_SECRET ||
+      require('crypto').randomBytes(64).toString('hex'),
+        resave: false,
+        saveUninitialized: false,
+        name: 'sessionId', // Don't use default session name
+        cookie: {
+            secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+            httpOnly: true, // Prevent XSS attacks
+            maxAge: 24 * 60 * 60 * 1000, // 24 hours
+            sameSite: 'strict', // CSRF protection
+        },
+    })
+);
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -109,10 +124,24 @@ const requireAuth = (req, res, next) => {
 // User Registration
 app.post('/api/register', authLimiter, async (req, res) => {
     try {
-        const { username, password, name, email, securityQuestion, securityAnswer } = req.body;
+        const {
+            username,
+            password,
+            name,
+            email,
+            securityQuestion,
+            securityAnswer,
+        } = req.body;
 
         // Server-side validation
-        if (!username || !password || !name || !email || !securityQuestion || !securityAnswer) {
+        if (
+            !username ||
+      !password ||
+      !name ||
+      !email ||
+      !securityQuestion ||
+      !securityAnswer
+        ) {
             return res.status(400).json({ error: 'All fields are required' });
         }
 
@@ -131,7 +160,11 @@ app.post('/api/register', authLimiter, async (req, res) => {
         // Validate username format
         const usernameRegex = /^[a-zA-Z0-9_]+$/;
         if (!usernameRegex.test(username)) {
-            return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores' });
+            return res
+                .status(400)
+                .json({
+                    error: 'Username can only contain letters, numbers, and underscores',
+                });
         }
 
         // Check if username already exists
@@ -141,21 +174,35 @@ app.post('/api/register', authLimiter, async (req, res) => {
         );
 
         if (existingUser.rows.length > 0) {
-            return res.status(400).json({ error: 'Username or email already exists' });
+            return res
+                .status(400)
+                .json({ error: 'Username or email already exists' });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const hashedSecurityAnswer = await bcrypt.hash(securityAnswer.toLowerCase().trim(), 10);
+        const hashedSecurityAnswer = await bcrypt.hash(
+            securityAnswer.toLowerCase().trim(),
+            10
+        );
 
         const result = await pool.query(
             'INSERT INTO users (username, password_hash, name, email, security_question, security_answer_hash, tracking_option) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id',
-            [username, hashedPassword, name, email, securityQuestion, hashedSecurityAnswer, 'both']
+            [
+                username,
+                hashedPassword,
+                name,
+                email,
+                securityQuestion,
+                hashedSecurityAnswer,
+                'both',
+            ]
         );
 
         req.session.userId = result.rows[0].id;
         res.json({ success: true, userId: result.rows[0].id });
     } catch (error) {
-        if (error.code === '23505') { // Unique constraint violation
+        if (error.code === '23505') {
+            // Unique constraint violation
             res.status(400).json({ error: 'Username or email already exists' });
         } else {
             res.status(500).json({ error: 'Registration failed. Please try again.' });
@@ -170,13 +217,20 @@ app.post('/api/login', authLimiter, async (req, res) => {
 
         // Server-side validation
         if (!username || !password) {
-            return res.status(400).json({ error: 'Username and password are required' });
+            return res
+                .status(400)
+                .json({ error: 'Username and password are required' });
         }
 
         // Validate username format
         const usernameRegex = /^[a-zA-Z0-9_]+$/;
         if (!usernameRegex.test(username)) {
-            return res.status(400).json({ error: 'Invalid username format. Username can only contain letters, numbers, and underscores' });
+            return res
+                .status(400)
+                .json({
+                    error:
+            'Invalid username format. Username can only contain letters, numbers, and underscores',
+                });
         }
 
         const result = await pool.query(
@@ -200,7 +254,7 @@ app.post('/api/login', authLimiter, async (req, res) => {
             success: true,
             userId: user.id,
             name: user.name,
-            trackingOption: user.tracking_option
+            trackingOption: user.tracking_option,
         });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -211,10 +265,10 @@ app.post('/api/login', authLimiter, async (req, res) => {
 app.post('/api/set-tracking-option', requireAuth, async (req, res) => {
     try {
         const { trackingOption } = req.body;
-        await pool.query(
-            'UPDATE users SET tracking_option = $1 WHERE id = $2',
-            [trackingOption, req.session.userId]
-        );
+        await pool.query('UPDATE users SET tracking_option = $1 WHERE id = $2', [
+            trackingOption,
+            req.session.userId,
+        ]);
         res.json({ success: true });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -255,7 +309,9 @@ app.post('/api/forgot-username', authLimiter, async (req, res) => {
         );
 
         if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'No account found with this email address' });
+            return res
+                .status(404)
+                .json({ error: 'No account found with this email address' });
         }
 
         const user = result.rows[0];
@@ -263,7 +319,7 @@ app.post('/api/forgot-username', authLimiter, async (req, res) => {
             success: true,
             username: user.username,
             name: user.name,
-            message: 'Username found successfully'
+            message: 'Username found successfully',
         });
     } catch (error) {
         res.status(500).json({ error: 'Server error. Please try again.' });
@@ -291,16 +347,23 @@ app.post('/api/forgot-password', authLimiter, async (req, res) => {
         if (username) {
             const usernameRegex = /^[a-zA-Z0-9_]+$/;
             if (!usernameRegex.test(username)) {
-                return res.status(400).json({ error: 'Invalid username format. Username can only contain letters, numbers, and underscores' });
+                return res
+                    .status(400)
+                    .json({
+                        error:
+              'Invalid username format. Username can only contain letters, numbers, and underscores',
+                    });
             }
         }
 
         let query, params;
         if (email) {
-            query = 'SELECT id, username, name, security_question FROM users WHERE email = $1';
+            query =
+        'SELECT id, username, name, security_question FROM users WHERE email = $1';
             params = [email];
         } else {
-            query = 'SELECT id, username, name, security_question FROM users WHERE username = $1';
+            query =
+        'SELECT id, username, name, security_question FROM users WHERE username = $1';
             params = [username];
         }
 
@@ -316,7 +379,7 @@ app.post('/api/forgot-password', authLimiter, async (req, res) => {
             userId: user.id,
             username: user.username,
             name: user.name,
-            securityQuestion: user.security_question
+            securityQuestion: user.security_question,
         });
     } catch (error) {
         res.status(500).json({ error: 'Server error. Please try again.' });
@@ -349,7 +412,10 @@ app.post('/api/reset-password', authLimiter, async (req, res) => {
         }
 
         const user = result.rows[0];
-        const isValidAnswer = await bcrypt.compare(securityAnswer.toLowerCase().trim(), user.security_answer_hash);
+        const isValidAnswer = await bcrypt.compare(
+            securityAnswer.toLowerCase().trim(),
+            user.security_answer_hash
+        );
 
         if (!isValidAnswer) {
             return res.status(400).json({ error: 'Incorrect security answer' });
@@ -488,7 +554,16 @@ app.post('/api/income', requireAuth, async (req, res) => {
 
         const result = await pool.query(
             'INSERT INTO income_entries (user_id, source, amount, credited_to_type, credited_to_id, date, month, year) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-            [req.session.userId, source, amount, creditedToType, creditedToId, date, month, year]
+            [
+                req.session.userId,
+                source,
+                amount,
+                creditedToType,
+                creditedToId,
+                date,
+                month,
+                year,
+            ]
         );
 
         // Update balance
@@ -558,7 +633,10 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                     [paymentSourceId, req.session.userId]
                 );
 
-                if (bankResult.rows.length === 0 || bankResult.rows[0].current_balance < amount) {
+                if (
+                    bankResult.rows.length === 0 ||
+          bankResult.rows[0].current_balance < amount
+                ) {
                     return res.status(400).json({ error: 'Insufficient bank balance' });
                 }
             } else if (paymentMethod === 'cash') {
@@ -567,7 +645,10 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                     [req.session.userId]
                 );
 
-                if (cashResult.rows.length === 0 || cashResult.rows[0].balance < amount) {
+                if (
+                    cashResult.rows.length === 0 ||
+          cashResult.rows[0].balance < amount
+                ) {
                     return res.status(400).json({ error: 'Insufficient cash balance' });
                 }
             } else if (paymentMethod === 'credit_card') {
@@ -576,7 +657,10 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                     [paymentSourceId, req.session.userId]
                 );
 
-                if (ccResult.rows.length === 0 || (ccResult.rows[0].credit_limit - ccResult.rows[0].used_limit) < amount) {
+                if (
+                    ccResult.rows.length === 0 ||
+          ccResult.rows[0].credit_limit - ccResult.rows[0].used_limit < amount
+                ) {
                     return res.status(400).json({ error: 'Insufficient credit limit' });
                 }
             }
@@ -584,7 +668,16 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
 
         const result = await pool.query(
             'INSERT INTO expenses (user_id, title, amount, payment_method, payment_source_id, date, month, year) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-            [req.session.userId, title, amount, paymentMethod, paymentSourceId, date, month, year]
+            [
+                req.session.userId,
+                title,
+                amount,
+                paymentMethod,
+                paymentSourceId,
+                date,
+                month,
+                year,
+            ]
         );
 
         // Update balance/limit only for users who track both income and expenses
@@ -652,9 +745,11 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
         // Check if the selected month is completed
         const currentMonth = currentDate.getMonth() + 1; // JavaScript months are 0-based
         const currentYear = currentDate.getFullYear();
-        const isCurrentMonth = (selectedMonth === currentMonth && selectedYear === currentYear);
-        const isMonthCompleted = selectedYear < currentYear ||
-                               (selectedYear === currentYear && selectedMonth < currentMonth);
+        const isCurrentMonth =
+      selectedMonth === currentMonth && selectedYear === currentYear;
+        const isMonthCompleted =
+      selectedYear < currentYear ||
+      (selectedYear === currentYear && selectedMonth < currentMonth);
 
         // Check if selected date is in the future
         if (selectedDate > currentDate) {
@@ -670,7 +765,7 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
                 trackingOption: 'both', // Default, will be updated when user info is fetched
                 isCurrentMonth: false,
                 isMonthCompleted: false,
-                message: 'Future date selected - no data available'
+                message: 'Future date selected - no data available',
             });
         }
 
@@ -690,8 +785,10 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
         const registrationYear = registrationDate.getFullYear();
 
         // Check if selected date is before registration
-        if (selectedYear < registrationYear ||
-        (selectedYear === registrationYear && selectedMonth < registrationMonth)) {
+        if (
+            selectedYear < registrationYear ||
+      (selectedYear === registrationYear && selectedMonth < registrationMonth)
+        ) {
             return res.json({
                 monthlyIncome: 0,
                 totalCurrentWealth: 0,
@@ -704,7 +801,7 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
                 trackingOption: userTrackingOption,
                 isCurrentMonth: false,
                 isMonthCompleted: true, // Before registration is considered "completed"
-                message: 'Date before registration - no data available'
+                message: 'Date before registration - no data available',
             });
         }
 
@@ -724,7 +821,8 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
         const endOfSelectedMonth = new Date(selectedYear, selectedMonth, 0); // Last day of selected month
 
         // Get bank balances at the end of selected month
-        const bankResult = await pool.query(`
+        const bankResult = await pool.query(
+            `
       SELECT 
         b.id,
         b.name,
@@ -749,10 +847,13 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
       FROM banks b 
       WHERE b.user_id = $1 
         AND b.created_at <= $2
-    `, [userId, endOfSelectedMonth]);
+    `,
+            [userId, endOfSelectedMonth]
+        );
 
         // Get cash balance at the end of selected month
-        const cashResult = await pool.query(`
+        const cashResult = await pool.query(
+            `
       SELECT 
         initial_balance + 
         COALESCE((
@@ -772,7 +873,9 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
         initial_balance
       FROM cash_balance 
       WHERE user_id = $1
-    `, [userId, endOfSelectedMonth]);
+    `,
+            [userId, endOfSelectedMonth]
+        );
 
         // Get credit cards only if user tracks expenses or both
         let creditCards = [];
@@ -782,50 +885,62 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
                 [userId, endOfSelectedMonth]
             );
             // For each card, calculate used_limit as of end of selected month
-            creditCards = await Promise.all(creditCardResult.rows.map(async card => {
-                const usedResult = await pool.query(
-                    `SELECT COALESCE(SUM(amount), 0) AS used_limit
+            creditCards = await Promise.all(
+                creditCardResult.rows.map(async (card) => {
+                    const usedResult = await pool.query(
+                        `SELECT COALESCE(SUM(amount), 0) AS used_limit
                      FROM expenses
                      WHERE user_id = $1 AND payment_method = 'credit_card' AND payment_source_id = $2 AND date <= $3`,
-                    [userId, card.id, endOfSelectedMonth]
-                );
-                return {
-                    ...card,
-                    current_balance: usedResult.rows[0].used_limit,
-                    used_limit: usedResult.rows[0].used_limit
-                };
-            }));
+                        [userId, card.id, endOfSelectedMonth]
+                    );
+                    return {
+                        ...card,
+                        current_balance: usedResult.rows[0].used_limit,
+                        used_limit: usedResult.rows[0].used_limit,
+                    };
+                })
+            );
         }
 
         // Calculate totals
         const monthIncome = parseFloat(incomeResult.rows[0]?.total_income || 0);
-        const monthExpenses = parseFloat(expenseResult.rows[0]?.total_expenses || 0);
+        const monthExpenses = parseFloat(
+            expenseResult.rows[0]?.total_expenses || 0
+        );
 
         // Calculate total wealth at end of selected month
-        const totalBankBalance = bankResult.rows.reduce((sum, bank) =>
-            sum + parseFloat(bank.balance_at_month_end || 0), 0);
-        const cashBalance = parseFloat(cashResult.rows[0]?.cash_balance_at_month_end || 0);
+        const totalBankBalance = bankResult.rows.reduce(
+            (sum, bank) => sum + parseFloat(bank.balance_at_month_end || 0),
+            0
+        );
+        const cashBalance = parseFloat(
+            cashResult.rows[0]?.cash_balance_at_month_end || 0
+        );
         const totalCurrentWealth = totalBankBalance + cashBalance;
 
         // Calculate initial balance
-        const totalInitialBankBalance = bankResult.rows.reduce((sum, bank) =>
-            sum + parseFloat(bank.initial_balance || 0), 0);
-        const initialCashBalance = parseFloat(cashResult.rows[0]?.initial_balance || 0);
+        const totalInitialBankBalance = bankResult.rows.reduce(
+            (sum, bank) => sum + parseFloat(bank.initial_balance || 0),
+            0
+        );
+        const initialCashBalance = parseFloat(
+            cashResult.rows[0]?.initial_balance || 0
+        );
         const totalInitialBalance = totalInitialBankBalance + initialCashBalance;
 
         // Net savings = Initial + Income - Expenses
         const netSavings = totalInitialBalance + monthIncome - monthExpenses;
 
         // Format bank data for response
-        const banksWithHistoricalBalance = bankResult.rows.map(bank => ({
+        const banksWithHistoricalBalance = bankResult.rows.map((bank) => ({
             ...bank,
-            current_balance: bank.balance_at_month_end
+            current_balance: bank.balance_at_month_end,
         }));
 
         // Format cash data for response
         const cashData = {
             balance: cashResult.rows[0]?.cash_balance_at_month_end || 0,
-            initial_balance: cashResult.rows[0]?.initial_balance || 0
+            initial_balance: cashResult.rows[0]?.initial_balance || 0,
         };
 
         res.json({
@@ -842,17 +957,21 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
             trackingOption: userTrackingOption,
             isCurrentMonth: isCurrentMonth,
             isMonthCompleted: isMonthCompleted,
-            message: null
+            message: null,
         });
-
     } catch (error) {
         res.status(500).json({ error: 'Failed to load monthly summary' });
     }
 });
 // Logout
 app.post('/api/logout', (req, res) => {
-    req.session.destroy();
-    res.json({ success: true });
+    req.session.destroy(err => {
+        if (err) {
+            return res.status(500).json({ error: 'Logout failed' });
+        }
+        res.clearCookie('connect.sid'); // or your session cookie name
+        res.json({ success: true });
+    });
 });
 
 // Serve main HTML file
@@ -860,17 +979,20 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Only start the server if this file is run directly (not during testing)
-if (require.main === module) {
-    app.listen(PORT, '0.0.0.0', () => {});
+if (process.env.NODE_ENV === 'production') {
+    app.use((req, res, next) => {
+        if (req.headers['x-forwarded-proto'] !== 'https') {
+            return res.redirect('https://' + req.headers.host + req.url);
+        }
+        next();
+    });
 }
 
 // Export the app for testing
 module.exports = app;
-    app.listen(PORT, '0.0.0.0', () => {
-        console.log(`Server running on port ${PORT}`);
-    });
-
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT}`);
+});
 
 // Export the app for testing
 module.exports = app;

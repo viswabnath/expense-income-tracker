@@ -90,7 +90,7 @@ describe('Integration Tests - Server Endpoints', () => {
     describe('Authentication Endpoints', () => {
         test('GET / should serve the main HTML file', async () => {
             const response = await request(app).get('/');
-            
+
             expect(response.status).toBe(200);
             expect(response.type).toBe('text/html');
         });
@@ -112,7 +112,7 @@ describe('Integration Tests - Server Endpoints', () => {
             expect(response.status).toBe(200);
             expect(response.body.success).toBe(true);
             expect(response.body.userId).toBeDefined();
-            
+
             testUserId = response.body.userId;
         });
 
@@ -283,7 +283,7 @@ describe('Integration Tests - Server Endpoints', () => {
 
         test('GET /api/monthly-summary should handle future dates', async () => {
             const futureYear = new Date().getFullYear() + 1;
-            
+
             const response = await request(app)
                 .get(`/api/monthly-summary?month=1&year=${futureYear}`)
                 .set('Cookie', sessionCookie);

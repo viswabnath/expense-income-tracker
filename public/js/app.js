@@ -17,7 +17,7 @@ class ExpenseTracker {
         this.setupYearDropdown();
         this.setCurrentMonth();
         this.setupGlobalFunctions();
-        
+
         // Check authentication status
         await this.checkAuthenticationStatus();
     }
@@ -25,12 +25,12 @@ class ExpenseTracker {
     async checkAuthenticationStatus() {
         try {
             const authStatus = await window.authManager.checkAuthentication();
-            
+
             if (authStatus.isAuthenticated) {
                 this.isAuthenticated = true;
                 this.currentUser = authStatus.user;
                 this.trackingOption = authStatus.user.tracking_option || 'both';
-                
+
                 // User is authenticated, show the main app
                 this.showMainApplication();
             } else {
@@ -48,19 +48,19 @@ class ExpenseTracker {
         // Hide authentication forms
         const authForms = document.querySelectorAll('.auth-form');
         authForms.forEach(form => form.classList.add('hidden'));
-        
+
         // Hide auth section
         const authSection = document.getElementById('auth-section');
         if (authSection) {
             authSection.classList.add('hidden');
         }
-        
+
         // Show navigation bar
         const navBar = document.getElementById('nav-bar');
         if (navBar) {
             navBar.style.display = 'flex';
         }
-        
+
         // Check if user has already set tracking option
         if (this.trackingOption && this.trackingOption !== 'none') {
             // User has tracking option set, go directly to main app
@@ -68,7 +68,7 @@ class ExpenseTracker {
             if (welcomeSection) {
                 welcomeSection.classList.add('hidden');
             }
-            
+
             const mainApp = document.getElementById('main-app');
             if (mainApp) {
                 mainApp.classList.remove('hidden');
@@ -100,24 +100,24 @@ class ExpenseTracker {
         if (welcomeSection) {
             welcomeSection.classList.add('hidden');
         }
-        
+
         const mainApp = document.getElementById('main-app');
         if (mainApp) {
             mainApp.classList.add('hidden');
         }
-        
+
         // Hide navigation
         const navBar = document.getElementById('nav-bar');
         if (navBar) {
             navBar.style.display = 'none';
         }
-        
+
         // Show auth section
         const authSection = document.getElementById('auth-section');
         if (authSection) {
             authSection.classList.remove('hidden');
         }
-        
+
         // Show login form
         window.authManager.showLoginForm();
     }

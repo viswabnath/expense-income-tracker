@@ -192,7 +192,7 @@ class SummaryManager {
                     const creditLimit = card.credit_limit || 0;
                     const usedLimit = card.current_balance || 0;
                     const availableCredit = parseFloat(creditLimit) - parseFloat(usedLimit);
-                    
+
                     html += `
                         <div class="account-card credit">
                             <h4>💳 ${cardName}</h4>
@@ -216,7 +216,7 @@ class SummaryManager {
                 <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
                     <h4 style="color: #495057; margin-bottom: 10px;">📋 Calculation Breakdown</h4>
                     <div style="font-size: 14px; color: #6c757d; line-height: 1.6;">
-                        <strong>Net Savings Formula:</strong><br>
+                        <strong>Net Savings Formula</strong><br>
                         Initial Balance (₹${parseFloat(data.totalInitialBalance || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}) + 
                         Income (₹${parseFloat(data.monthlyIncome || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}) - 
                         Expenses (₹${parseFloat(data.totalExpenses || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}) = 

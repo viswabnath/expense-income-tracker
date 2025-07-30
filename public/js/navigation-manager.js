@@ -98,9 +98,9 @@ class NavigationManager {
     handleOutsideClick(event) {
         const dropdown = document.getElementById('nav-dropdown');
         const hamburgerButton = document.querySelector('.hamburger-button');
-        
-        if (dropdown && hamburgerButton && 
-            !dropdown.contains(event.target) && 
+
+        if (dropdown && hamburgerButton &&
+            !dropdown.contains(event.target) &&
             !hamburgerButton.contains(event.target)) {
             dropdown.classList.remove('active');
         }

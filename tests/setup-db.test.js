@@ -210,7 +210,7 @@ describe('Database Setup Tests', () => {
             const mockGlobal = { pool: mockPool, console: { log: consoleLogSpy, error: consoleErrorSpy } };
             const func = new Function('pool', 'console', createTablesFunction + '; return createTables;');
             const createTables = func(mockPool, mockGlobal.console);
-            
+
             await createTables();
 
             // Verify the function executed correctly
@@ -239,7 +239,7 @@ describe('Database Setup Tests', () => {
             const mockGlobal = { pool: mockPool, console: { log: consoleLogSpy, error: consoleErrorSpy } };
             const func = new Function('pool', 'console', createTablesWithError + '; return createTables;');
             const createTables = func(mockPool, mockGlobal.console);
-            
+
             await createTables();
 
             expect(consoleErrorSpy).toHaveBeenCalledWith('Error creating tables:', expect.any(Error));
@@ -251,7 +251,7 @@ describe('Database Setup Tests', () => {
         test('should validate default configuration values', () => {
             const poolConfigMatch = setupDbCode.match(/const pool = new Pool\({[\s\S]*?\}\);/);
             expect(poolConfigMatch).toBeTruthy();
-            
+
             const poolConfig = poolConfigMatch[0];
             expect(poolConfig).toContain('user: process.env.DB_USER || \'postgres\'');
             expect(poolConfig).toContain('host: process.env.DB_HOST || \'localhost\'');

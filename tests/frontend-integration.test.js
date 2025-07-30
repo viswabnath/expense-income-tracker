@@ -26,10 +26,10 @@ describe('Frontend JavaScript Integration Tests', () => {
     beforeEach(() => {
         // Reset DOM
         document.body.innerHTML = '';
-        
+
         // Reset fetch mock
         fetch.mockClear();
-        
+
         // Clear window objects
         delete window.apiClient;
         delete window.authManager;
@@ -56,7 +56,7 @@ describe('Frontend JavaScript Integration Tests', () => {
             const path = require('path');
             const apiClientPath = path.join(__dirname, '../public/js/api.js');
             const apiClientCode = fs.readFileSync(apiClientPath, 'utf8');
-            
+
             // Execute the code in the jsdom environment
             eval(apiClientCode);
 
@@ -76,13 +76,13 @@ describe('Frontend JavaScript Integration Tests', () => {
         test('should load and initialize AuthManager', () => {
             // Read auth.js and check it contains expected class structure
             const authScript = fs.readFileSync(path.join(__dirname, '../public/js/auth.js'), 'utf8');
-            
+
             // Verify that the file contains the AuthManager class definition
             expect(authScript).toContain('class AuthManager');
             expect(authScript).toContain('static validateEmail');
             expect(authScript).toContain('static validatePassword');
             expect(authScript).toContain('async login()');
-            
+
             // Test that the script can be parsed without syntax errors
             expect(() => new Function(authScript)).not.toThrow();
         });
@@ -90,11 +90,11 @@ describe('Frontend JavaScript Integration Tests', () => {
         test('should validate email correctly', () => {
             // Read auth.js and test email validation regex patterns
             const authScript = fs.readFileSync(path.join(__dirname, '../public/js/auth.js'), 'utf8');
-            
+
             // Extract and test the email validation pattern
             expect(authScript).toContain('/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/');
             expect(authScript).toContain('validateEmail(email)');
-            
+
             // Test that the script can be parsed
             expect(() => new Function(authScript)).not.toThrow();
         });
@@ -102,7 +102,7 @@ describe('Frontend JavaScript Integration Tests', () => {
         test('should validate password correctly', () => {
             // Read auth.js and test password validation logic
             const authScript = fs.readFileSync(path.join(__dirname, '../public/js/auth.js'), 'utf8');
-            
+
             // Verify password validation logic is present
             expect(authScript).toContain('validatePassword(password)');
             expect(authScript).toContain('password.length < 8');
@@ -116,7 +116,7 @@ describe('Frontend JavaScript Integration Tests', () => {
             expect(authScript).toContain('&');
             expect(authScript).toContain('@');
             expect(authScript).toContain(':');
-            
+
             // Test that the script can be parsed
             expect(() => new Function(authScript)).not.toThrow();
         });
@@ -148,7 +148,7 @@ describe('Frontend JavaScript Integration Tests', () => {
                 get: jest.fn().mockResolvedValue([]),
                 post: jest.fn().mockResolvedValue({ success: true })
             };
-            
+
             window.setupManager = {
                 loadSetupData: jest.fn()
             };
@@ -251,7 +251,7 @@ describe('Frontend JavaScript Integration Tests', () => {
             await window.summaryManager.loadMonthlySummary();
 
             expect(window.apiClient.get).toHaveBeenCalledWith('/api/monthly-summary?month=7&year=2025');
-            
+
             const displayContent = document.getElementById('summary-display').innerHTML;
             expect(displayContent).toContain('📊 July 2025 Financial Summary');
             expect(displayContent).toContain('as of now'); // Current month reference

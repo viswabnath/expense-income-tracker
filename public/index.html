@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,14 +8,16 @@
     <link rel="stylesheet" href="css/fintech-theme.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
 </head>
+
 <body>
     <div class="container">
         <!-- Login/Register Section -->
         <div id="auth-section">
             <h2>🇮🇳 BalanceTrack</h2>
-            
+
             <div id="login-form" class="auth-form">
                 <h3>🔐 Login to Your Account</h3>
                 <div class="form-group">
@@ -26,7 +29,7 @@
                 <div class="form-group">
                     <div class="password-container">
                         <input type="password" id="login-password" required placeholder="Enter your password">
-                       
+
                     </div>
                 </div>
                 <button onclick="login()">
@@ -42,7 +45,7 @@
                     <span class="icon-enhanced">🔑</span>Forgot Password?
                 </button>
             </div>
-            
+
             <div id="register-form" class="auth-form hidden">
                 <h3>📝 Create New Account</h3>
                 <div class="form-group">
@@ -60,20 +63,22 @@
                 <div class="form-group">
                     <div class="password-container">
                         <input type="password" id="register-password" required placeholder="Create a strong password">
-                       
+
                     </div>
                     <small id="register-password-help" class="field-help hidden">
-                        8-16 characters with at least one uppercase, one lowercase, one number, and one special character (_, -, &, @, :, or &)
+                        8-16 characters with at least one uppercase, one lowercase, one number, and one special
+                        character (_, -, &, @, :, or &)
                     </small>
                 </div>
                 <div class="form-group">
                     <div class="password-container">
-                        <input type="password" id="register-confirm-password" required placeholder="Confirm your password">
-                       
+                        <input type="password" id="register-confirm-password" required
+                            placeholder="Confirm your password">
+
                     </div>
                 </div>
                 <div class="form-group">
-                 
+
                     <select id="register-security-question" required>
                         <option value="">Select a security question</option>
                         <option value="pet">What was the name of your first pet?</option>
@@ -85,7 +90,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                  
+
                     <input type="text" id="register-security-answer" required placeholder="Enter your answer">
                 </div>
                 <button onclick="register()">
@@ -95,24 +100,25 @@
                     <span class="icon-enhanced">🔙</span>Back to Login
                 </button>
             </div>
-            
+
             <!-- Forgot Username Form -->
             <div id="forgot-username-form" class="auth-form hidden">
                 <h3>🔍 Find Your Username</h3>
-                <p>Enter your email address to retrieve your username:</p>
+                <p>Enter your email address to retrieve your username</p>
                 <div class="form-group">
-                   
-                    <input type="email" id="forgot-username-email-input" required placeholder="Enter your email address">
+
+                    <input type="email" id="forgot-username-email-input" required
+                        placeholder="Enter your email address">
                 </div>
                 <button onclick="forgotUsername()">Find Username</button>
                 <button onclick="showLogin()" class="secondary-button">Back to Login</button>
             </div>
-            
+
             <div id="forgot-password-form" class="auth-form hidden">
                 <h3>🔑 Reset Your Password</h3>
-                <p>Enter your username or email address to reset your password:</p>
+                <p>Enter your username or email address to reset your password</p>
                 <div class="form-group">
-                   
+
                     <input type="text" id="forgot-username-email" required placeholder="Enter username or email">
                     <small id="forgot-username-email-help" class="field-help hidden">
                         Username: letters, numbers, and underscores only<br>
@@ -122,81 +128,58 @@
                 <button onclick="requestPasswordReset()">Continue</button>
                 <button onclick="showLogin()" class="secondary-button">Back to Login</button>
             </div>
-            
+
             <div id="reset-password-form" class="auth-form hidden">
                 <h3>🔐 Create New Password</h3>
                 <p>Hello, <span id="reset-user-name"></span>!</p>
-                <p><strong>Security Question:</strong> <span id="reset-security-question"></span></p>
+                <p><strong>Security Question</strong> <span id="reset-security-question"></span></p>
                 <div class="form-group">
-                    <label>Security Answer:</label>
+                    <label>Security Answer</label>
                     <input type="text" id="reset-security-answer" required placeholder="Enter your security answer">
                 </div>
                 <div class="form-group">
-                    <label>New Password:</label>
+                    <label>New Password</label>
                     <div class="password-container">
                         <input type="password" id="reset-new-password" required placeholder="Create a new password">
-                       
+
                     </div>
                     <small id="reset-new-password-help" class="field-help hidden">
-                        8-16 characters with at least one uppercase, one lowercase, one number, and one special character (_, -, @, :, or &)
+                        8-16 characters with at least one uppercase, one lowercase, one number, and one special
+                        character (_, -, @, :, or &)
                     </small>
                 </div>
                 <div class="form-group">
-                    <label>Confirm New Password:</label>
+                    <label>Confirm New Password</label>
                     <div class="password-container">
-                        <input type="password" id="reset-confirm-password" required placeholder="Confirm your new password">
-                        
+                        <input type="password" id="reset-confirm-password" required
+                            placeholder="Confirm your new password">
+
                     </div>
                 </div>
                 <button onclick="resetPassword()">Reset Password</button>
                 <button onclick="showLogin()" class="secondary-button">Back to Login</button>
             </div>
-            
+
             <div id="auth-message" class="error"></div>
         </div>
-
         <!-- Welcome Section -->
         <div id="welcome-section" class="hidden">
             <h2>🙏 Welcome, <span id="user-name"></span>!</h2>
             <p><em>"सर्वाणि परित्यज्य मामेकं शरणं व्रज" - Follow your financial goals with discipline!</em></p>
-            
-            <h3>Choose Your Tracking Option:</h3>
+
+            <h3>Choose Your Tracking Option</h3>
             <button onclick="setTrackingOption('income')">Income Only</button>
             <button onclick="setTrackingOption('expenses')">Expenses Only</button>
             <button onclick="setTrackingOption('both')">Both Income & Expenses</button>
         </div>
-
         <!-- Main Application -->
         <div id="main-app" class="hidden">
-            <!-- Sidebar Navigation -->
-            <div id="sidebar" class="sidebar">
-                <div class="sidebar-header">
-                    <h3>🇮🇳 BalanceTrack</h3>
-                    <button class="sidebar-close" onclick="closeSidebar()">×</button>
-                </div>
-                <div class="sidebar-content">
-                    <a href="#" class="sidebar-link" onclick="showSection('setup'); closeSidebar(); return false;">
-                        📊 Setup
-                    </a>
-                    <a href="#" class="sidebar-link" onclick="showSection('transactions'); closeSidebar(); return false;">
-                        💰 Transactions
-                    </a>
-                    <a href="#" class="sidebar-link" onclick="showSection('summary'); closeSidebar(); return false;">
-                        📈 Monthly Summary
-                    </a>
-                    <a href="#" class="sidebar-link logout-link" onclick="logout(); closeSidebar(); return false;">
-                        🚪 Logout
-                    </a>
-                </div>
-            </div>
-            
-            <!-- Sidebar Overlay -->
-            <div id="sidebar-overlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
-            
+
+            <!-- Navigation Bar -->
             <div id="nav-bar">
-                <!-- Mobile Hamburger (left side) -->
+                <!-- Mobile Hamburger -->
                 <div class="nav-mobile">
-                    <button class="hamburger-button" onclick="openSidebar()">
+                    <button class="hamburger-button" onclick="toggleSidebar()">
                         <div class="hamburger-icon">
                             <span></span>
                             <span></span>
@@ -204,158 +187,181 @@
                         </div>
                     </button>
                 </div>
-                
-                <!-- App Brand (center on mobile, left on desktop) -->
+
+                <!-- Brand -->
                 <div class="nav-brand">
                     <h1>🇮🇳 BalanceTrack</h1>
                 </div>
-                
-                <!-- Desktop Navigation (right side) -->
+
+                <!-- Desktop Links -->
                 <div class="nav-desktop">
-                    <a href="#" class="nav-link" onclick="showSection('setup'); return false;">
-                        <span class="icon-enhanced">📊</span>Setup
-                    </a>
-                    <a href="#" class="nav-link" onclick="showSection('transactions'); return false;">
-                        <span class="icon-enhanced">💰</span>Transactions
-                    </a>
-                    <a href="#" class="nav-link" onclick="showSection('summary'); return false;">
-                        <span class="icon-enhanced">📈</span>Summary
-                    </a>
-                    <a href="#" class="nav-link logout-link" onclick="logout(); return false;">
-                        <span class="icon-enhanced">🚪</span>Logout
-                    </a>
+                    <a href="#" class="nav-link" onclick="showSection('setup'); return false;"><span>📊</span>Setup</a>
+                    <a href="#" class="nav-link"
+                        onclick="showSection('transactions'); return false;"><span>💰</span>Transactions</a>
+                    <a href="#" class="nav-link"
+                        onclick="showSection('summary'); return false;"><span>📈</span>Summary</a>
+                    <a href="#" class="nav-link logout-link" onclick="logout(); return false;"><span>🚪</span>Logout</a>
                 </div>
             </div>
+
+            <div id="mobile-sidebar">
+                <div class="mobile-brand">
+                    <h1>🇮🇳 BalanceTrack</h1>
+                </div>
+                <a href="#" onclick="showSection('setup'); closeSidebar(); return false;">
+                    <span class="icon-enhanced">📊</span>Setup
+                </a>
+                <a href="#" onclick="showSection('transactions'); closeSidebar(); return false;">
+                    <span class="icon-enhanced">💰</span>Transactions
+                </a>
+                <a href="#" onclick="showSection('summary'); closeSidebar(); return false;">
+                    <span class="icon-enhanced">📈</span>Summary
+                </a>
+                <a href="#" class="logout-link" onclick="logout(); closeSidebar(); return false;">
+                    <span class="icon-enhanced">🚪</span>Logout
+                </a>
+            </div>
+            <div id="sidebar-overlay" onclick="closeSidebar()"></div>
 
             <!-- Setup Section -->
             <div id="setup-section">
                 <h2>Account Setup</h2>
-                
                 <!-- Bank Setup -->
-                <div id="bank-setup">
+                <div id="bank-setup" class="setup-card">
                     <h3>🏦 Bank Setup</h3>
-                    <div class="form-group">
-                        <label>Bank Name:</label>
-                        <input type="text" id="bank-name" placeholder="Enter bank name">
-                        <label>Initial Balance:</label>
-                        <input type="number" id="bank-balance" placeholder="0.00" step="0.01">
-                        <button onclick="addBank()">
-                            <span class="icon-enhanced">🏦</span>Add Bank
-                        </button>
+                    <div class="setup-body">
+                        <div class="setup-left">
+                            <div class="form-field">
+                                <label>Bank Name</label>
+                                <input type="text" id="bank-name" placeholder="e.g., HDFC, ICICI">
+                            </div>
+                            <div class="form-field">
+                                <label>Initial Balance</label>
+                                <input type="number" id="bank-balance" placeholder="0.00" step="0.01">
+                            </div>
+                            <button class="primary-btn" onclick="addBank()">🏦 Add Bank</button>
+                        </div>
+                        <div class="setup-right" id="banks-list"></div>
                     </div>
-                    <div id="bank-message" class="error"></div>
-                    <div id="banks-list"></div>
+                    <div id="bank-message" class="error-msg"></div>
                 </div>
-
                 <!-- Credit Card Setup -->
-                <div id="credit-card-setup">
+                <div id="credit-card-setup" class="setup-card">
                     <h3>💳 Credit Card Setup</h3>
-                    <div class="form-group">
-                        <label>Card Name:</label>
-                        <input type="text" id="cc-name" placeholder="Enter card name">
-                        <label>Credit Limit:</label>
-                        <input type="number" id="cc-limit" placeholder="0.00" step="0.01">
-                        <button onclick="addCreditCard()">
-                            <span class="icon-enhanced">💳</span>Add Credit Card
-                        </button>
-                    </div>
-                    <div id="credit-card-message" class="error"></div>
-                    <div id="credit-cards-list"></div>
-                </div>
 
-                <!-- Cash Balance Setup -->
-                <div id="cash-setup">
-                    <h3>💵 Cash Balance</h3>
-                    <div class="form-group">
-                        <label>Cash Balance:</label>
-                        <input type="number" id="cash-balance" placeholder="0.00" step="0.01">
-                        <button onclick="setCashBalance()">
-                            <span class="icon-enhanced">💵</span>Set Cash Balance
-                        </button>
+                    <div class="setup-body">
+                        <div class="setup-left">
+                            <div class="form-field">
+                                <label>Card Name</label>
+                                <input type="text" id="cc-name" placeholder="e.g., SBI, HDFC Card">
+                            </div>
+                            <div class="form-field">
+                                <label>Credit Limit</label>
+                                <input type="number" id="cc-limit" placeholder="0.00" step="0.01">
+                            </div>
+                            <button class="primary-btn" onclick="addCreditCard()">💳 Add Credit Card</button>
+                        </div>
+
+                        <div id="credit-cards-list" class="setup-right"></div>
                     </div>
-                    <div id="cash-message" class="error"></div>
-                    <div id="cash-display"></div>
+
+                    <div id="credit-card-message" class="error-msg"></div>
+                </div>
+                <!-- Cash Balance Setup -->
+                <div id="cash-setup" class="setup-card">
+                    <h3>💵 Cash Balance</h3>
+
+                    <div class="setup-body">
+                        <div class="setup-left">
+                            <div class="form-field">
+                                <label>Cash Balance</label>
+                                <input type="number" id="cash-balance" placeholder="0.00" step="0.01">
+                            </div>
+                            <button class="primary-btn" onclick="setCashBalance()">💵 Set Cash Balance</button>
+                        </div>
+                        <div id="cash-display" class="setup-right-cash-balance"></div>
+                    </div>
+                    <div id="cash-message" class="error-msg"></div>
                 </div>
             </div>
 
             <!-- Transactions Section -->
             <div id="transactions-section" class="hidden">
                 <h2>Transactions</h2>
-                
-                <!-- Income Form -->
-                <div id="income-form">
-                    <h3>💰 Add Income</h3>
-                    <div class="form-group">
-                        <label>Source:</label>
-                        <input type="text" id="income-source" placeholder="Salary, Freelance, etc.">
-                        <label>Amount:</label>
-                        <input type="number" id="income-amount" placeholder="0.00" step="0.01">
-                        <label>Credited To:</label>
-                        <select id="income-credited-to">
-                            <option value="cash">Cash</option>
-                        </select>
-                        <label>Date:</label>
-                        <input type="date" id="income-date">
-                        <button onclick="addIncome()">
-                            <span class="icon-enhanced">💰</span>Add Income
-                        </button>
+                <div id="forms-wrapper">
+                    <!-- Income Form -->
+                    <div id="income-form">
+                        <h3>💰 Add Income</h3>
+                        <div class="form-group">
+                            <label>Source</label>
+                            <input type="text" id="income-source" placeholder="Salary, Freelance, etc.">
+                            <label>Amount</label>
+                            <input type="number" id="income-amount" placeholder="0.00" step="0.01">
+                            <label>Credited To</label>
+                            <select id="income-credited-to">
+                                <option value="cash">Cash</option>
+                            </select>
+                            <label>Date</label>
+                            <input type="date" id="income-date">
+                            <button onclick="addIncome()">
+                                <span class="icon-enhanced">💰</span>Add Income
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Expense Form -->
+                    <div id="expense-form">
+                        <h3>💸 Add Expense</h3>
+                        <div class="form-group">
+                            <label>Title</label>
+                            <input type="text" id="expense-title" placeholder="Groceries, Rent, etc.">
+                            <label>Amount</label>
+                            <input type="number" id="expense-amount" placeholder="0.00" step="0.01">
+                            <label>Payment Method</label>
+                            <select id="expense-payment-method">
+                                <option value="cash">Cash</option>
+                            </select>
+                            <label>Date</label>
+                            <input type="date" id="expense-date">
+                            <button onclick="addExpense()">
+                                <span class="icon-enhanced">💸</span>Add Expense
+                            </button>
+                        </div>
                     </div>
                 </div>
-
-                <!-- Expense Form -->
-                <div id="expense-form">
-                    <h3>💸 Add Expense</h3>
-                    <div class="form-group">
-                        <label>Title:</label>
-                        <input type="text" id="expense-title" placeholder="Groceries, Rent, etc.">
-                        <label>Amount:</label>
-                        <input type="number" id="expense-amount" placeholder="0.00" step="0.01">
-                        <label>Payment Method:</label>
-                        <select id="expense-payment-method">
-                            <option value="cash">Cash</option>
-                        </select>
-                        <label>Date:</label>
-                        <input type="date" id="expense-date">
-                        <button onclick="addExpense()">
-                            <span class="icon-enhanced">💸</span>Add Expense
-                        </button>
-                    </div>
-                </div>
-
                 <div id="transactions-message" class="error"></div>
-
                 <!-- Transactions History -->
                 <div id="transactions-history">
-                    <!-- Income History -->
                     <div id="income-history">
                         <h3>Income History</h3>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Source</th>
-                                    <th>Amount</th>
-                                    <th>Credited To</th>
-                                </tr>
-                            </thead>
-                            <tbody id="income-table-body"></tbody>
-                        </table>
+                        <div class="scrollable-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Source</th>
+                                        <th>Amount</th>
+                                        <th>Credited To</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="income-table-body"></tbody>
+                            </table>
+                        </div>
                     </div>
-
-                    <!-- Expense History -->
                     <div id="expense-history">
                         <h3>Expense History</h3>
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Title</th>
-                                    <th>Amount</th>
-                                    <th>Payment Method</th>
-                                </tr>
-                            </thead>
-                            <tbody id="expense-table-body"></tbody>
-                        </table>
+                        <div class="scrollable-table">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Title</th>
+                                        <th>Amount</th>
+                                        <th>Payment Method</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expense-table-body"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -363,10 +369,9 @@
             <!-- Monthly Summary Section -->
             <div id="summary-section" class="hidden">
                 <h2>📈 Monthly Summary</h2>
-                
                 <div class="summary-controls">
                     <div class="form-group">
-                        <label>Month:</label>
+                        <label>Month</label>
                         <select id="summary-month">
                             <option value="1">January</option>
                             <option value="2">February</option>
@@ -382,19 +387,16 @@
                             <option value="12">December</option>
                         </select>
                     </div>
-                    
                     <div class="form-group">
-                        <label>Year:</label>
+                        <label>Year</label>
                         <select id="summary-year"></select>
                     </div>
-                    
                     <div class="form-group">
                         <button onclick="loadMonthlySummary()">
                             <span class="icon-enhanced">📊</span>Load Summary
                         </button>
                     </div>
                 </div>
-
                 <div id="summary-display">
                     <p style="color: #666; text-align: center;">Select month and year to view summary</p>
                 </div>
@@ -414,7 +416,10 @@
                 </div>
             </div>
             <div class="footer-center">
-                <p>Crafted with <span class="love-symbol">❤️</span> by <a href="https://onemark.co.in" target="_blank" rel="noopener noreferrer"><strong>Team OneMark</strong></a> • 🤖 Built with help of <a href="https://github.com/copilot" target="_blank" rel="noopener noreferrer"><strong>GitHub Copilot</strong>  </a> & Human creativity.</p>
+                <p>Crafted with <span class="love-symbol">❤️</span> by <a href="https://onemark.co.in" target="_blank"
+                        rel="noopener noreferrer"><strong>Team OneMark</strong></a> • 🤖 Built with help of <a
+                        href="https://github.com/copilot" target="_blank" rel="noopener noreferrer"><strong>GitHub
+                            Copilot</strong> </a> & Human creativity.</p>
             </div>
         </div>
     </footer>
@@ -427,83 +432,77 @@
     <script src="js/navigation-manager.js"></script>
     <script src="js/summary-manager.js"></script>
     <script src="js/app.js"></script>
-    
+
     <script>
-    // Initialize month and year dropdowns with current date
-    document.addEventListener('DOMContentLoaded', function() {
-        const currentDate = new Date();
-        const currentMonth = currentDate.getMonth() + 1;
-        const currentYear = currentDate.getFullYear();
-        
-        // Set current month as selected
-        const monthSelect = document.getElementById('summary-month');
-        if (monthSelect) {
-            monthSelect.value = currentMonth;
+
+        function toggleSidebar() {
+            document.body.classList.toggle('sidebar-open');
         }
-        
-        // Populate year dropdown (from 2020 to current year + 1)
-        const yearSelect = document.getElementById('summary-year');
-        if (yearSelect) {
-            for (let year = 2020; year <= currentYear + 1; year++) {
-                const option = document.createElement('option');
-                option.value = year;
-                option.textContent = year;
-                if (year === currentYear) {
-                    option.selected = true;
+
+        function closeSidebar() {
+            document.body.classList.remove('sidebar-open');
+        }
+
+
+        // Initialize month and year dropdowns with current date
+        document.addEventListener('DOMContentLoaded', function () {
+            const currentDate = new Date();
+            const currentMonth = currentDate.getMonth() + 1;
+            const currentYear = currentDate.getFullYear();
+
+            // Set current month as selected
+            const monthSelect = document.getElementById('summary-month');
+            if (monthSelect) {
+                monthSelect.value = currentMonth;
+            }
+
+            // Populate year dropdown (from 2020 to current year + 1)
+            const yearSelect = document.getElementById('summary-year');
+            if (yearSelect) {
+                for (let year = 2020; year <= currentYear + 1; year++) {
+                    const option = document.createElement('option');
+                    option.value = year;
+                    option.textContent = year;
+                    if (year === currentYear) {
+                        option.selected = true;
+                    }
+                    yearSelect.appendChild(option);
                 }
-                yearSelect.appendChild(option);
             }
-        }
-        
-        // Initialize field help functionality
-        initializeFieldHelp();
-    });
-    
-    // Field Help functionality
-    function initializeFieldHelp() {
-        // Map input IDs to their corresponding help element IDs
-        const fieldHelpMap = {
-            'login-username': 'login-username-help',
-            'register-username': 'register-username-help',
-            'register-password': 'register-password-help',
-            'forgot-username-email': 'forgot-username-email-help',
-            'reset-new-password': 'reset-new-password-help'
-        };
-        
-        // Add event listeners for each field
-        Object.keys(fieldHelpMap).forEach(inputId => {
-            const inputElement = document.getElementById(inputId);
-            const helpElement = document.getElementById(fieldHelpMap[inputId]);
-            
-            if (inputElement && helpElement) {
-                // Show help on focus
-                inputElement.addEventListener('focus', () => {
-                    helpElement.classList.remove('hidden');
-                });
-                
-                // Hide help on blur (when clicking outside)
-                inputElement.addEventListener('blur', () => {
-                    helpElement.classList.add('hidden');
-                });
-            }
+
+            // Initialize field help functionality
+            initializeFieldHelp();
         });
-    }
-    
-    // Password Toggle functionality
-    function togglePassword(inputId) {
-        const passwordInput = document.getElementById(inputId);
-        const toggleButton = passwordInput.nextElementSibling;
-        
-        if (passwordInput.type === 'password') {
-            passwordInput.type = 'text';
-            toggleButton.textContent = '🙈'; // Hide icon
-            toggleButton.setAttribute('aria-label', 'Hide password');
-        } else {
-            passwordInput.type = 'password';
-            toggleButton.textContent = '👁️'; // Show icon
-            toggleButton.setAttribute('aria-label', 'Show password');
+
+        // Field Help functionality
+        function initializeFieldHelp() {
+            // Map input IDs to their corresponding help element IDs
+            const fieldHelpMap = {
+                'login-username': 'login-username-help',
+                'register-username': 'register-username-help',
+                'register-password': 'register-password-help',
+                'forgot-username-email': 'forgot-username-email-help',
+                'reset-new-password': 'reset-new-password-help'
+            };
+
+            // Add event listeners for each field
+            Object.keys(fieldHelpMap).forEach(inputId => {
+                const inputElement = document.getElementById(inputId);
+                const helpElement = document.getElementById(fieldHelpMap[inputId]);
+
+                if (inputElement && helpElement) {
+                    // Show help on focus
+                    inputElement.addEventListener('focus', () => {
+                        helpElement.classList.remove('hidden');
+                    });
+
+                    // Hide help on blur (when clicking outside)
+                    inputElement.addEventListener('blur', () => {
+                        helpElement.classList.add('hidden');
+                    });
+                }
+            });
         }
-    }
     </script>
 </body>
 </html>

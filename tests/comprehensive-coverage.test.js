@@ -152,7 +152,7 @@ describe('Comprehensive Coverage Tests', () => {
             expect(response.status).toBe(200);
             expect(response.body.success).toBe(true);
             expect(response.body.userId).toBeDefined();
-            
+
             testUserId = response.body.userId;
         });
 
