@@ -1678,6 +1678,15 @@ tr:last-child td {
     font-style: italic;
 }
 
+.info-text {
+    color: var(--primary-color);
+    font-size: 0.9rem;
+    margin-top: 8px;
+    padding: 8px;
+    background: rgba(var(--primary-color-rgb), 0.1);
+    border-radius: var(--border-radius);
+}
+
 .danger-button {
     background: var(--error-color);
     color: white;
@@ -1791,10 +1800,28 @@ tr:last-child td {
     
     .modal-footer {
         flex-direction: column;
+        gap: 10px;
     }
     
     .modal-footer button {
         width: 100%;
-        justify-content: center;
     }
+}
+
+/* Cash balance display styles */
+.cash-balance-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 10px;
+    background: rgba(var(--primary-color-rgb), 0.1);
+    border-radius: var(--border-radius);
+    margin-top: 10px;
+}
+
+.cash-amount {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-primary);
 }

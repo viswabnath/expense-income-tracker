@@ -10,7 +10,7 @@ class TransactionManager {
     }
 
     initializeEventListeners() {
-        // Event delegation for transaction action buttons
+        // Event delegation for transaction actions
         document.addEventListener('click', (event) => {
             const target = event.target;
 
@@ -21,6 +21,7 @@ class TransactionManager {
 
                 console.log('Action button clicked:', action, 'ID:', id);
 
+                // Only handle transaction-related actions
                 switch(action) {
                 case 'edit-income':
                     this.editIncomeTransaction(id);
@@ -34,10 +35,10 @@ class TransactionManager {
                 case 'delete-expense':
                     this.deleteExpenseTransaction(id);
                     break;
-                case 'save-income-edit':
+                case 'save-income':
                     this.saveIncomeEdit();
                     break;
-                case 'save-expense-edit':
+                case 'save-expense':
                     this.saveExpenseEdit();
                     break;
                 case 'confirm-delete':
@@ -52,7 +53,13 @@ class TransactionManager {
                 case 'close-delete':
                     this.closeDeleteModal();
                     break;
+                // Let other actions (like setup actions) bubble up
+                default:
+                    return; // Don't preventDefault for non-transaction actions
                 }
+
+                event.preventDefault();
+                event.stopPropagation();
             }
         });
     }

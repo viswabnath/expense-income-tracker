@@ -554,6 +554,181 @@ app.get('/api/cash-balance', requireAuth, async (req, res) => {
     }
 });
 
+// Bank CRUD operations
+app.put('/api/banks/:id', requireAuth, async (req, res) => {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const { id } = req.params;
+        const { name, initialBalance } = req.body;
+
+        // Validate input
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: 'Bank name is required' });
+        }
+
+        if (initialBalance === undefined || isNaN(initialBalance) || parseFloat(initialBalance) < 0) {
+            return res.status(400).json({ error: 'Valid initial balance is required' });
+        }
+
+        // Get current bank data
+        const currentBank = await client.query(
+            'SELECT * FROM banks WHERE id = $1 AND user_id = $2',
+            [id, req.session.userId]
+        );
+
+        if (currentBank.rows.length === 0) {
+            return res.status(404).json({ error: 'Bank not found' });
+        }
+
+        const oldBalance = parseFloat(currentBank.rows[0].initial_balance);
+        const newBalance = parseFloat(initialBalance);
+        const balanceDifference = newBalance - oldBalance;
+
+        // Update bank
+        const result = await client.query(
+            'UPDATE banks SET name = $1, initial_balance = $2, current_balance = current_balance + $3 WHERE id = $4 AND user_id = $5 RETURNING *',
+            [name.trim(), newBalance, balanceDifference, id, req.session.userId]
+        );
+
+        await client.query('COMMIT');
+        res.json(result.rows[0]);
+    } catch (error) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: error.message });
+    } finally {
+        client.release();
+    }
+});
+
+app.delete('/api/banks/:id', requireAuth, async (req, res) => {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const { id } = req.params;
+
+        // Check if bank has transactions
+        const transactions = await client.query(
+            'SELECT COUNT(*) FROM income_entries WHERE user_id = $1 AND credited_to_type = $2 AND credited_to_id = $3 UNION ALL SELECT COUNT(*) FROM expense_entries WHERE user_id = $1 AND debited_from_type = $2 AND debited_from_id = $3',
+            [req.session.userId, 'bank', id]
+        );
+
+        const totalTransactions = transactions.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
+
+        if (totalTransactions > 0) {
+            return res.status(400).json({
+                error: 'Cannot delete bank with existing transactions. Please delete all related transactions first.'
+            });
+        }
+
+        // Delete bank
+        const result = await client.query(
+            'DELETE FROM banks WHERE id = $1 AND user_id = $2 RETURNING *',
+            [id, req.session.userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Bank not found' });
+        }
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Bank deleted successfully' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: error.message });
+    } finally {
+        client.release();
+    }
+});
+
+// Credit Card CRUD operations
+app.put('/api/credit-cards/:id', requireAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, creditLimit } = req.body;
+
+        // Validate input
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: 'Card name is required' });
+        }
+
+        if (creditLimit === undefined || isNaN(creditLimit) || parseFloat(creditLimit) <= 0) {
+            return res.status(400).json({ error: 'Valid credit limit greater than 0 is required' });
+        }
+
+        // Check if card exists and belongs to user
+        const currentCard = await pool.query(
+            'SELECT * FROM credit_cards WHERE id = $1 AND user_id = $2',
+            [id, req.session.userId]
+        );
+
+        if (currentCard.rows.length === 0) {
+            return res.status(404).json({ error: 'Credit card not found' });
+        }
+
+        const currentUsedLimit = parseFloat(currentCard.rows[0].used_limit);
+        const newCreditLimit = parseFloat(creditLimit);
+
+        // Check if new credit limit is not less than used limit
+        if (newCreditLimit < currentUsedLimit) {
+            return res.status(400).json({
+                error: `Credit limit cannot be less than used limit (₹${currentUsedLimit.toLocaleString('en-IN', { minimumFractionDigits: 2 })})`
+            });
+        }
+
+        // Update credit card
+        const result = await pool.query(
+            'UPDATE credit_cards SET name = $1, credit_limit = $2 WHERE id = $3 AND user_id = $4 RETURNING *',
+            [name.trim(), newCreditLimit, id, req.session.userId]
+        );
+
+        res.json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+app.delete('/api/credit-cards/:id', requireAuth, async (req, res) => {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const { id } = req.params;
+
+        // Check if credit card has transactions
+        const transactions = await client.query(
+            'SELECT COUNT(*) FROM expense_entries WHERE user_id = $1 AND debited_from_type = $2 AND debited_from_id = $3',
+            [req.session.userId, 'credit_card', id]
+        );
+
+        if (parseInt(transactions.rows[0].count) > 0) {
+            return res.status(400).json({
+                error: 'Cannot delete credit card with existing transactions. Please delete all related transactions first.'
+            });
+        }
+
+        // Delete credit card
+        const result = await pool.query(
+            'DELETE FROM credit_cards WHERE id = $1 AND user_id = $2 RETURNING *',
+            [id, req.session.userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Credit card not found' });
+        }
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Credit card deleted successfully' });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        res.status(500).json({ error: error.message });
+    } finally {
+        client.release();
+    }
+});
+
 // Income operations
 app.post('/api/income', requireAuth, async (req, res) => {
     try {

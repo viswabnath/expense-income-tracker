@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Transaction Buttons</title>
+    <style>
+        .action-btn {
+            padding: 5px 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .edit-btn { background: #17a2b8; color: white; }
+        .delete-btn { background: #dc3545; color: white; }
+    </style>
+</head>
+<body>
+    <h1>Transaction CRUD Button Test</h1>
+    
+    <div>
+        <h3>Test Income Buttons:</h3>
+        <button class="action-btn edit-btn" data-action="edit-income" data-id="123">
+            ✏️ Edit Income
+        </button>
+        <button class="action-btn delete-btn" data-action="delete-income" data-id="123">
+            🗑️ Delete Income
+        </button>
+    </div>
+    
+    <div>
+        <h3>Test Expense Buttons:</h3>
+        <button class="action-btn edit-btn" data-action="edit-expense" data-id="456">
+            ✏️ Edit Expense
+        </button>
+        <button class="action-btn delete-btn" data-action="delete-expense" data-id="456">
+            🗑️ Delete Expense
+        </button>
+    </div>
+    
+    <div id="output"></div>
+
+    <script>
+        // Simple event delegation test
+        document.addEventListener('click', (event) => {
+            const target = event.target;
+            const output = document.getElementById('output');
+            
+            if (target.hasAttribute('data-action')) {
+                const action = target.getAttribute('data-action');
+                const id = target.getAttribute('data-id');
+                
+                output.innerHTML += `<p>Clicked: ${action} with ID: ${id}</p>`;
+                console.log('Action button clicked:', action, 'ID:', id);
+            }
+        });
+    </script>
+</body>
+</html>

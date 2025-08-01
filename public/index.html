@@ -554,6 +554,123 @@
         </div>
     </div>
 
+    <!-- Edit Bank Modal -->
+    <div id="edit-bank-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Bank</h3>
+                <button class="modal-close" data-action="close-edit-bank">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-bank-form">
+                    <div class="form-group">
+                        <label for="edit-bank-name">Bank Name:</label>
+                        <input type="text" id="edit-bank-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-bank-balance">Initial Balance:</label>
+                        <input type="number" id="edit-bank-balance" step="0.01" min="0" required>
+                    </div>
+                    <div class="warning-text">
+                        <strong>Note:</strong> Changing the initial balance will adjust the current balance by the difference.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button data-action="save-bank" class="primary-button">
+                    <span class="icon-enhanced">💾</span>Save Changes
+                </button>
+                <button data-action="close-edit-bank" class="secondary-button">
+                    <span class="icon-enhanced">❌</span>Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Credit Card Modal -->
+    <div id="edit-credit-card-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Credit Card</h3>
+                <button class="modal-close" data-action="close-edit-credit-card">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-credit-card-form">
+                    <div class="form-group">
+                        <label for="edit-credit-card-name">Card Name:</label>
+                        <input type="text" id="edit-credit-card-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-credit-card-limit">Credit Limit:</label>
+                        <input type="number" id="edit-credit-card-limit" step="0.01" min="0.01" required>
+                    </div>
+                    <div id="credit-card-used-info" class="info-text">
+                        <!-- This will be populated with used limit info -->
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button data-action="save-credit-card" class="primary-button">
+                    <span class="icon-enhanced">💾</span>Save Changes
+                </button>
+                <button data-action="close-edit-credit-card" class="secondary-button">
+                    <span class="icon-enhanced">❌</span>Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Setup Item Confirmation Modal -->
+    <div id="delete-setup-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirm Deletion</h3>
+                <button class="modal-close" data-action="close-delete-setup">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="delete-setup-message">Are you sure you want to delete this item?</p>
+                <p class="warning-text">This action cannot be undone and will fail if there are related transactions.</p>
+            </div>
+            <div class="modal-footer">
+                <button data-action="confirm-delete-setup" class="danger-button">
+                    <span class="icon-enhanced">🗑️</span>Delete
+                </button>
+                <button data-action="close-delete-setup" class="secondary-button">
+                    <span class="icon-enhanced">❌</span>Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Cash Balance Modal -->
+    <div id="edit-cash-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Cash Balance</h3>
+                <button class="modal-close" data-action="close-edit-cash">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-cash-form">
+                    <div class="form-group">
+                        <label for="edit-cash-balance">Cash Balance:</label>
+                        <input type="number" id="edit-cash-balance" step="0.01" min="0" required>
+                    </div>
+                    <div class="info-text">
+                        Update your current cash balance. This will replace the existing cash balance.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button data-action="save-cash-balance" class="primary-button">
+                    <span class="icon-enhanced">💾</span>Save Changes
+                </button>
+                <button data-action="close-edit-cash" class="secondary-button">
+                    <span class="icon-enhanced">❌</span>Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Include all JavaScript modules -->
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>

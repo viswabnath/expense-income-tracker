@@ -215,6 +215,42 @@ class EventHandlers {
                 }
             });
         }
+
+        // Event delegation for setup CRUD buttons
+        const setupSection = document.getElementById('setup');
+        if (setupSection) {
+            setupSection.addEventListener('click', async (e) => {
+                const button = e.target;
+                if (!button.matches('button[data-action]')) return;
+
+                const action = button.dataset.action;
+                const id = button.dataset.id;
+
+                if (window.setupManager && (action.includes('bank') || action.includes('credit-card'))) {
+                    await window.setupManager.handleSetupAction(action, { id });
+                }
+            });
+        }
+
+        // Setup modal event delegation
+        document.addEventListener('click', async (e) => {
+            const button = e.target;
+            if (!button.matches('button[data-action]')) return;
+
+            const action = button.dataset.action;
+
+            // Handle setup modal actions
+            if (window.setupManager && (
+                action === 'save-bank' ||
+                action === 'save-credit-card' ||
+                action === 'confirm-delete-setup' ||
+                action === 'close-edit-bank' ||
+                action === 'close-edit-credit-card' ||
+                action === 'close-delete-setup'
+            )) {
+                await window.setupManager.handleSetupAction(action);
+            }
+        });
     }
 
     bindTransactionEvents() {
