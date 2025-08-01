@@ -2,6 +2,13 @@
 
 A comprehensive web application for tracking personal finances, expenses, and income with secure authentication and real-time data management.
 
+## 🌐 Live Demo
+
+🚀 **Try BalanceTrack now**: [https://balance-track.up.railway.app/](https://balance-track.up.railway.app/)
+
+> **Production Deployment**: Fully deployed on Railway with enterprise-grade security and performance optimizations.
+
+
 ## 🎯 Project Overview
 
 BalanceTrack is a full-stack web application that allows users to:
@@ -21,13 +28,16 @@ BalanceTrack is a full-stack web application that allows users to:
   - Transaction Manager (income/expense tracking)
   - Summary Manager (monthly reports)
   - Navigation Manager (UI transitions)
-- **UI**: Responsive HTML/CSS with clean interface
+  - Event Handlers (CSP-compliant event management)
+- **UI**: Responsive HTML/CSS with mobile-first design
+- **Security**: CSP-compliant with no inline JavaScript
 
 ### Backend
 - **Technology**: Node.js with Express.js
 - **Database**: PostgreSQL with advanced schema
-- **Security**: bcryptjs encryption, session management, rate limiting
+- **Security**: bcryptjs encryption, session management, rate limiting, CSP headers
 - **API**: RESTful endpoints for all operations
+- **Deployment**: Production-ready on Railway platform
 
 ### Database Schema
 - **Users**: Secure authentication with security questions
@@ -44,6 +54,9 @@ BalanceTrack is a full-stack web application that allows users to:
 - ✅ Session management with secure cookies
 - ✅ Rate limiting on authentication endpoints
 - ✅ XSS and SQL injection protection
+- ✅ **Content Security Policy (CSP) compliance**
+- ✅ **Helmet.js security headers**
+- ✅ **CSRF protection with SameSite cookies**
 
 ### Financial Management
 - ✅ Multiple bank account management
@@ -60,6 +73,8 @@ BalanceTrack is a full-stack web application that allows users to:
 - ✅ Historical data analysis
 - ✅ Support for very large amounts (up to 999,999,999,999,999,999.99)
 - ✅ Flexible tracking options (income only, expenses only, or both)
+- ✅ **Mobile-responsive design with touch-friendly interface**
+- ✅ **Real-time data synchronization**
 
 ### Data Integrity
 - ✅ Automatic balance updates
@@ -195,7 +210,12 @@ npm run test:coverage
   "test:frontend": "jest tests/frontend-*.test.js",
   "test:integration": "jest tests/integration.test.js",
   "test:coverage": "jest --coverage",
-  "test:watch": "jest --watch"
+  "test:watch": "jest --watch",
+  "lint": "eslint .",
+  "lint:fix": "eslint . --fix",
+  "deploy:local": "./deploy.sh local",
+  "deploy:docker": "./deploy.sh docker",
+  "deploy:production": "./deploy.sh production"
 }
 ```
 
@@ -217,11 +237,30 @@ DB_SSL=true
 PORT=443
 ```
 
+## 🌐 Live Production Deployment
+
+### Railway Deployment Status
+- ✅ **Live URL**: [https://balance-track.up.railway.app/](https://balance-track.up.railway.app/)
+- ✅ **Database**: PostgreSQL on Railway
+- ✅ **SSL/HTTPS**: Automatic SSL certificates
+- ✅ **Auto-scaling**: Enabled with Railway's infrastructure
+- ✅ **Environment**: Production-optimized configuration
+- ✅ **Security**: Full CSP compliance, secure headers, rate limiting
+- ✅ **Mobile**: Fully responsive across all devices
+
+### Production Features
+- 🔒 **Enterprise Security**: Content Security Policy, CSRF protection
+- 📱 **Mobile Optimized**: Touch-friendly interface with sliding sidebar
+- ⚡ **High Performance**: Optimized queries and connection pooling
+- 🚀 **Auto-scaling**: Handles traffic spikes automatically
+- 💾 **Data Persistence**: PostgreSQL with automatic backups
+- 🔍 **Monitoring**: Error tracking and performance monitoring ready
+
 ### Deployment Options
-1. **Cloud Platforms**: Heroku, Vercel, Railway
+1. **Cloud Platforms**: ✅ Railway (current), Heroku, Vercel
 2. **VPS/Server**: Ubuntu/CentOS with nginx reverse proxy
 3. **Container**: Docker deployment ready
-4. **Database**: PostgreSQL on AWS RDS, Google Cloud SQL
+4. **Database**: PostgreSQL on AWS RDS, Google Cloud SQL, Railway PostgreSQL
 
 ## 📈 Performance & Scalability
 
@@ -231,6 +270,9 @@ PORT=443
 - ✅ Session-based authentication (minimal overhead)
 - ✅ Static file serving optimization
 - ✅ Connection pooling for database
+- ✅ **CSP-compliant security (no inline JavaScript)**
+- ✅ **Mobile-optimized responsive design**
+- ✅ **Production deployment on Railway with automatic scaling**
 
 ### Scalability Features
 - ✅ Horizontal scaling ready

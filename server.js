@@ -54,7 +54,19 @@ const generalLimiter = rateLimit({
 
 // Middleware
 app.use(helmet({
-    contentSecurityPolicy: false, // Disable CSP for development
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ['\'self\''],
+            scriptSrc: ['\'self\''],
+            styleSrc: ['\'self\'', '\'unsafe-inline\'', 'https://fonts.googleapis.com'],
+            fontSrc: ['\'self\'', 'https://fonts.gstatic.com'],
+            connectSrc: ['\'self\''],
+            imgSrc: ['\'self\'', 'data:', 'https:'],
+            objectSrc: ['\'none\''],
+            mediaSrc: ['\'self\''],
+            frameSrc: ['\'none\''],
+        },
+    },
 }));
 app.use(generalLimiter);
 app.use(bodyParser.json({ limit: '10mb' })); // Limit request size

@@ -78,19 +78,21 @@ class NavigationManager {
     }
 
     // Sidebar functions
+    toggleSidebar() {
+        if (document.body.classList.contains('sidebar-open')) {
+            this.closeSidebar();
+        } else {
+            this.openSidebar();
+        }
+    }
+
     openSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('sidebar-overlay');
-        if (sidebar) sidebar.classList.add('active');
-        if (overlay) overlay.classList.add('active');
+        document.body.classList.add('sidebar-open');
         document.body.style.overflow = 'hidden'; // Prevent background scrolling
     }
 
     closeSidebar() {
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('sidebar-overlay');
-        if (sidebar) sidebar.classList.remove('active');
-        if (overlay) overlay.classList.remove('active');
+        document.body.classList.remove('sidebar-open');
         document.body.style.overflow = 'auto'; // Restore scrolling
     }
 
@@ -110,9 +112,14 @@ class NavigationManager {
 // Global navigation manager instance
 window.navigationManager = new NavigationManager();
 
-// Global functions for onclick handlers
+// Global functions for onclick handlers (exposed for use by event-handlers.js)
+/* eslint-disable no-unused-vars */
 function showSection(section) {
     window.navigationManager.showSection(section);
+}
+
+function toggleSidebar() {
+    window.navigationManager.toggleSidebar();
 }
 
 function toggleMobileNav() {
@@ -130,6 +137,7 @@ function openSidebar() {
 function closeSidebar() {
     window.navigationManager.closeSidebar();
 }
+/* eslint-enable no-unused-vars */
 
 // Add click outside listener for mobile nav
 document.addEventListener('click', (event) => {

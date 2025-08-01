@@ -43,6 +43,18 @@ export default [
     }
   },
   {
+    files: ["public/js/**/*.js"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "script",
+      globals: {
+        ...globals.browser,
+        // Global objects/managers - these are available globally but not redefined
+        window: "readonly"
+      }
+    }
+  },
+  {
     files: ["tests/**/*.js"],
     languageOptions: {
       globals: {

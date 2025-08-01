@@ -32,16 +32,16 @@
 
                     </div>
                 </div>
-                <button onclick="login()">
+                <button data-action="login">
                     <span class="icon-enhanced">🔐</span>Login
                 </button>
-                <button onclick="showRegister()" class="secondary-button">
+                <button data-action="showRegister" class="secondary-button">
                     <span class="icon-enhanced">📝</span>Register
                 </button>
-                <button onclick="showForgotUsername()" class="info-button">
+                <button data-action="showForgotUsername" class="info-button">
                     <span class="icon-enhanced">🔍</span>Forgot Username?
                 </button>
-                <button onclick="showForgotPassword()" class="warning-button">
+                <button data-action="showForgotPassword" class="warning-button">
                     <span class="icon-enhanced">🔑</span>Forgot Password?
                 </button>
             </div>
@@ -93,10 +93,10 @@
 
                     <input type="text" id="register-security-answer" required placeholder="Enter your answer">
                 </div>
-                <button onclick="register()">
+                <button data-action="register">
                     <span class="icon-enhanced">✨</span>Create Account
                 </button>
-                <button onclick="showLogin()" class="secondary-button">
+                <button data-action="showLogin" class="secondary-button">
                     <span class="icon-enhanced">🔙</span>Back to Login
                 </button>
             </div>
@@ -110,8 +110,8 @@
                     <input type="email" id="forgot-username-email-input" required
                         placeholder="Enter your email address">
                 </div>
-                <button onclick="forgotUsername()">Find Username</button>
-                <button onclick="showLogin()" class="secondary-button">Back to Login</button>
+                <button data-action="forgotUsername">Find Username</button>
+                <button data-action="showLogin" class="secondary-button">Back to Login</button>
             </div>
 
             <div id="forgot-password-form" class="auth-form hidden">
@@ -125,8 +125,8 @@
                         Email: valid email address format
                     </small>
                 </div>
-                <button onclick="requestPasswordReset()">Continue</button>
-                <button onclick="showLogin()" class="secondary-button">Back to Login</button>
+                <button data-action="requestPasswordReset">Continue</button>
+                <button data-action="showLogin" class="secondary-button">Back to Login</button>
             </div>
 
             <div id="reset-password-form" class="auth-form hidden">
@@ -156,8 +156,8 @@
 
                     </div>
                 </div>
-                <button onclick="resetPassword()">Reset Password</button>
-                <button onclick="showLogin()" class="secondary-button">Back to Login</button>
+                <button data-action="resetPassword">Reset Password</button>
+                <button data-action="showLogin" class="secondary-button">Back to Login</button>
             </div>
 
             <div id="auth-message" class="error"></div>
@@ -168,9 +168,9 @@
             <p><em>"सर्वाणि परित्यज्य मामेकं शरणं व्रज" - Follow your financial goals with discipline!</em></p>
 
             <h3>Choose Your Tracking Option</h3>
-            <button onclick="setTrackingOption('income')">Income Only</button>
-            <button onclick="setTrackingOption('expenses')">Expenses Only</button>
-            <button onclick="setTrackingOption('both')">Both Income & Expenses</button>
+            <button data-action="setTrackingOption" data-option="income">Income Only</button>
+            <button data-action="setTrackingOption" data-option="expenses">Expenses Only</button>
+            <button data-action="setTrackingOption" data-option="both">Both Income & Expenses</button>
         </div>
         <!-- Main Application -->
         <div id="main-app" class="hidden">
@@ -179,7 +179,7 @@
             <div id="nav-bar">
                 <!-- Mobile Hamburger -->
                 <div class="nav-mobile">
-                    <button class="hamburger-button" onclick="toggleSidebar()">
+                    <button class="hamburger-button" data-action="toggleSidebar">
                         <div class="hamburger-icon">
                             <span></span>
                             <span></span>
@@ -195,12 +195,10 @@
 
                 <!-- Desktop Links -->
                 <div class="nav-desktop">
-                    <a href="#" class="nav-link" onclick="showSection('setup'); return false;"><span>📊</span>Setup</a>
-                    <a href="#" class="nav-link"
-                        onclick="showSection('transactions'); return false;"><span>💰</span>Transactions</a>
-                    <a href="#" class="nav-link"
-                        onclick="showSection('summary'); return false;"><span>📈</span>Summary</a>
-                    <a href="#" class="nav-link logout-link" onclick="logout(); return false;"><span>🚪</span>Logout</a>
+                    <a href="#" class="nav-link" data-action="showSection" data-section="setup"><span>📊</span>Setup</a>
+                    <a href="#" class="nav-link" data-action="showSection" data-section="transactions"><span>💰</span>Transactions</a>
+                    <a href="#" class="nav-link" data-action="showSection" data-section="summary"><span>📈</span>Summary</a>
+                    <a href="#" class="nav-link logout-link" data-action="logout"><span>🚪</span>Logout</a>
                 </div>
             </div>
 
@@ -208,20 +206,20 @@
                 <div class="mobile-brand">
                     <h1>🇮🇳 BalanceTrack</h1>
                 </div>
-                <a href="#" onclick="showSection('setup'); closeSidebar(); return false;">
+                <a href="#" data-action="showSection" data-section="setup" data-close-sidebar="true">
                     <span class="icon-enhanced">📊</span>Setup
                 </a>
-                <a href="#" onclick="showSection('transactions'); closeSidebar(); return false;">
+                <a href="#" data-action="showSection" data-section="transactions" data-close-sidebar="true">
                     <span class="icon-enhanced">💰</span>Transactions
                 </a>
-                <a href="#" onclick="showSection('summary'); closeSidebar(); return false;">
+                <a href="#" data-action="showSection" data-section="summary" data-close-sidebar="true">
                     <span class="icon-enhanced">📈</span>Summary
                 </a>
-                <a href="#" class="logout-link" onclick="logout(); closeSidebar(); return false;">
+                <a href="#" class="logout-link" data-action="logout" data-close-sidebar="true">
                     <span class="icon-enhanced">🚪</span>Logout
                 </a>
             </div>
-            <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+            <div id="sidebar-overlay" data-action="closeSidebar"></div>
 
             <!-- Setup Section -->
             <div id="setup-section">
@@ -239,7 +237,7 @@
                                 <label>Initial Balance</label>
                                 <input type="number" id="bank-balance" placeholder="0.00" step="0.01">
                             </div>
-                            <button class="primary-btn" onclick="addBank()">🏦 Add Bank</button>
+                            <button class="primary-btn" data-action="addBank">🏦 Add Bank</button>
                         </div>
                         <div class="setup-right" id="banks-list"></div>
                     </div>
@@ -259,7 +257,7 @@
                                 <label>Credit Limit</label>
                                 <input type="number" id="cc-limit" placeholder="0.00" step="0.01">
                             </div>
-                            <button class="primary-btn" onclick="addCreditCard()">💳 Add Credit Card</button>
+                            <button class="primary-btn" data-action="addCreditCard">💳 Add Credit Card</button>
                         </div>
 
                         <div id="credit-cards-list" class="setup-right"></div>
@@ -277,7 +275,7 @@
                                 <label>Cash Balance</label>
                                 <input type="number" id="cash-balance" placeholder="0.00" step="0.01">
                             </div>
-                            <button class="primary-btn" onclick="setCashBalance()">💵 Set Cash Balance</button>
+                            <button class="primary-btn" data-action="setCashBalance">💵 Set Cash Balance</button>
                         </div>
                         <div id="cash-display" class="setup-right-cash-balance"></div>
                     </div>
@@ -303,7 +301,7 @@
                             </select>
                             <label>Date</label>
                             <input type="date" id="income-date">
-                            <button onclick="addIncome()">
+                            <button data-action="addIncome">
                                 <span class="icon-enhanced">💰</span>Add Income
                             </button>
                         </div>
@@ -322,7 +320,7 @@
                             </select>
                             <label>Date</label>
                             <input type="date" id="expense-date">
-                            <button onclick="addExpense()">
+                            <button data-action="addExpense">
                                 <span class="icon-enhanced">💸</span>Add Expense
                             </button>
                         </div>
@@ -392,7 +390,7 @@
                         <select id="summary-year"></select>
                     </div>
                     <div class="form-group">
-                        <button onclick="loadMonthlySummary()">
+                        <button data-action="loadMonthlySummary">
                             <span class="icon-enhanced">📊</span>Load Summary
                         </button>
                     </div>
@@ -431,78 +429,8 @@
     <script src="js/transaction-manager.js"></script>
     <script src="js/navigation-manager.js"></script>
     <script src="js/summary-manager.js"></script>
+    <script src="js/event-handlers.js"></script>
+    <script src="js/initialization.js"></script>
     <script src="js/app.js"></script>
-
-    <script>
-
-        function toggleSidebar() {
-            document.body.classList.toggle('sidebar-open');
-        }
-
-        function closeSidebar() {
-            document.body.classList.remove('sidebar-open');
-        }
-
-
-        // Initialize month and year dropdowns with current date
-        document.addEventListener('DOMContentLoaded', function () {
-            const currentDate = new Date();
-            const currentMonth = currentDate.getMonth() + 1;
-            const currentYear = currentDate.getFullYear();
-
-            // Set current month as selected
-            const monthSelect = document.getElementById('summary-month');
-            if (monthSelect) {
-                monthSelect.value = currentMonth;
-            }
-
-            // Populate year dropdown (from 2020 to current year + 1)
-            const yearSelect = document.getElementById('summary-year');
-            if (yearSelect) {
-                for (let year = 2020; year <= currentYear + 1; year++) {
-                    const option = document.createElement('option');
-                    option.value = year;
-                    option.textContent = year;
-                    if (year === currentYear) {
-                        option.selected = true;
-                    }
-                    yearSelect.appendChild(option);
-                }
-            }
-
-            // Initialize field help functionality
-            initializeFieldHelp();
-        });
-
-        // Field Help functionality
-        function initializeFieldHelp() {
-            // Map input IDs to their corresponding help element IDs
-            const fieldHelpMap = {
-                'login-username': 'login-username-help',
-                'register-username': 'register-username-help',
-                'register-password': 'register-password-help',
-                'forgot-username-email': 'forgot-username-email-help',
-                'reset-new-password': 'reset-new-password-help'
-            };
-
-            // Add event listeners for each field
-            Object.keys(fieldHelpMap).forEach(inputId => {
-                const inputElement = document.getElementById(inputId);
-                const helpElement = document.getElementById(fieldHelpMap[inputId]);
-
-                if (inputElement && helpElement) {
-                    // Show help on focus
-                    inputElement.addEventListener('focus', () => {
-                        helpElement.classList.remove('hidden');
-                    });
-
-                    // Hide help on blur (when clicking outside)
-                    inputElement.addEventListener('blur', () => {
-                        helpElement.classList.add('hidden');
-                    });
-                }
-            });
-        }
-    </script>
 </body>
 </html>
