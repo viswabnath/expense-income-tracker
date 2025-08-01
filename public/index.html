@@ -372,6 +372,7 @@
                                         <th>Source</th>
                                         <th>Amount</th>
                                         <th>Credited To</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="income-table-body"></tbody>
@@ -388,6 +389,7 @@
                                         <th>Title</th>
                                         <th>Amount</th>
                                         <th>Payment Method</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="expense-table-body"></tbody>
@@ -454,6 +456,103 @@
             </div>
         </div>
     </footer>
+
+    <!-- Edit Transaction Modals -->
+    <div id="edit-income-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ Edit Income Transaction</h3>
+                <button class="modal-close" data-action="close-edit-income">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit-income-source">Income Source</label>
+                    <input type="text" id="edit-income-source" required placeholder="Enter income source">
+                </div>
+                <div class="form-group">
+                    <label for="edit-income-amount">Amount (₹)</label>
+                    <input type="number" id="edit-income-amount" step="0.01" min="0" required placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label for="edit-income-credited-to">Credited To</label>
+                    <select id="edit-income-credited-to" required>
+                        <option value="cash">Cash</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-income-date">Date</label>
+                    <input type="date" id="edit-income-date" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button data-action="save-income-edit" class="primary-button">
+                    <span class="icon-enhanced">💾</span>Save Changes
+                </button>
+                <button data-action="close-edit-income" class="secondary-button">
+                    <span class="icon-enhanced">❌</span>Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="edit-expense-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ Edit Expense Transaction</h3>
+                <button class="modal-close" data-action="close-edit-expense">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit-expense-title">Expense Title</label>
+                    <input type="text" id="edit-expense-title" required placeholder="Enter expense title">
+                </div>
+                <div class="form-group">
+                    <label for="edit-expense-amount">Amount (₹)</label>
+                    <input type="number" id="edit-expense-amount" step="0.01" min="0" required placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label for="edit-expense-payment-method">Payment Method</label>
+                    <select id="edit-expense-payment-method" required>
+                        <option value="cash">Cash</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-expense-date">Date</label>
+                    <input type="date" id="edit-expense-date" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button data-action="save-expense-edit" class="primary-button">
+                    <span class="icon-enhanced">💾</span>Save Changes
+                </button>
+                <button data-action="close-edit-expense" class="secondary-button">
+                    <span class="icon-enhanced">❌</span>Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-confirmation-modal" class="modal-overlay hidden">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3>🗑️ Confirm Delete</h3>
+                <button class="modal-close" data-action="close-delete">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="delete-confirmation-message">Are you sure you want to delete this transaction?</p>
+                <p class="warning-text">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button data-action="confirm-delete" class="danger-button">
+                    <span class="icon-enhanced">🗑️</span>Delete
+                </button>
+                <button data-action="close-delete" class="secondary-button">
+                    <span class="icon-enhanced">❌</span>Cancel
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Include all JavaScript modules -->
     <script src="js/api.js"></script>

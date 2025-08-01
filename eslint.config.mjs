@@ -43,14 +43,30 @@ export default [
     }
   },
   {
-    files: ["public/js/**/*.js"],
+    files: ["public/js/transaction-manager.js"],
     languageOptions: {
-      ecmaVersion: 2022,
-      sourceType: "script",
       globals: {
         ...globals.browser,
         // Global objects/managers - these are available globally but not redefined
-        window: "readonly"
+        window: "readonly",
+        // Toast notification functions
+        showToast: "readonly",
+        showSuccess: "readonly",
+        showError: "readonly",
+        showInfo: "readonly",
+        showWarning: "readonly",
+        // Transaction CRUD functions - defined in this file for global use
+        filterTransactions: "writable",
+        editIncomeTransaction: "writable",
+        editExpenseTransaction: "writable",
+        deleteIncomeTransaction: "writable",
+        deleteExpenseTransaction: "writable",
+        saveIncomeEdit: "writable",
+        saveExpenseEdit: "writable",
+        confirmDelete: "writable",
+        closeEditIncomeModal: "writable",
+        closeEditExpenseModal: "writable",
+        closeDeleteModal: "writable"
       }
     }
   },
