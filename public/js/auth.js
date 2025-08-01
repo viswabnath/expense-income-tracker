@@ -84,6 +84,10 @@ class AuthManager {
             errorElement.className = 'error';
             errorElement.textContent = message;
         }
+        // Also show toast notification
+        if (window.showError) {
+            window.showError(message);
+        }
     }
 
     static showSuccess(message) {
@@ -91,6 +95,10 @@ class AuthManager {
         if (errorElement) {
             errorElement.className = 'success';
             errorElement.textContent = message;
+        }
+        // Also show toast notification
+        if (window.showSuccess) {
+            window.showSuccess(message);
         }
     }
 

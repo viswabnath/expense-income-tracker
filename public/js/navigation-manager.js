@@ -26,6 +26,7 @@ class NavigationManager {
         } else if (section === 'transactions') {
             window.transactionManager.updateTransactionFormVisibility();
             window.transactionManager.loadPaymentOptions();
+            window.transactionManager.initializeTransactionFilters();
             window.transactionManager.loadTransactions();
         } else if (section === 'summary') {
             window.summaryManager.loadMonthlySummary();

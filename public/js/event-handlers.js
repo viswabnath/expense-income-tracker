@@ -3,7 +3,7 @@
  * Replaces inline onclick handlers with proper event listeners for CSP compatibility
  */
 
-/* global login, register, showRegister, showLogin, showForgotUsername, showForgotPassword, forgotUsername, requestPasswordReset, resetPassword, logout, showSection, toggleSidebar, closeSidebar, setTrackingOption */
+/* global login, register, showRegister, showLogin, showForgotUsername, showForgotPassword, forgotUsername, requestPasswordReset, resetPassword, logout, showSection, toggleSidebar, closeSidebar, setTrackingOption, filterTransactions */
 
 class EventHandlers {
     constructor() {
@@ -218,6 +218,12 @@ class EventHandlers {
     }
 
     bindTransactionEvents() {
+        // Filter transactions button
+        const filterBtn = document.querySelector('button[data-action="filterTransactions"]');
+        if (filterBtn) {
+            filterBtn.addEventListener('click', () => filterTransactions());
+        }
+
         // Add income button
         const addIncomeBtn = document.querySelector('button[data-action="addIncome"]');
         if (addIncomeBtn) {

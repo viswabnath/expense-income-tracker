@@ -180,79 +180,23 @@ class TransactionManager {
     }
 
     async loadTransactions() {
+        // Use selected month/year from filters, or default to current month/year
         const currentDate = new Date();
-        const currentMonth = currentDate.getMonth() + 1;
-        const currentYear = currentDate.getFullYear();
+        const month = this.selectedMonth || currentDate.getMonth() + 1;
+        const year = this.selectedYear || currentDate.getFullYear();
 
         try {
-            // Load income transactions
-            const incomeData = await this.apiClient.get(`/api/income?month=${currentMonth}&year=${currentYear}`);
+            const params = new URLSearchParams();
+            params.append('month', month);
+            params.append('year', year);
 
-            const incomeTableBody = document.getElementById('income-table-body');
-            incomeTableBody.innerHTML = '';
+            const [incomeData, expenseData] = await Promise.all([
+                this.apiClient.get(`/api/income?${params.toString()}`),
+                this.apiClient.get(`/api/expenses?${params.toString()}`)
+            ]);
 
-            if (incomeData.length === 0) {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td colspan="4" style="text-align: center; color: #666; font-style: italic; padding: 20px;">
-                        No income transactions found for this month
-                    </td>
-                `;
-                incomeTableBody.appendChild(row);
-            } else {
-                incomeData.forEach(income => {
-                    const row = document.createElement('tr');
-                    const date = new Date(income.date).toLocaleDateString();
-                    const creditedTo = income.credited_to_type === 'bank' ?
-                        document.querySelector(`#income-credited-to option[value="bank-${income.credited_to_id}"]`)?.textContent || 'Unknown Bank' :
-                        'Cash';
-
-                    row.innerHTML = `
-                        <td>${date}</td>
-                        <td>${income.source}</td>
-                        <td>₹${parseFloat(income.amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td>${creditedTo}</td>
-                    `;
-                    incomeTableBody.appendChild(row);
-                });
-            }
-
-            // Load expense transactions
-            const expenseData = await this.apiClient.get(`/api/expenses?month=${currentMonth}&year=${currentYear}`);
-
-            const expenseTableBody = document.getElementById('expense-table-body');
-            expenseTableBody.innerHTML = '';
-
-            if (expenseData.length === 0) {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td colspan="4" style="text-align: center; color: #666; font-style: italic; padding: 20px;">
-                        No expense transactions found for this month
-                    </td>
-                `;
-                expenseTableBody.appendChild(row);
-            } else {
-                expenseData.forEach(expense => {
-                    const row = document.createElement('tr');
-                    const date = new Date(expense.date).toLocaleDateString();
-                    let paymentMethod = expense.payment_method;
-                    if (paymentMethod === 'bank' || paymentMethod === 'credit_card') {
-                        const select = document.querySelector(`#expense-payment-method option[value="${paymentMethod}-${expense.payment_source_id}"]`);
-                        paymentMethod = select ? select.textContent : 'Unknown Source';
-                    } else {
-                        paymentMethod = 'Cash';
-                    }
-
-                    row.innerHTML = `
-                        <td>${date}</td>
-                        <td>${expense.title}</td>
-                        <td>₹${parseFloat(expense.amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                        <td>${paymentMethod}</td>
-                    `;
-                    expenseTableBody.appendChild(row);
-                });
-            }
-
+            this.displayIncomeHistory(incomeData);
+            this.displayExpenseHistory(expenseData);
             this.updateTransactionFormVisibility();
 
         } catch (error) {
@@ -262,6 +206,75 @@ class TransactionManager {
                 window.expenseTracker.isAuthenticated = false;
                 window.expenseTracker.showAuthenticationForms();
             }
+            if (window.showError) {
+                window.showError('Failed to load transactions. Please try again.');
+            }
+        }
+    }
+
+    displayIncomeHistory(incomeData) {
+        const incomeTableBody = document.getElementById('income-table-body');
+        incomeTableBody.innerHTML = '';
+
+        if (incomeData.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td colspan="4" style="text-align: center; color: #666; font-style: italic; padding: 20px;">
+                    No income transactions found for this period
+                </td>
+            `;
+            incomeTableBody.appendChild(row);
+        } else {
+            incomeData.forEach(income => {
+                const row = document.createElement('tr');
+                const date = new Date(income.date).toLocaleDateString();
+                const creditedTo = income.credited_to_type === 'bank' ?
+                    document.querySelector(`#income-credited-to option[value="bank-${income.credited_to_id}"]`)?.textContent || 'Unknown Bank' :
+                    'Cash';
+
+                row.innerHTML = `
+                    <td>${date}</td>
+                    <td>${income.source}</td>
+                    <td>₹${parseFloat(income.amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td>${creditedTo}</td>
+                `;
+                incomeTableBody.appendChild(row);
+            });
+        }
+    }
+
+    displayExpenseHistory(expenseData) {
+        const expenseTableBody = document.getElementById('expense-table-body');
+        expenseTableBody.innerHTML = '';
+
+        if (expenseData.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td colspan="4" style="text-align: center; color: #666; font-style: italic; padding: 20px;">
+                    No expense transactions found for this period
+                </td>
+            `;
+            expenseTableBody.appendChild(row);
+        } else {
+            expenseData.forEach(expense => {
+                const row = document.createElement('tr');
+                const date = new Date(expense.date).toLocaleDateString();
+                let paymentMethod = expense.payment_method;
+                if (paymentMethod === 'bank' || paymentMethod === 'credit_card') {
+                    const select = document.querySelector(`#expense-payment-method option[value="${paymentMethod}-${expense.payment_source_id}"]`);
+                    paymentMethod = select ? select.textContent : 'Unknown Source';
+                } else {
+                    paymentMethod = 'Cash';
+                }
+
+                row.innerHTML = `
+                    <td>${date}</td>
+                    <td>${expense.title}</td>
+                    <td>₹${parseFloat(expense.amount).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td>${paymentMethod}</td>
+                `;
+                expenseTableBody.appendChild(row);
+            });
         }
     }
 
@@ -290,7 +303,66 @@ class TransactionManager {
             expenseHistory.style.display = 'block';
         }
     }
+
+    // Transaction filtering functionality
+    initializeTransactionFilters() {
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth() + 1;
+        const currentYear = currentDate.getFullYear();
+
+        // Set current month as selected
+        const monthSelect = document.getElementById('transaction-month');
+        if (monthSelect) {
+            monthSelect.value = currentMonth;
+        }
+
+        // Populate year dropdown (from 2020 to current year + 1)
+        const yearSelect = document.getElementById('transaction-year');
+        if (yearSelect) {
+            yearSelect.innerHTML = '';
+            for (let year = 2020; year <= currentYear + 1; year++) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                if (year === currentYear) {
+                    option.selected = true;
+                }
+                yearSelect.appendChild(option);
+            }
+        }
+
+        this.selectedMonth = currentMonth;
+        this.selectedYear = currentYear;
+    }
+
+    async filterTransactions() {
+        const monthSelect = document.getElementById('transaction-month');
+        const yearSelect = document.getElementById('transaction-year');
+
+        if (!monthSelect || !yearSelect) {
+            if (window.showError) {
+                window.showError('Filter controls not found');
+            }
+            return;
+        }
+
+        this.selectedMonth = parseInt(monthSelect.value);
+        this.selectedYear = parseInt(yearSelect.value);
+
+        if (window.showInfo) {
+            window.showInfo(`Loading transactions for ${monthSelect.options[monthSelect.selectedIndex].text} ${this.selectedYear}...`);
+        }
+
+        await this.loadTransactions();
+    }
+
+
 }
 
 // Global transaction manager instance
 window.transactionManager = new TransactionManager();
+
+// Global functions for onclick handlers
+function filterTransactions() {
+    window.transactionManager.filterTransactions();
+}

@@ -286,6 +286,39 @@
             <!-- Transactions Section -->
             <div id="transactions-section" class="hidden">
                 <h2>Transactions</h2>
+                
+                <!-- Transaction Filters -->
+                <div class="transaction-filters">
+                    <div class="form-group">
+                        <label>Filter by Month</label>
+                        <select id="transaction-month">
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Filter by Year</label>
+                        <select id="transaction-year">
+                            <!-- Will be populated by JavaScript -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <button id="filter-transactions" data-action="filterTransactions">
+                            <span class="icon-enhanced">🔍</span>Filter Transactions
+                        </button>
+                    </div>
+                </div>
+                
                 <div id="forms-wrapper">
                     <!-- Income Form -->
                     <div id="income-form">
@@ -429,6 +462,7 @@
     <script src="js/transaction-manager.js"></script>
     <script src="js/navigation-manager.js"></script>
     <script src="js/summary-manager.js"></script>
+    <script src="js/toast-manager.js"></script>
     <script src="js/event-handlers.js"></script>
     <script src="js/initialization.js"></script>
     <script src="js/app.js"></script>

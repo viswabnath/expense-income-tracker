@@ -55,6 +55,20 @@ export default [
     }
   },
   {
+    files: ["public/js/event-handlers.js"],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        // Toast notification functions
+        showToast: "readonly",
+        showSuccess: "readonly",
+        showError: "readonly",
+        showInfo: "readonly", 
+        showWarning: "readonly"
+      }
+    }
+  },
+  {
     files: ["tests/**/*.js"],
     languageOptions: {
       globals: {
