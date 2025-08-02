@@ -18,15 +18,18 @@ class AuthManager {
                 user: response
             };
         } catch (error) {
-            // If it fails with 401, user is not authenticated
+            // If it fails with 401, user is not authenticated (this is expected on login screen)
             if (error.message.includes('Authentication required') || error.message.includes('401')) {
                 return {
                     isAuthenticated: false,
                     error: error.message
                 };
             }
-            // For other errors, still consider not authenticated but log the error
-            console.error('Authentication check error:', error);
+            // For other errors (network issues, server errors), still consider not authenticated
+            // but only log if it's not a 401/authentication error
+            if (!error.message.includes('401') && !error.message.includes('Unauthorized')) {
+                console.error('Authentication check error:', error);
+            }
             return {
                 isAuthenticated: false,
                 error: error.message
@@ -79,12 +82,7 @@ class AuthManager {
     }
 
     static showError(message) {
-        const errorElement = document.getElementById('auth-message');
-        if (errorElement) {
-            errorElement.className = 'error';
-            errorElement.textContent = message;
-        }
-        // Also show toast notification
+        // Show toast notification only to avoid duplicate error messages
         if (window.showError) {
             window.showError(message);
         }

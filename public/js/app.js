@@ -181,6 +181,10 @@ class ExpenseTracker {
         window.addExpense = () => window.transactionManager.addExpense();
 
         window.loadMonthlySummary = () => window.summaryManager.loadMonthlySummary();
+
+        // Activity Manager functions
+        window.filterActivity = () => window.activityManager.filterActivity();
+        window.clearActivityFilters = () => window.activityManager.clearActivityFilters();
     }
 }
 

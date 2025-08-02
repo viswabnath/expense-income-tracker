@@ -64,11 +64,17 @@ class ToastManager {
             <div class="toast-content">
                 <span class="toast-icon">${icon}</span>
                 <span class="toast-message">${message}</span>
-                <button class="toast-close" onclick="window.toastManager.dismiss('${id}')">
+                <button class="toast-close" data-toast-id="${id}">
                     <span>&times;</span>
                 </button>
             </div>
         `;
+
+        // Add event listener for close button (CSP-compliant)
+        const closeButton = toast.querySelector('.toast-close');
+        closeButton.addEventListener('click', () => {
+            this.dismiss(id);
+        });
 
         return toast;
     }

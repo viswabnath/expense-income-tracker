@@ -6,7 +6,7 @@
 class SetupManager {
     constructor() {
         this.apiClient = window.apiClient;
-        this.init();
+        this.isInitialized = false;
         this.setupEventDelegation();
     }
 
@@ -22,7 +22,6 @@ class SetupManager {
 
                 // Only handle setup-related actions
                 if (action.includes('bank') || action.includes('credit-card') || action.includes('setup') || action.includes('cash')) {
-                    console.log('Setup action clicked:', action, 'ID:', id);
 
                     this.handleSetupAction(action, { id });
                     event.preventDefault();
@@ -61,18 +60,26 @@ class SetupManager {
     }
 
     async init() {
+        if (this.isInitialized) {
+            return; // Already initialized
+        }
+        
         await this.loadSetupData();
+        this.isInitialized = true;
+    }
+
+    // Method to be called when setup section is shown (after authentication)
+    async onSectionShow() {
+        await this.init();
     }
 
     async loadSetupData() {
-        console.log('Loading setup data...');
         try {
             await Promise.all([
                 this.loadBanks(),
                 this.loadCreditCards(),
                 this.loadCashBalance()
             ]);
-            console.log('All setup data loaded');
             this.updateCreditCardVisibility();
             this.attachInputListeners();
         } catch (error) {
@@ -145,6 +152,12 @@ class SetupManager {
             document.getElementById('bank-balance').value = '';
             this.showSuccess('bank-message', 'Bank added successfully');
             this.loadBanks();
+
+            // Refresh activity data if activity manager exists
+            if (window.activityManager) {
+                window.activityManager.refresh();
+            }
+
             // Clear success message after 3 seconds
             setTimeout(() => this.clearMessage('bank-message'), 3000);
         } catch (error) {
@@ -221,6 +234,12 @@ class SetupManager {
                 document.getElementById('cc-limit').value = '';
                 this.showSuccess('credit-card-message', 'Credit card added successfully');
                 this.loadCreditCards();
+
+                // Refresh activity data if activity manager exists
+                if (window.activityManager) {
+                    window.activityManager.refresh();
+                }
+
                 // Clear success message after 3 seconds
                 setTimeout(() => this.clearMessage('credit-card-message'), 3000);
             } else {
@@ -296,6 +315,12 @@ class SetupManager {
             document.getElementById('cash-balance').value = '';
             this.showSuccess('cash-message', 'Cash balance updated successfully');
             this.loadCashBalance();
+
+            // Refresh activity data if activity manager exists
+            if (window.activityManager) {
+                window.activityManager.refresh();
+            }
+
             // Clear success message after 3 seconds
             setTimeout(() => this.clearMessage('cash-message'), 3000);
         } catch (error) {
@@ -306,9 +331,7 @@ class SetupManager {
 
     async loadCashBalance() {
         try {
-            console.log('Loading cash balance...');
             const cashData = await this.apiClient.get('/api/cash-balance');
-            console.log('Cash balance data received:', cashData);
 
             const cashDiv = document.getElementById('cash-display');
             if (!cashDiv) {
@@ -323,7 +346,6 @@ class SetupManager {
                     <button class="edit-btn" data-action="edit-cash-balance">Edit</button>
                 </div>
             `;
-            console.log('Cash balance display updated');
         } catch (error) {
             console.error('Error loading cash balance', error);
             // Fallback display in case of error
@@ -552,6 +574,11 @@ class SetupManager {
             window.toastManager.success('Cash balance updated successfully');
             this.loadCashBalance();
             this.closeEditCashModal();
+
+            // Refresh activity data if activity manager exists
+            if (window.activityManager) {
+                window.activityManager.refresh();
+            }
         } catch (error) {
             console.error('Error updating cash balance:', error);
             window.toastManager.error(error.message || 'Error updating cash balance');

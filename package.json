@@ -9,6 +9,7 @@
     "migrate-db": "node migrate-db.js",
     "check-schema": "node check-schema.js",
     "reset-db": "node reset-db.js",
+    "reset-db-preserve-users": "node reset-db-preserve-users.js",
     "test": "jest",
     "test:backend": "jest tests/server.test.js tests/auth.test.js tests/integration.test.js",
     "test:frontend": "jest tests/frontend-*.test.js",

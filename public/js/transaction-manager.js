@@ -17,28 +17,46 @@ class TransactionManager {
             // Handle buttons with data-action attributes
             if (target.hasAttribute('data-action')) {
                 const action = target.getAttribute('data-action');
-                const id = parseInt(target.getAttribute('data-id'));
+                const idAttr = target.getAttribute('data-id');
+                const id = parseInt(idAttr);
 
-                console.log('Action button clicked:', action, 'ID:', id);
 
                 // Only handle transaction-related actions
                 switch(action) {
                 case 'edit-income':
+                    if (isNaN(id)) {
+                        console.error('Invalid income ID for edit:', idAttr);
+                        return;
+                    }
                     this.editIncomeTransaction(id);
                     break;
                 case 'delete-income':
+                    if (isNaN(id)) {
+                        console.error('Invalid income ID for delete:', idAttr);
+                        return;
+                    }
                     this.deleteIncomeTransaction(id);
                     break;
                 case 'edit-expense':
+                    if (isNaN(id)) {
+                        console.error('Invalid expense ID for edit:', idAttr);
+                        return;
+                    }
                     this.editExpenseTransaction(id);
                     break;
                 case 'delete-expense':
+                    if (isNaN(id)) {
+                        console.error('Invalid expense ID for delete:', idAttr);
+                        return;
+                    }
                     this.deleteExpenseTransaction(id);
                     break;
                 case 'save-income':
+                case 'save-income-edit':
                     this.saveIncomeEdit();
                     break;
                 case 'save-expense':
+                case 'save-expense-edit':
                     this.saveExpenseEdit();
                     break;
                 case 'confirm-delete':
@@ -139,6 +157,11 @@ class TransactionManager {
                 this.showTransactionMessage('Income added successfully!', 'success');
                 window.setupManager.loadSetupData(); // Refresh balances
                 this.loadTransactions(); // Refresh transactions
+
+                // Refresh activity data if activity manager exists
+                if (window.activityManager) {
+                    window.activityManager.refreshData();
+                }
             } else {
                 this.showTransactionMessage(response.error, 'error');
             }
@@ -196,6 +219,11 @@ class TransactionManager {
                 this.showTransactionMessage('Expense added successfully!', 'success');
                 window.setupManager.loadSetupData(); // Refresh balances
                 this.loadTransactions(); // Refresh transactions
+
+                // Refresh activity data if activity manager exists
+                if (window.activityManager) {
+                    window.activityManager.refreshData();
+                }
             } else {
                 this.showTransactionMessage(response.error, 'error');
             }
@@ -241,7 +269,6 @@ class TransactionManager {
         const month = this.selectedMonth || currentDate.getMonth() + 1;
         const year = this.selectedYear || currentDate.getFullYear();
 
-        console.log('Loading transactions for month:', month, 'year:', year);
 
         try {
             const params = new URLSearchParams();
@@ -253,8 +280,6 @@ class TransactionManager {
                 this.apiClient.get(`/api/expenses?${params.toString()}`)
             ]);
 
-            console.log('Loaded income data:', incomeData);
-            console.log('Loaded expense data:', expenseData);
 
             this.displayIncomeHistory(incomeData);
             this.displayExpenseHistory(expenseData);
@@ -461,11 +486,9 @@ class TransactionManager {
 
     // Edit Income Transaction
     async editIncomeTransaction(incomeId) {
-        console.log('TransactionManager.editIncomeTransaction called with ID:', incomeId);
         try {
             // Fetch the income transaction details
             const income = await this.apiClient.get(`/api/income/${incomeId}`);
-            console.log('Loaded income data:', income);
 
             // Store the income ID for saving
             this.editingIncomeId = incomeId;
@@ -478,10 +501,7 @@ class TransactionManager {
             document.getElementById('edit-income-amount').value = income.amount;
 
             // Debug the date formatting
-            console.log('Original income.date:', income.date);
-            console.log('Date after split:', income.date.split('T')[0]);
             const formattedDate = this.formatDateForInput(income.date);
-            console.log('Formatted date:', formattedDate);
             document.getElementById('edit-income-date').value = formattedDate;
 
             // Set credited to value after dropdown is populated
@@ -489,8 +509,6 @@ class TransactionManager {
             const creditedToSelect = document.getElementById('edit-income-credited-to');
             creditedToSelect.value = creditedToValue;
 
-            console.log('Setting credited to value:', creditedToValue);
-            console.log('Available options:', Array.from(creditedToSelect.options).map(opt => opt.value));
 
             // Show the modal
             document.getElementById('edit-income-modal').classList.remove('hidden');
@@ -505,11 +523,9 @@ class TransactionManager {
 
     // Edit Expense Transaction
     async editExpenseTransaction(expenseId) {
-        console.log('TransactionManager.editExpenseTransaction called with ID:', expenseId);
         try {
             // Fetch the expense transaction details
             const expense = await this.apiClient.get(`/api/expenses/${expenseId}`);
-            console.log('Loaded expense data:', expense);
 
             // Store the expense ID for saving
             this.editingExpenseId = expenseId;
@@ -522,10 +538,7 @@ class TransactionManager {
             document.getElementById('edit-expense-amount').value = expense.amount;
 
             // Debug the date formatting
-            console.log('Original expense.date:', expense.date);
-            console.log('Date after split:', expense.date.split('T')[0]);
             const formattedDate = this.formatDateForInput(expense.date);
-            console.log('Formatted date:', formattedDate);
             document.getElementById('edit-expense-date').value = formattedDate;
 
             // Set payment method value after dropdown is populated
@@ -533,8 +546,6 @@ class TransactionManager {
             const paymentMethodSelect = document.getElementById('edit-expense-payment-method');
             paymentMethodSelect.value = paymentMethodValue;
 
-            console.log('Setting payment method value:', paymentMethodValue);
-            console.log('Available options:', Array.from(paymentMethodSelect.options).map(opt => opt.value));
 
             // Show the modal
             document.getElementById('edit-expense-modal').classList.remove('hidden');
@@ -589,6 +600,14 @@ class TransactionManager {
 
     // Save Income Edit
     async saveIncomeEdit() {
+        if (!this.editingIncomeId || isNaN(this.editingIncomeId)) {
+            console.error('No valid income ID set for editing:', this.editingIncomeId);
+            if (window.showError) {
+                window.showError('Error: No income selected for editing');
+            }
+            return;
+        }
+
         const source = document.getElementById('edit-income-source').value;
         const amount = document.getElementById('edit-income-amount').value;
         const creditedTo = document.getElementById('edit-income-credited-to').value;
@@ -610,14 +629,6 @@ class TransactionManager {
         }
 
         try {
-            console.log('Saving income edit with data:', {
-                source,
-                amount: parseFloat(amount),
-                creditedToType,
-                creditedToId,
-                date
-            });
-
             const response = await this.apiClient.put(`/api/income/${this.editingIncomeId}`, {
                 source,
                 amount: parseFloat(amount),
@@ -626,7 +637,6 @@ class TransactionManager {
                 date
             });
 
-            console.log('Income update response:', response);
 
             // Check if the transaction moved to a different month/year
             const editedDate = new Date(date);
@@ -642,6 +652,11 @@ class TransactionManager {
                 window.showSuccess('Income transaction updated successfully!');
             }
             window.setupManager.loadSetupData(); // Refresh balances
+
+            // Refresh activity data if activity manager exists
+            if (window.activityManager) {
+                window.activityManager.refreshData();
+            }
 
             // If the transaction moved to a different month/year, notify the user
             if (editedMonth !== currentMonth || editedYear !== currentYear) {
@@ -683,14 +698,6 @@ class TransactionManager {
         }
 
         try {
-            console.log('Saving expense edit with data:', {
-                title,
-                amount: parseFloat(amount),
-                paymentMethod: paymentMethodType,
-                paymentSourceId,
-                date
-            });
-
             const response = await this.apiClient.put(`/api/expenses/${this.editingExpenseId}`, {
                 title,
                 amount: parseFloat(amount),
@@ -699,7 +706,6 @@ class TransactionManager {
                 date
             });
 
-            console.log('Expense update response:', response);
 
             // Check if the transaction moved to a different month/year
             const editedDate = new Date(date);
@@ -715,6 +721,11 @@ class TransactionManager {
                 window.showSuccess('Expense transaction updated successfully!');
             }
             window.setupManager.loadSetupData(); // Refresh balances
+
+            // Refresh activity data if activity manager exists
+            if (window.activityManager) {
+                window.activityManager.refreshData();
+            }
 
             // If the transaction moved to a different month/year, notify the user
             if (editedMonth !== currentMonth || editedYear !== currentYear) {
@@ -797,6 +808,11 @@ class TransactionManager {
             window.setupManager.loadSetupData(); // Refresh balances
             this.loadTransactions(); // Refresh transactions
 
+            // Refresh activity data if activity manager exists
+            if (window.activityManager) {
+                window.activityManager.refreshData();
+            }
+
         } catch (error) {
             console.error('Error deleting transaction:', error);
             if (window.showError) {
@@ -835,22 +851,18 @@ function filterTransactions() {
 
 // CRUD operation global functions
 function editIncomeTransaction(incomeId) {
-    console.log('editIncomeTransaction called with ID:', incomeId);
     window.transactionManager.editIncomeTransaction(incomeId);
 }
 
 function editExpenseTransaction(expenseId) {
-    console.log('editExpenseTransaction called with ID:', expenseId);
     window.transactionManager.editExpenseTransaction(expenseId);
 }
 
 function deleteIncomeTransaction(incomeId) {
-    console.log('deleteIncomeTransaction called with ID:', incomeId);
     window.transactionManager.deleteIncomeTransaction(incomeId);
 }
 
 function deleteExpenseTransaction(expenseId) {
-    console.log('deleteExpenseTransaction called with ID:', expenseId);
     window.transactionManager.deleteExpenseTransaction(expenseId);
 }
 

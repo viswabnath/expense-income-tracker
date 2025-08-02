@@ -1258,10 +1258,20 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
         }
 
         // Get user registration date and tracking option
-        const userResult = await pool.query(
-            'SELECT created_at, tracking_option FROM users WHERE id = $1',
-            [userId]
-        );
+        let userResult;
+        try {
+            userResult = await pool.query(
+                'SELECT created_at, COALESCE(tracking_option, \'both\') as tracking_option FROM users WHERE id = $1',
+                [userId]
+            );
+        } catch (error) {
+            console.log('Tracking option column might not exist, using fallback query');
+            // Fallback if tracking_option column doesn't exist
+            userResult = await pool.query(
+                'SELECT created_at, \'both\' as tracking_option FROM users WHERE id = $1',
+                [userId]
+            );
+        }
 
         if (userResult.rows.length === 0) {
             return res.status(404).json({ error: 'User not found' });
@@ -1295,13 +1305,13 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
 
         // Get monthly income for selected month
         const incomeResult = await pool.query(
-            'SELECT COALESCE(SUM(amount), 0) as total_income FROM income_entries WHERE user_id = $1 AND month = $2 AND year = $3',
+            'SELECT COALESCE(SUM(amount), 0) as total_income FROM income_entries WHERE user_id = $1 AND EXTRACT(MONTH FROM date) = $2 AND EXTRACT(YEAR FROM date) = $3',
             [userId, selectedMonth, selectedYear]
         );
 
         // Get monthly expenses for selected month
         const expenseResult = await pool.query(
-            'SELECT COALESCE(SUM(amount), 0) as total_expenses FROM expenses WHERE user_id = $1 AND month = $2 AND year = $3',
+            'SELECT COALESCE(SUM(amount), 0) as total_expenses FROM expenses WHERE user_id = $1 AND EXTRACT(MONTH FROM date) = $2 AND EXTRACT(YEAR FROM date) = $3',
             [userId, selectedMonth, selectedYear]
         );
 
@@ -1343,7 +1353,8 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
         const cashResult = await pool.query(
             `
       SELECT 
-        initial_balance + 
+        COALESCE(balance, 0) as initial_balance,
+        COALESCE(balance, 0) + 
         COALESCE((
           SELECT SUM(amount) 
           FROM income_entries 
@@ -1357,13 +1368,20 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
           WHERE user_id = $1 
             AND payment_method = 'cash' 
             AND date <= $2
-        ), 0) as cash_balance_at_month_end,
-        initial_balance
+        ), 0) as cash_balance_at_month_end
       FROM cash_balance 
       WHERE user_id = $1
     `,
             [userId, endOfSelectedMonth]
         );
+
+        // If no cash balance record exists, create default values
+        if (cashResult.rows.length === 0) {
+            cashResult.rows = [{
+                initial_balance: 0,
+                cash_balance_at_month_end: 0
+            }];
+        }
 
         // Get credit cards only if user tracks expenses or both
         let creditCards = [];
@@ -1448,7 +1466,39 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
             message: null,
         });
     } catch (error) {
-        res.status(500).json({ error: 'Failed to load monthly summary' });
+        console.error('Monthly summary error:', error);
+        console.error('Error details:', {
+            message: error.message,
+            stack: error.stack,
+            query: error.query || 'No query info'
+        });
+        res.status(500).json({ error: 'Failed to load monthly summary', details: error.message });
+    }
+});
+
+// Debug endpoint to test database without auth
+app.get('/api/debug-monthly', async (req, res) => {
+    try {
+        const { month = 8, year = 2025, userId = 1 } = req.query;
+
+        console.log('Debug monthly summary for:', { month, year, userId });
+
+        // Simple test query
+        const testResult = await pool.query(
+            'SELECT COUNT(*) as count FROM users WHERE id = $1',
+            [userId]
+        );
+
+        console.log('User exists:', testResult.rows[0]);
+
+        res.json({
+            success: true,
+            userExists: testResult.rows[0].count > 0,
+            testParams: { month, year, userId }
+        });
+    } catch (error) {
+        console.error('Debug error:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 // Logout
@@ -1460,6 +1510,200 @@ app.post('/api/logout', (req, res) => {
         res.clearCookie('connect.sid'); // or your session cookie name
         res.json({ success: true });
     });
+});
+
+// User Activity Tracking API with Audit Logs
+app.get('/api/activity', requireAuth, async (req, res) => {
+    try {
+        const {
+            page = 1,
+            limit = 20,
+            type = '',
+            from_date = '',
+            to_date = '',
+            export: exportCsv = false
+        } = req.query;
+
+        const userId = req.session.userId;
+        const offset = (parseInt(page) - 1) * parseInt(limit);
+
+        // Build WHERE conditions for filtering
+        const whereConditions = [];
+        const params = [userId];
+        let paramCount = 1;
+
+        if (from_date) {
+            paramCount++;
+            whereConditions.push(`activity_date >= $${paramCount}`);
+            params.push(from_date);
+        }
+
+        if (to_date) {
+            paramCount++;
+            whereConditions.push(`activity_date <= $${paramCount}`);
+            params.push(to_date);
+        }
+
+        // Enhanced activities query with audit logs - simplified version
+        let activitiesQuery = `
+            SELECT 
+                activity_type,
+                id,
+                description,
+                amount,
+                account_info,
+                activity_date,
+                action_type
+            FROM (
+                -- Income transactions (created)
+                SELECT 
+                    'income' as activity_type,
+                    i.id,
+                    i.source as description,
+                    i.amount,
+                    CASE 
+                        WHEN i.credited_to_type = 'bank' THEN COALESCE(b.name, 'Unknown Bank')
+                        WHEN i.credited_to_type = 'cash' THEN 'Cash'
+                        ELSE i.credited_to_type
+                    END as account_info,
+                    i.date as activity_date,
+                    'created' as action_type
+                FROM income_entries i
+                LEFT JOIN banks b ON i.credited_to_type = 'bank' AND i.credited_to_id = b.id AND b.user_id = i.user_id
+                WHERE i.user_id = $1
+                
+                UNION ALL
+                
+                -- Expense transactions (created)
+                SELECT 
+                    'expense' as activity_type,
+                    e.id,
+                    e.title as description,
+                    e.amount,
+                    CASE 
+                        WHEN e.payment_method = 'bank' THEN COALESCE(b.name, 'Unknown Bank')
+                        WHEN e.payment_method = 'credit_card' THEN COALESCE(c.name, 'Unknown Card')
+                        WHEN e.payment_method = 'cash' THEN 'Cash'
+                        ELSE e.payment_method
+                    END as account_info,
+                    e.date as activity_date,
+                    'created' as action_type
+                FROM expenses e
+                LEFT JOIN banks b ON e.payment_method = 'bank' AND e.payment_source_id = b.id AND b.user_id = e.user_id
+                LEFT JOIN credit_cards c ON e.payment_method = 'credit_card' AND e.payment_source_id = c.id AND c.user_id = e.user_id
+                WHERE e.user_id = $1
+                
+                UNION ALL
+                
+                -- Bank setup activities
+                SELECT 
+                    'setup' as activity_type,
+                    b.id,
+                    'Added bank: ' || b.name as description,
+                    b.initial_balance as amount,
+                    b.name as account_info,
+                    b.created_at as activity_date,
+                    'created' as action_type
+                FROM banks b
+                WHERE b.user_id = $1
+                
+                UNION ALL
+                
+                -- Credit card setup activities
+                SELECT 
+                    'setup' as activity_type,
+                    c.id,
+                    'Added credit card: ' || c.name as description,
+                    c.credit_limit as amount,
+                    c.name as account_info,
+                    c.created_at as activity_date,
+                    'created' as action_type
+                FROM credit_cards c
+                WHERE c.user_id = $1
+            ) combined_activities
+        `;
+
+        // Apply filtering
+        if (whereConditions.length > 0) {
+            activitiesQuery += ` WHERE ${whereConditions.join(' AND ')}`;
+        }
+
+        // Apply type filtering if specified
+        if (type && type !== '') {
+            activitiesQuery += whereConditions.length > 0 ? ` AND activity_type = '${type}'` : ` WHERE activity_type = '${type}'`;
+        }
+
+        activitiesQuery += ' ORDER BY activity_date DESC';
+
+        // For CSV export, don't limit results
+        if (!exportCsv) {
+            activitiesQuery += ` LIMIT ${parseInt(limit)} OFFSET ${offset}`;
+        }
+
+        const activitiesResult = await pool.query(activitiesQuery, params);
+
+        // Get count for pagination - simplified
+        const countQuery = `
+            SELECT COUNT(*) as total FROM (
+                SELECT id FROM income_entries WHERE user_id = $1
+                UNION ALL
+                SELECT id FROM expenses WHERE user_id = $1
+                UNION ALL
+                SELECT id FROM banks WHERE user_id = $1
+                UNION ALL
+                SELECT id FROM credit_cards WHERE user_id = $1
+            ) combined_count
+        `;
+
+        const countResult = await pool.query(countQuery, [userId]);
+        const totalItems = parseInt(countResult.rows[0].total);
+        const totalPages = Math.ceil(totalItems / parseInt(limit));
+
+        // Get summary statistics
+        const statsResult = await pool.query(`
+            SELECT 
+                (SELECT COUNT(*) FROM income_entries WHERE user_id = $1) + 
+                (SELECT COUNT(*) FROM expenses WHERE user_id = $1) +
+                (SELECT COUNT(*) FROM banks WHERE user_id = $1) +
+                (SELECT COUNT(*) FROM credit_cards WHERE user_id = $1) as totalTransactions,
+                (SELECT COALESCE(SUM(amount), 0) FROM income_entries WHERE user_id = $1) as totalIncome,
+                (SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE user_id = $1) as totalExpenses,
+                (SELECT COALESCE(SUM(amount), 0) FROM income_entries WHERE user_id = $1) - 
+                (SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE user_id = $1) as netBalance
+        `, [userId]);
+
+        // Handle CSV export
+        if (exportCsv) {
+            const csvHeaders = 'Date,Type,Description,Amount,Account\n';
+            const csvRows = activitiesResult.rows.map(activity => {
+                const date = new Date(activity.activity_date).toLocaleDateString();
+                const amount = parseFloat(activity.amount || 0).toFixed(2);
+                return `${date},${activity.activity_type},"${activity.description}",${amount},"${activity.account_info || ''}"`;
+            }).join('\n');
+
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', 'attachment; filename=activity-export.csv');
+            return res.send(csvHeaders + csvRows);
+        }
+
+        res.json({
+            activities: activitiesResult.rows,
+            statistics: statsResult.rows[0] || {
+                totalTransactions: 0,
+                totalIncome: 0,
+                totalExpenses: 0,
+                netBalance: 0
+            },
+            currentPage: parseInt(page),
+            totalPages: totalPages,
+            totalItems: totalItems,
+            limit: parseInt(limit)
+        });
+
+    } catch (error) {
+        console.error('Error fetching user activity:', error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Serve main HTML file

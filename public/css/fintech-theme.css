@@ -134,6 +134,13 @@ body::before {
   margin: 0 0.5rem;
   text-align: left;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.nav-brand h1:hover {
+  color: var(--accent-color);
+  transform: scale(1.05);
 }
 
 /* ===== NAV LINKS (DESKTOP) ===== */
@@ -283,6 +290,20 @@ body::before {
 .mobile-brand {
   text-align: left;
   margin-bottom: 1rem;
+}
+
+.mobile-brand h1 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin: 0;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.mobile-brand h1:hover {
+  color: var(--accent-color);
+  transform: scale(1.05);
 }
 
 
@@ -479,6 +500,31 @@ button.secondary:hover {
 }
 
 /* Additional button classes for auth forms */
+.auth-form button.secondary-button {
+    background: var(--background-secondary) !important;
+    color: var(--text-secondary) !important;
+    border: 1px solid var(--border-color) !important;
+    width: 100% !important;
+}
+
+.auth-form button.secondary-button:hover {
+    background: var(--background-card) !important;
+    color: var(--text-primary) !important;
+    transform: translateY(-1px);
+}
+
+.auth-form button.info-button {
+    background: linear-gradient(135deg, #17a2b8, #138496) !important;
+    color: white !important;
+    width: 100% !important;
+}
+
+.auth-form button.warning-button {
+    background: linear-gradient(135deg, var(--warning-color), #ee4a03) !important;
+    color: white !important;
+    width: 100% !important;
+}
+
 button.secondary-button {
     background: var(--background-secondary);
     color: var(--text-secondary);
@@ -603,10 +649,20 @@ tr:last-child td {
 }
 
 .auth-form button {
-    width: 100%;
+    width: 100% !important;
     margin-bottom: 0.8rem;
     font-size: 0.95rem;
-    padding: 0.8rem 1.5rem;
+    padding: 0.8rem 1.5rem !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    border: none;
+    text-decoration: none;
 }
 
 .auth-form .form-group:last-of-type {
@@ -1824,4 +1880,455 @@ tr:last-child td {
     font-size: 1.2rem;
     font-weight: 600;
     color: var(--text-primary);
+}
+
+/* ===== ACTIVITY SECTION STYLES ===== */
+#activity-section {
+    padding: 20px;
+}
+
+#activity-section h2 {
+    color: var(--text-primary);
+    margin-bottom: 30px;
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+/* Statistics Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    background: var(--background-card);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    box-shadow: var(--shadow-light);
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.stat-card:hover {
+    box-shadow: var(--shadow-medium);
+    transform: translateY(-2px);
+}
+
+.stat-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.stat-icon {
+    font-size: 1.5rem;
+}
+
+.stat-title {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* Activity Filters */
+.activity-filters {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    background: var(--background-card);
+    padding: 20px;
+    border-radius: var(--border-radius);
+    margin-bottom: 30px;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-light);
+}
+
+.activity-filters .form-group {
+    margin-bottom: 0;
+}
+
+.activity-filters label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+    display: block;
+}
+
+.activity-filters select,
+.activity-filters input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: white;
+    transition: var(--transition);
+}
+
+.activity-filters select:focus,
+.activity-filters input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(var(--accent-color-rgb), 0.1);
+}
+
+/* Activity Container */
+.activity-container {
+    background: var(--background-card);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-light);
+    overflow: hidden;
+}
+
+.activity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: var(--background-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.activity-header h3 {
+    color: var(--text-primary);
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.activity-controls {
+    display: flex;
+    gap: 10px;
+}
+
+/* Activity List */
+.activity-list {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.activity-item:hover {
+    background: var(--background-hover);
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+/* Activity Icons - Fintech Theme */
+.activity-icon {
+    font-size: 1.5rem;
+    margin-right: 15px;
+    min-width: 40px;
+    text-align: center;
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+/* Statistics Icons */
+.stat-icon {
+    font-size: 1.2rem;
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+/* Icon Enhanced */
+.icon-enhanced {
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+.activity-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.activity-description {
+    font-weight: 500;
+    color: var(--text-primary);
+    word-wrap: break-word;
+    flex: 1;
+}
+
+/* Action Badges for Audit Trail */
+.action-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.action-badge.created {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+}
+
+.action-badge.modified {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Activity item variants based on action type */
+.activity-item.updated {
+    background: linear-gradient(to right, rgba(245, 158, 11, 0.05), transparent);
+    border-left: 3px solid #f59e0b;
+}
+
+.activity-item.created {
+    background: linear-gradient(to right, rgba(16, 185, 129, 0.05), transparent);
+}
+
+.activity-details {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.account-info {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    background: var(--background-secondary);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.activity-date {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.activity-amount {
+    font-weight: 600;
+    font-size: 1.1rem;
+    min-width: 80px;
+    text-align: right;
+}
+
+.amount-positive {
+    color: var(--success-color);
+}
+
+.amount-negative {
+    color: var(--error-color);
+}
+
+.amount-neutral {
+    color: var(--text-secondary);
+}
+
+/* Loading and Error States */
+.loading-message,
+.error-message,
+.empty-state {
+    text-align: center;
+    padding: 60px 40px;
+    color: var(--text-secondary);
+}
+
+.loading-spinner {
+    font-size: 2rem;
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.empty-state h3 {
+    color: var(--text-primary);
+    margin: 15px 0 10px 0;
+    font-size: 1.3rem;
+}
+
+.empty-state p {
+    margin-bottom: 25px;
+    color: var(--text-secondary);
+}
+
+.empty-state-actions {
+    margin-top: 20px;
+}
+
+.error-message h3 {
+    color: var(--error-color);
+    margin: 15px 0 10px 0;
+    font-size: 1.2rem;
+}
+
+.loading-message h3 {
+    color: var(--primary-color);
+    margin: 15px 0 10px 0;
+    font-size: 1.2rem;
+}
+
+.loading-message .icon-enhanced,
+.error-message .icon-enhanced,
+.empty-state .icon-enhanced {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 10px;
+}
+
+.error-message {
+    color: var(--error-color);
+}
+
+.empty-state p {
+    margin-top: 10px;
+    font-style: italic;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: var(--background-secondary);
+    border-top: 1px solid var(--border-color);
+}
+
+.pagination-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 16px;
+    border: 1px solid var(--border-color);
+    background: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+    font-size: 0.9rem;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: var(--background-hover);
+    border-color: var(--accent-color);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.page-info {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Responsive Design for Activity Section */
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .activity-filters {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .activity-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+    
+    .activity-controls {
+        align-self: stretch;
+    }
+    
+    .activity-controls button {
+        flex: 1;
+    }
+    
+    .activity-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .activity-content {
+        width: 100%;
+    }
+    
+    .activity-amount {
+        align-self: flex-end;
+        min-width: auto;
+    }
+    
+    .activity-details {
+        gap: 10px;
+    }
+    
+    .pagination {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .pagination-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    #activity-section {
+        padding: 15px;
+    }
+    
+    .stat-card {
+        padding: 15px;
+    }
+    
+    .activity-filters {
+        padding: 15px;
+    }
+    
+    .activity-header {
+        padding: 15px;
+    }
+    
+    .activity-item {
+        padding: 12px 15px;
+    }
 }

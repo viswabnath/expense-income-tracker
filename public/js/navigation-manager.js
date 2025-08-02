@@ -10,7 +10,7 @@ class NavigationManager {
 
     showSection(section) {
         // Hide all sections
-        const sections = ['setup-section', 'transactions-section', 'summary-section'];
+        const sections = ['setup-section', 'transactions-section', 'summary-section', 'activity-section'];
         sections.forEach(sectionId => {
             const element = document.getElementById(sectionId);
             if (element) element.classList.add('hidden');
@@ -22,7 +22,7 @@ class NavigationManager {
 
         // Load section-specific data
         if (section === 'setup') {
-            window.setupManager.loadSetupData();
+            window.setupManager.onSectionShow();
         } else if (section === 'transactions') {
             window.transactionManager.updateTransactionFormVisibility();
             window.transactionManager.loadPaymentOptions();
@@ -30,6 +30,12 @@ class NavigationManager {
             window.transactionManager.loadTransactions();
         } else if (section === 'summary') {
             window.summaryManager.loadMonthlySummary();
+        } else if (section === 'activity') {
+            if (window.activityManager) {
+                window.activityManager.onSectionShow();
+            } else {
+                console.error('NavigationManager: activityManager not available!');
+            }
         }
     }
 
@@ -47,7 +53,7 @@ class NavigationManager {
             if (navBar) navBar.style.display = 'flex';
             this.showMainApp();
             this.showSection('setup');
-            window.setupManager.loadSetupData();
+            window.setupManager.onSectionShow();
         } catch (error) {
             // Error handling code can be added here if needed
         }

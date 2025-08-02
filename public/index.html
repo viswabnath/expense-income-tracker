@@ -190,30 +190,34 @@
 
                 <!-- Brand -->
                 <div class="nav-brand">
-                    <h1>🇮🇳 BalanceTrack</h1>
+                    <h1 data-action="showSection" data-section="setup" style="cursor: pointer;">🇮🇳 BalanceTrack</h1>
                 </div>
 
                 <!-- Desktop Links -->
                 <div class="nav-desktop">
-                    <a href="#" class="nav-link" data-action="showSection" data-section="setup"><span>📊</span>Setup</a>
-                    <a href="#" class="nav-link" data-action="showSection" data-section="transactions"><span>💰</span>Transactions</a>
-                    <a href="#" class="nav-link" data-action="showSection" data-section="summary"><span>📈</span>Summary</a>
+                    <a href="#" class="nav-link" data-action="showSection" data-section="setup"><span>⚙️</span>Setup</a>
+                    <a href="#" class="nav-link" data-action="showSection" data-section="transactions"><span>💳</span>Transactions</a>
+                    <a href="#" class="nav-link" data-action="showSection" data-section="summary"><span>📊</span>Summary</a>
+                    <a href="#" class="nav-link" data-action="showSection" data-section="activity"><span>📋</span>Activity</a>
                     <a href="#" class="nav-link logout-link" data-action="logout"><span>🚪</span>Logout</a>
                 </div>
             </div>
 
             <div id="mobile-sidebar">
                 <div class="mobile-brand">
-                    <h1>🇮🇳 BalanceTrack</h1>
+                    <h1 data-action="showSection" data-section="setup" style="cursor: pointer;">🇮🇳 BalanceTrack</h1>
                 </div>
                 <a href="#" data-action="showSection" data-section="setup" data-close-sidebar="true">
-                    <span class="icon-enhanced">📊</span>Setup
+                    <span class="icon-enhanced">⚙️</span>Setup
                 </a>
                 <a href="#" data-action="showSection" data-section="transactions" data-close-sidebar="true">
-                    <span class="icon-enhanced">💰</span>Transactions
+                    <span class="icon-enhanced">💳</span>Transactions
                 </a>
                 <a href="#" data-action="showSection" data-section="summary" data-close-sidebar="true">
-                    <span class="icon-enhanced">📈</span>Summary
+                    <span class="icon-enhanced">📊</span>Summary
+                </a>
+                <a href="#" data-action="showSection" data-section="activity" data-close-sidebar="true">
+                    <span class="icon-enhanced">📋</span>Activity
                 </a>
                 <a href="#" class="logout-link" data-action="logout" data-close-sidebar="true">
                     <span class="icon-enhanced">🚪</span>Logout
@@ -434,8 +438,84 @@
                     <p style="color: #666; text-align: center;">Select month and year to view summary</p>
                 </div>
             </div>
+
+            <!-- Activity Section -->
+            <div id="activity-section" class="hidden">
+                <h2>User Activity Tracking</h2>
+                
+                <!-- Activity Statistics -->
+                <div class="activity-stats">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">▲</span>
+                            <span class="stat-title">Total Income</span>
+                        </div>
+                        <div class="stat-value" id="total-income">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">▼</span>
+                            <span class="stat-title">Total Expenses</span>
+                        </div>
+                        <div class="stat-value" id="total-expenses">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">○</span>
+                            <span class="stat-title">Net Balance</span>
+                        </div>
+                        <div class="stat-value" id="net-balance">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <span class="stat-icon">◆</span>
+                            <span class="stat-title">Total Transactions</span>
+                        </div>
+                        <div class="stat-value" id="total-transactions">-</div>
+                    </div>
+                </div>
+
+                <!-- Activity Filters -->
+                <div class="activity-filters">
+                    <div class="form-group">
+                        <label for="activity-type">Activity Type</label>
+                        <select id="activity-type">
+                            <option value="">All Activities</option>
+                            <option value="income">Income Only</option>
+                            <option value="expense">Expense Only</option>
+                            <option value="setup">Setup Activities</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="activity-date-from">From Date</label>
+                        <input type="date" id="activity-date-from">
+                    </div>
+                    <div class="form-group">
+                        <label for="activity-date-to">To Date</label>
+                        <input type="date" id="activity-date-to">
+                    </div>
+                    <div class="form-group">
+                        <button data-action="filterActivity" class="primary-button">
+                            <span class="icon-enhanced">▣</span>Filter
+                        </button>
+                        <button data-action="clearActivityFilters" class="secondary-button">
+                            <span class="icon-enhanced">○</span>Clear
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Activity Feed -->
+                <div id="activity-feed">
+                    <div id="activity-loading" class="loading-spinner hidden">
+                        <div class="spinner"></div>
+                        <p>Loading activities...</p>
+                    </div>
+                    <div id="activity-list">
+                        <p class="no-data">No activities found. Start by adding some transactions!</p>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
 
     <!-- Footer -->
     <footer class="app-footer">
@@ -669,6 +749,7 @@
                 </button>
             </div>
         </div>
+            </div>
     </div>
 
     <!-- Include all JavaScript modules -->
@@ -676,6 +757,7 @@
     <script src="js/auth.js"></script>
     <script src="js/setup-manager.js"></script>
     <script src="js/transaction-manager.js"></script>
+    <script src="js/activity-manager.js"></script>
     <script src="js/navigation-manager.js"></script>
     <script src="js/summary-manager.js"></script>
     <script src="js/toast-manager.js"></script>
