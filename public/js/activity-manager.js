@@ -116,14 +116,13 @@ class ActivityManager {
     }
 
     renderActivityFeed() {
-
         const activityList = document.getElementById('activity-list');
         if (!activityList) {
             return;
         }
 
         if (this.filteredActivities.length === 0) {
-            activityList.innerHTML = '<p class="no-data">No activities found. Start by adding some transactions!</p>';
+            activityList.innerHTML = '<p class="no-data">No activities found</p>';
             return;
         }
 
@@ -134,96 +133,98 @@ class ActivityManager {
             return dateB - dateA;
         });
 
-        const activityHTML = sortedActivities.map(activity => this.renderActivityItem(activity)).join('');
-        activityList.innerHTML = activityHTML;
+        // Create simple HTML table
+        let tableHTML = `
+            <table class="activity-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Action</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        sortedActivities.forEach(activity => {
+            tableHTML += this.renderActivityRow(activity);
+        });
+
+        tableHTML += `
+                </tbody>
+            </table>
+        `;
+
+        activityList.innerHTML = tableHTML;
     }
 
-    renderActivityItem(activity) {
+    renderActivityRow(activity) {
         const date = new Date(activity.activity_date || activity.created_at);
         const formattedDate = date.toLocaleDateString('en-IN');
-        const formattedTime = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
-        let icon, iconClass, title, subtitle, amount = '';
+        // Determine action based on activity type
+        let action, type, description, amount, details;
 
         switch (activity.activity_type) {
-        case 'income':
-            icon = '▲';
-            iconClass = 'activity-icon income';
-            title = activity.description || 'Income Transaction';
-            subtitle = `Credited to: ${activity.account_info || 'Unknown'}`;
-            amount = `+₹${parseFloat(activity.amount || 0).toFixed(2)}`;
-            break;
-        case 'expense':
-            icon = '▼';
-            iconClass = 'activity-icon expense';
-            title = activity.description || 'Expense Transaction';
-            subtitle = `Paid via: ${activity.account_info || 'Unknown'}`;
-            amount = `-₹${parseFloat(activity.amount || 0).toFixed(2)}`;
-            break;
-        case 'setup':
-            icon = '⚙';
-            iconClass = 'activity-icon setup';
-            title = activity.description || 'Setup Activity';
-            subtitle = 'Account configuration';
-            amount = activity.amount ? `₹${parseFloat(activity.amount).toFixed(2)}` : '';
-            break;
-        default:
-            icon = '○';
-            iconClass = 'activity-icon other';
-            title = activity.description || 'Activity';
-            subtitle = 'System activity';
-            amount = '';
+            case 'income':
+                action = 'Add Income';
+                type = 'Income';
+                description = activity.description || 'Income Transaction';
+                amount = `₹${parseFloat(activity.amount || 0).toFixed(2)}`;
+                details = activity.account_info || 'Unknown Account';
+                break;
+            case 'expense':
+                action = 'Add Expense';
+                type = 'Expense';
+                description = activity.description || 'Expense Transaction';
+                amount = `₹${parseFloat(activity.amount || 0).toFixed(2)}`;
+                details = activity.account_info || 'Unknown Account';
+                break;
+            case 'setup':
+                action = 'Setup';
+                type = 'Setup';
+                description = activity.description || 'Account Setup';
+                amount = activity.amount ? `₹${parseFloat(activity.amount).toFixed(2)}` : '-';
+                details = 'Account Configuration';
+                break;
+            default:
+                action = 'Other';
+                type = 'System';
+                description = activity.description || 'System Activity';
+                amount = '-';
+                details = 'System Operation';
         }
 
         return `
-            <div class="activity-item">
-                <div class="activity-item-icon">
-                    <span class="${iconClass}">${icon}</span>
-                </div>
-                <div class="activity-item-content">
-                    <div class="activity-item-header">
-                        <h4 class="activity-item-title">${title}</h4>
-                        <span class="activity-item-amount ${activity.activity_type}">${amount}</span>
-                    </div>
-                    <div class="activity-item-details">
-                        <p class="activity-item-subtitle">${subtitle}</p>
-                        <p class="activity-item-date">${formattedDate} at ${formattedTime}</p>
-                    </div>
-                </div>
-            </div>
+            <tr class="activity-row ${activity.activity_type}">
+                <td class="activity-date">${formattedDate}</td>
+                <td class="activity-action">${action}</td>
+                <td class="activity-type">${type}</td>
+                <td class="activity-description">${description}</td>
+                <td class="activity-amount">${amount}</td>
+                <td class="activity-details">${details}</td>
+            </tr>
         `;
     }
 
     filterActivity() {
-
-        const typeFilter = document.getElementById('activity-type')?.value || '';
-        const dateFromFilter = document.getElementById('activity-date-from')?.value || '';
-        const dateToFilter = document.getElementById('activity-date-to')?.value || '';
-
-        this.currentFilters = {
-            type: typeFilter,
-            dateFrom: dateFromFilter,
-            dateTo: dateToFilter
-        };
+        const monthFilter = document.getElementById('activity-month')?.value || '';
+        const yearFilter = document.getElementById('activity-year')?.value || '';
 
         this.filteredActivities = this.activities.filter(activity => {
-            // Type filter
-            if (typeFilter && activity.activity_type !== typeFilter) {
+            const activityDate = new Date(activity.activity_date || activity.created_at);
+            
+            // Month filter (1-12)
+            if (monthFilter && (activityDate.getMonth() + 1) !== parseInt(monthFilter)) {
                 return false;
             }
 
-            // Date range filter
-            const activityDate = new Date(activity.activity_date || activity.created_at);
-
-            if (dateFromFilter) {
-                const fromDate = new Date(dateFromFilter);
-                if (activityDate < fromDate) return false;
-            }
-
-            if (dateToFilter) {
-                const toDate = new Date(dateToFilter);
-                toDate.setHours(23, 59, 59, 999); // End of day
-                if (activityDate > toDate) return false;
+            // Year filter
+            if (yearFilter && activityDate.getFullYear() !== parseInt(yearFilter)) {
+                return false;
             }
 
             return true;
@@ -232,27 +233,17 @@ class ActivityManager {
         this.calculateStatistics();
         this.renderActivityStatistics();
         this.renderActivityFeed();
-
     }
 
     clearActivityFilters() {
-
         // Reset filter inputs
-        const typeFilter = document.getElementById('activity-type');
-        const dateFromFilter = document.getElementById('activity-date-from');
-        const dateToFilter = document.getElementById('activity-date-to');
+        const monthFilter = document.getElementById('activity-month');
+        const yearFilter = document.getElementById('activity-year');
 
-        if (typeFilter) typeFilter.value = '';
-        if (dateFromFilter) dateFromFilter.value = '';
-        if (dateToFilter) dateToFilter.value = '';
+        if (monthFilter) monthFilter.value = '';
+        if (yearFilter) yearFilter.value = '';
 
         // Reset filters and show all activities
-        this.currentFilters = {
-            type: '',
-            dateFrom: '',
-            dateTo: ''
-        };
-
         this.filteredActivities = [...this.activities];
         this.calculateStatistics();
         this.renderActivityStatistics();

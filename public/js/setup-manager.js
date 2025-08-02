@@ -16,7 +16,7 @@ class SetupManager {
             const target = event.target;
 
             // Handle buttons with data-action attributes for setup operations
-            if (target.hasAttribute('data-action')) {
+            if (target.hasAttribute('data-action') && !target.disabled) {
                 const action = target.getAttribute('data-action');
                 const id = target.getAttribute('data-id');
 
@@ -339,11 +339,14 @@ class SetupManager {
                 return;
             }
 
+            const balance = parseFloat(cashData.balance || 0);
+            const isZeroBalance = balance === 0;
+
             cashDiv.innerHTML = `
                 <h4>Cash Balance</h4>
                 <div class="cash-balance-display">
-                    <span class="cash-amount">₹${parseFloat(cashData.balance || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    <button class="edit-btn" data-action="edit-cash-balance">Edit</button>
+                    <span class="cash-amount">₹${balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <button class="edit-btn" data-action="edit-cash-balance" ${isZeroBalance ? 'disabled' : ''}>Edit</button>
                 </div>
             `;
         } catch (error) {
@@ -355,7 +358,7 @@ class SetupManager {
                     <h4>Cash Balance</h4>
                     <div class="cash-balance-display">
                         <span class="cash-amount">₹0.00</span>
-                        <button class="edit-btn" data-action="edit-cash-balance">Edit</button>
+                        <button class="edit-btn" data-action="edit-cash-balance" disabled>Edit</button>
                     </div>
                 `;
             }

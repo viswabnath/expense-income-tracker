@@ -1449,6 +1449,28 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
             initial_balance: cashResult.rows[0]?.initial_balance || 0,
         };
 
+        // Check if user has no activity for this month (registered but no transactions)
+        const hasNoTransactions = monthIncome === 0 && monthExpenses === 0;
+        const hasNoAccountsSetup = bankResult.rows.length === 0 && (cashResult.rows[0]?.initial_balance || 0) === 0;
+        
+        // If user was registered during this month but has no transactions or account setup
+        if (hasNoTransactions && hasNoAccountsSetup) {
+            return res.json({
+                monthlyIncome: 0,
+                totalCurrentWealth: 0,
+                totalExpenses: 0,
+                netSavings: 0,
+                totalInitialBalance: 0,
+                banks: [],
+                creditCards: [],
+                cash: { balance: 0, initial_balance: 0 },
+                trackingOption: userTrackingOption,
+                isCurrentMonth: isCurrentMonth,
+                isMonthCompleted: isMonthCompleted,
+                message: 'No transactions found for this month',
+            });
+        }
+
         res.json({
             monthlyIncome: monthIncome,
             totalCurrentWealth: totalCurrentWealth,
