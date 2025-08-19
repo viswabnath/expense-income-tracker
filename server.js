@@ -20,14 +20,20 @@ app.set('trust proxy', 1);
 
 // Database connection
 console.log('📊 Setting up database connection...');
+console.log('Database config:');
+console.log('- Host:', process.env.DB_HOST);
+console.log('- Port:', process.env.DB_PORT);
+console.log('- Database:', process.env.DB_NAME);
+console.log('- User:', process.env.DB_USER);
+console.log('- SSL:', process.env.DB_SSL);
+
 const pool = new Pool({
     user: process.env.DB_USER,
     host: process.env.DB_HOST,
     database: process.env.DB_NAME,
     password: process.env.DB_PASSWORD,
-    port: process.env.DB_PORT,
-    ssl:
-    process.env.NODE_ENV === 'production'
+    port: process.env.DB_PORT || 5432,
+    ssl: process.env.DB_SSL === 'true' || process.env.NODE_ENV === 'production'
         ? { rejectUnauthorized: false }
         : false,
 });
@@ -39,7 +45,11 @@ pool.connect()
         client.release();
     })
     .catch(err => {
-        console.error('❌ Database connection failed:', err.message);
+        console.error('❌ Database connection failed:');
+        console.error('Error code:', err.code);
+        console.error('Error message:', err.message);
+        console.error('Error details:', err);
+        console.error('Check your database environment variables!');
     });
 
 // Rate limiting for authentication endpoints
