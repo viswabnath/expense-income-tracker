@@ -1755,7 +1755,7 @@ app.get('/api/activity', requireAuth, async (req, res) => {
                     'Set cash balance' as description,
                     cb.initial_balance as amount,
                     'Cash' as account_info,
-                    cb.created_at as activity_date,
+                    cb.updated_at as activity_date,
                     'created' as action_type
                 FROM cash_balance cb
                 WHERE cb.user_id = $1 AND cb.initial_balance > 0
