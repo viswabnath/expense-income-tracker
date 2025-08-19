@@ -41,3 +41,4 @@ databases:
     plan: free
     databaseName: expense_tracker
     user: postgres
+    region: oregon
