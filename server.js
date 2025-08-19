@@ -19,6 +19,7 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 
 // Database connection
+console.log('📊 Setting up database connection...');
 const pool = new Pool({
     user: process.env.DB_USER,
     host: process.env.DB_HOST,
@@ -30,6 +31,16 @@ const pool = new Pool({
         ? { rejectUnauthorized: false }
         : false,
 });
+
+// Test database connection
+pool.connect()
+    .then(client => {
+        console.log('✅ Database connected successfully!');
+        client.release();
+    })
+    .catch(err => {
+        console.error('❌ Database connection failed:', err.message);
+    });
 
 // Rate limiting for authentication endpoints
 // DEVELOPMENT: Rate limiting disabled for easier development
@@ -1867,7 +1878,11 @@ module.exports = { app, pool };
 
 // Only start server if this file is run directly (not imported for testing)
 if (require.main === module) {
+    console.log('🚀 Starting Express server...');
     app.listen(PORT, '0.0.0.0', () => {
-        console.log(`Server running on port ${PORT}`);
+        console.log(`✅ Server running on port ${PORT}`);
+        console.log(`🌐 Environment: ${process.env.NODE_ENV}`);
+        console.log(`🔗 Database: ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`);
+        console.log('🎉 BalanceTrack is ready!');
     });
 }
