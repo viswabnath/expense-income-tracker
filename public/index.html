@@ -32,16 +32,16 @@
 
                     </div>
                 </div>
-                <button onclick="login()">
+                <button data-action="login">
                     <span class="icon-enhanced">🔐</span>Login
                 </button>
-                <button onclick="showRegister()" class="secondary-button">
+                <button data-action="showRegister" class="secondary-button">
                     <span class="icon-enhanced">📝</span>Register
                 </button>
-                <button onclick="showForgotUsername()" class="info-button">
+                <button data-action="showForgotUsername" class="info-button">
                     <span class="icon-enhanced">🔍</span>Forgot Username?
                 </button>
-                <button onclick="showForgotPassword()" class="warning-button">
+                <button data-action="showForgotPassword" class="warning-button">
                     <span class="icon-enhanced">🔑</span>Forgot Password?
                 </button>
             </div>
@@ -93,10 +93,10 @@
 
                     <input type="text" id="register-security-answer" required placeholder="Enter your answer">
                 </div>
-                <button onclick="register()">
+                <button data-action="register">
                     <span class="icon-enhanced">✨</span>Create Account
                 </button>
-                <button onclick="showLogin()" class="secondary-button">
+                <button data-action="showLogin" class="secondary-button">
                     <span class="icon-enhanced">🔙</span>Back to Login
                 </button>
             </div>
@@ -110,8 +110,8 @@
                     <input type="email" id="forgot-username-email-input" required
                         placeholder="Enter your email address">
                 </div>
-                <button onclick="forgotUsername()">Find Username</button>
-                <button onclick="showLogin()" class="secondary-button">Back to Login</button>
+                <button data-action="forgotUsername">Find Username</button>
+                <button data-action="showLogin" class="secondary-button">Back to Login</button>
             </div>
 
             <div id="forgot-password-form" class="auth-form hidden">
@@ -125,8 +125,8 @@
                         Email: valid email address format
                     </small>
                 </div>
-                <button onclick="requestPasswordReset()">Continue</button>
-                <button onclick="showLogin()" class="secondary-button">Back to Login</button>
+                <button data-action="requestPasswordReset">Continue</button>
+                <button data-action="showLogin" class="secondary-button">Back to Login</button>
             </div>
 
             <div id="reset-password-form" class="auth-form hidden">
@@ -156,8 +156,8 @@
 
                     </div>
                 </div>
-                <button onclick="resetPassword()">Reset Password</button>
-                <button onclick="showLogin()" class="secondary-button">Back to Login</button>
+                <button data-action="resetPassword">Reset Password</button>
+                <button data-action="showLogin" class="secondary-button">Back to Login</button>
             </div>
 
             <div id="auth-message" class="error"></div>
@@ -168,9 +168,9 @@
             <p><em>"सर्वाणि परित्यज्य मामेकं शरणं व्रज" - Follow your financial goals with discipline!</em></p>
 
             <h3>Choose Your Tracking Option</h3>
-            <button onclick="setTrackingOption('income')">Income Only</button>
-            <button onclick="setTrackingOption('expenses')">Expenses Only</button>
-            <button onclick="setTrackingOption('both')">Both Income & Expenses</button>
+            <button data-action="setTrackingOption" data-option="income">Income Only</button>
+            <button data-action="setTrackingOption" data-option="expenses">Expenses Only</button>
+            <button data-action="setTrackingOption" data-option="both">Both Income & Expenses</button>
         </div>
         <!-- Main Application -->
         <div id="main-app" class="hidden">
@@ -179,7 +179,7 @@
             <div id="nav-bar">
                 <!-- Mobile Hamburger -->
                 <div class="nav-mobile">
-                    <button class="hamburger-button" onclick="toggleSidebar()">
+                    <button class="hamburger-button" data-action="toggleSidebar">
                         <div class="hamburger-icon">
                             <span></span>
                             <span></span>
@@ -190,38 +190,40 @@
 
                 <!-- Brand -->
                 <div class="nav-brand">
-                    <h1>🇮🇳 BalanceTrack</h1>
+                    <h1 data-action="showSection" data-section="setup" style="cursor: pointer;">🇮🇳 BalanceTrack</h1>
                 </div>
 
                 <!-- Desktop Links -->
                 <div class="nav-desktop">
-                    <a href="#" class="nav-link" onclick="showSection('setup'); return false;"><span>📊</span>Setup</a>
-                    <a href="#" class="nav-link"
-                        onclick="showSection('transactions'); return false;"><span>💰</span>Transactions</a>
-                    <a href="#" class="nav-link"
-                        onclick="showSection('summary'); return false;"><span>📈</span>Summary</a>
-                    <a href="#" class="nav-link logout-link" onclick="logout(); return false;"><span>🚪</span>Logout</a>
+                    <a href="#" class="nav-link" data-action="showSection" data-section="setup"><span>⚙️</span>Setup</a>
+                    <a href="#" class="nav-link" data-action="showSection" data-section="transactions"><span>💳</span>Transactions</a>
+                    <a href="#" class="nav-link" data-action="showSection" data-section="summary"><span>📊</span>Summary</a>
+                    <a href="#" class="nav-link" data-action="showSection" data-section="activity"><span>📋</span>Activity</a>
+                    <a href="#" class="nav-link logout-link" data-action="logout"><span>🚪</span>Logout</a>
                 </div>
             </div>
 
             <div id="mobile-sidebar">
                 <div class="mobile-brand">
-                    <h1>🇮🇳 BalanceTrack</h1>
+                    <h1 data-action="showSection" data-section="setup" style="cursor: pointer;">🇮🇳 BalanceTrack</h1>
                 </div>
-                <a href="#" onclick="showSection('setup'); closeSidebar(); return false;">
-                    <span class="icon-enhanced">📊</span>Setup
+                <a href="#" data-action="showSection" data-section="setup" data-close-sidebar="true">
+                    <span class="icon-enhanced">⚙️</span>Setup
                 </a>
-                <a href="#" onclick="showSection('transactions'); closeSidebar(); return false;">
-                    <span class="icon-enhanced">💰</span>Transactions
+                <a href="#" data-action="showSection" data-section="transactions" data-close-sidebar="true">
+                    <span class="icon-enhanced">💳</span>Transactions
                 </a>
-                <a href="#" onclick="showSection('summary'); closeSidebar(); return false;">
-                    <span class="icon-enhanced">📈</span>Summary
+                <a href="#" data-action="showSection" data-section="summary" data-close-sidebar="true">
+                    <span class="icon-enhanced">📊</span>Summary
                 </a>
-                <a href="#" class="logout-link" onclick="logout(); closeSidebar(); return false;">
+                <a href="#" data-action="showSection" data-section="activity" data-close-sidebar="true">
+                    <span class="icon-enhanced">📋</span>Activity
+                </a>
+                <a href="#" class="logout-link" data-action="logout" data-close-sidebar="true">
                     <span class="icon-enhanced">🚪</span>Logout
                 </a>
             </div>
-            <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+            <div id="sidebar-overlay" data-action="closeSidebar"></div>
 
             <!-- Setup Section -->
             <div id="setup-section">
@@ -239,7 +241,7 @@
                                 <label>Initial Balance</label>
                                 <input type="number" id="bank-balance" placeholder="0.00" step="0.01">
                             </div>
-                            <button class="primary-btn" onclick="addBank()">🏦 Add Bank</button>
+                            <button class="primary-btn" data-action="addBank">🏦 Add Bank</button>
                         </div>
                         <div class="setup-right" id="banks-list"></div>
                     </div>
@@ -259,7 +261,7 @@
                                 <label>Credit Limit</label>
                                 <input type="number" id="cc-limit" placeholder="0.00" step="0.01">
                             </div>
-                            <button class="primary-btn" onclick="addCreditCard()">💳 Add Credit Card</button>
+                            <button class="primary-btn" data-action="addCreditCard">💳 Add Credit Card</button>
                         </div>
 
                         <div id="credit-cards-list" class="setup-right"></div>
@@ -277,7 +279,7 @@
                                 <label>Cash Balance</label>
                                 <input type="number" id="cash-balance" placeholder="0.00" step="0.01">
                             </div>
-                            <button class="primary-btn" onclick="setCashBalance()">💵 Set Cash Balance</button>
+                            <button class="primary-btn" data-action="setCashBalance">💵 Set Cash Balance</button>
                         </div>
                         <div id="cash-display" class="setup-right-cash-balance"></div>
                     </div>
@@ -288,6 +290,39 @@
             <!-- Transactions Section -->
             <div id="transactions-section" class="hidden">
                 <h2>Transactions</h2>
+                
+                <!-- Transaction Filters -->
+                <div class="transaction-filters">
+                    <div class="form-group">
+                        <label>Filter by Month</label>
+                        <select id="transaction-month">
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Filter by Year</label>
+                        <select id="transaction-year">
+                            <!-- Will be populated by JavaScript -->
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <button id="filter-transactions" data-action="filterTransactions">
+                            <span class="icon-enhanced">🔍</span>Filter Transactions
+                        </button>
+                    </div>
+                </div>
+                
                 <div id="forms-wrapper">
                     <!-- Income Form -->
                     <div id="income-form">
@@ -303,7 +338,7 @@
                             </select>
                             <label>Date</label>
                             <input type="date" id="income-date">
-                            <button onclick="addIncome()">
+                            <button data-action="addIncome">
                                 <span class="icon-enhanced">💰</span>Add Income
                             </button>
                         </div>
@@ -322,7 +357,7 @@
                             </select>
                             <label>Date</label>
                             <input type="date" id="expense-date">
-                            <button onclick="addExpense()">
+                            <button data-action="addExpense">
                                 <span class="icon-enhanced">💸</span>Add Expense
                             </button>
                         </div>
@@ -341,6 +376,7 @@
                                         <th>Source</th>
                                         <th>Amount</th>
                                         <th>Credited To</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="income-table-body"></tbody>
@@ -357,6 +393,7 @@
                                         <th>Title</th>
                                         <th>Amount</th>
                                         <th>Payment Method</th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="expense-table-body"></tbody>
@@ -392,7 +429,7 @@
                         <select id="summary-year"></select>
                     </div>
                     <div class="form-group">
-                        <button onclick="loadMonthlySummary()">
+                        <button data-action="loadMonthlySummary">
                             <span class="icon-enhanced">📊</span>Load Summary
                         </button>
                     </div>
@@ -401,8 +438,64 @@
                     <p style="color: #666; text-align: center;">Select month and year to view summary</p>
                 </div>
             </div>
+
+            <!-- Activity Section -->
+            <div id="activity-section" class="hidden">
+                <h2>Activity Log</h2>
+                
+                <!-- Activity Filters -->
+                <div class="activity-filters">
+                    <div class="form-group">
+                        <label for="activity-month">Month</label>
+                        <select id="activity-month">
+                            <option value="">All Months</option>
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="activity-year">Year</label>
+                        <select id="activity-year">
+                            <option value="">All Years</option>
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                        </select>
+                    </div>
+                    <div class="form-group activity-button-group">
+                        <button data-action="filterActivity" class="activity-filter-btn activity-load-btn">
+                            <span class="btn-icon">🔍</span>
+                            <span class="btn-text">Load</span>
+                        </button>
+                        <button data-action="clearActivityFilters" class="activity-filter-btn activity-clear-btn">
+                            <span class="btn-icon">🗑️</span>
+                            <span class="btn-text">Clear</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Activity Feed -->
+                <div id="activity-feed">
+                    <div id="activity-loading" class="loading-spinner hidden">
+                        <div class="spinner"></div>
+                        <p>Loading activities...</p>
+                    </div>
+                    <div id="activity-list">
+                        <p class="no-data">No activities found. Start by adding some transactions!</p>
+                    </div>
+                </div>
+            </div>
         </div>
-    </div>
 
     <!-- Footer -->
     <footer class="app-footer">
@@ -424,85 +517,232 @@
         </div>
     </footer>
 
+    <!-- Edit Transaction Modals -->
+    <div id="edit-income-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ Edit Income Transaction</h3>
+                <button class="modal-close" data-action="close-edit-income">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit-income-source">Income Source</label>
+                    <input type="text" id="edit-income-source" required placeholder="Enter income source">
+                </div>
+                <div class="form-group">
+                    <label for="edit-income-amount">Amount (₹)</label>
+                    <input type="number" id="edit-income-amount" step="0.01" min="0" required placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label for="edit-income-credited-to">Credited To</label>
+                    <select id="edit-income-credited-to" required>
+                        <option value="cash">Cash</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-income-date">Date</label>
+                    <input type="date" id="edit-income-date" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button data-action="save-income-edit" class="primary-button">
+                    <span class="icon-enhanced">💾</span>Save Changes
+                </button>
+                <button data-action="close-edit-income" class="secondary-button">
+                    <span class="icon-enhanced">❌</span>Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="edit-expense-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>✏️ Edit Expense Transaction</h3>
+                <button class="modal-close" data-action="close-edit-expense">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit-expense-title">Expense Title</label>
+                    <input type="text" id="edit-expense-title" required placeholder="Enter expense title">
+                </div>
+                <div class="form-group">
+                    <label for="edit-expense-amount">Amount (₹)</label>
+                    <input type="number" id="edit-expense-amount" step="0.01" min="0" required placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label for="edit-expense-payment-method">Payment Method</label>
+                    <select id="edit-expense-payment-method" required>
+                        <option value="cash">Cash</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="edit-expense-date">Date</label>
+                    <input type="date" id="edit-expense-date" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button data-action="save-expense-edit" class="primary-button">
+                    <span class="icon-enhanced">💾</span>Save Changes
+                </button>
+                <button data-action="close-edit-expense" class="secondary-button">
+                    <span class="icon-enhanced">❌</span>Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-confirmation-modal" class="modal-overlay hidden">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3>🗑️ Confirm Delete</h3>
+                <button class="modal-close" data-action="close-delete">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="delete-confirmation-message">Are you sure you want to delete this transaction?</p>
+                <p class="warning-text">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button data-action="confirm-delete" class="danger-button">
+                    <span class="icon-enhanced">🗑️</span>Delete
+                </button>
+                <button data-action="close-delete" class="secondary-button">
+                    <span class="icon-enhanced">❌</span>Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Bank Modal -->
+    <div id="edit-bank-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Bank</h3>
+                <button class="modal-close" data-action="close-edit-bank">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-bank-form">
+                    <div class="form-group">
+                        <label for="edit-bank-name">Bank Name:</label>
+                        <input type="text" id="edit-bank-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-bank-balance">Initial Balance:</label>
+                        <input type="number" id="edit-bank-balance" step="0.01" min="0" required>
+                    </div>
+                    <div class="warning-text">
+                        <strong>Note:</strong> Changing the initial balance will adjust the current balance by the difference.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button data-action="save-bank" class="primary-button">
+                    <span class="icon-enhanced">💾</span>Save Changes
+                </button>
+                <button data-action="close-edit-bank" class="secondary-button">
+                    <span class="icon-enhanced">❌</span>Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Credit Card Modal -->
+    <div id="edit-credit-card-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Credit Card</h3>
+                <button class="modal-close" data-action="close-edit-credit-card">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-credit-card-form">
+                    <div class="form-group">
+                        <label for="edit-credit-card-name">Card Name:</label>
+                        <input type="text" id="edit-credit-card-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-credit-card-limit">Credit Limit:</label>
+                        <input type="number" id="edit-credit-card-limit" step="0.01" min="0.01" required>
+                    </div>
+                    <div id="credit-card-used-info" class="info-text">
+                        <!-- This will be populated with used limit info -->
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button data-action="save-credit-card" class="primary-button">
+                    <span class="icon-enhanced">💾</span>Save Changes
+                </button>
+                <button data-action="close-edit-credit-card" class="secondary-button">
+                    <span class="icon-enhanced">❌</span>Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Setup Item Confirmation Modal -->
+    <div id="delete-setup-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Confirm Deletion</h3>
+                <button class="modal-close" data-action="close-delete-setup">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="delete-setup-message">Are you sure you want to delete this item?</p>
+                <p class="warning-text">This action cannot be undone and will fail if there are related transactions.</p>
+            </div>
+            <div class="modal-footer">
+                <button data-action="confirm-delete-setup" class="danger-button">
+                    <span class="icon-enhanced">🗑️</span>Delete
+                </button>
+                <button data-action="close-delete-setup" class="secondary-button">
+                    <span class="icon-enhanced">❌</span>Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Cash Balance Modal -->
+    <div id="edit-cash-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Cash Balance</h3>
+                <button class="modal-close" data-action="close-edit-cash">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-cash-form">
+                    <div class="form-group">
+                        <label for="edit-cash-balance">Cash Balance:</label>
+                        <input type="number" id="edit-cash-balance" step="0.01" min="0" required>
+                    </div>
+                    <div class="info-text">
+                        Update your current cash balance. This will replace the existing cash balance.
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button data-action="save-cash-balance" class="primary-button">
+                    <span class="icon-enhanced">💾</span>Save Changes
+                </button>
+                <button data-action="close-edit-cash" class="secondary-button">
+                    <span class="icon-enhanced">❌</span>Cancel
+                </button>
+            </div>
+        </div>
+            </div>
+    </div>
+
     <!-- Include all JavaScript modules -->
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/setup-manager.js"></script>
     <script src="js/transaction-manager.js"></script>
+    <script src="js/activity-manager.js"></script>
     <script src="js/navigation-manager.js"></script>
     <script src="js/summary-manager.js"></script>
+    <script src="js/toast-manager.js"></script>
+    <script src="js/event-handlers.js"></script>
+    <script src="js/initialization.js"></script>
     <script src="js/app.js"></script>
-
-    <script>
-
-        function toggleSidebar() {
-            document.body.classList.toggle('sidebar-open');
-        }
-
-        function closeSidebar() {
-            document.body.classList.remove('sidebar-open');
-        }
-
-
-        // Initialize month and year dropdowns with current date
-        document.addEventListener('DOMContentLoaded', function () {
-            const currentDate = new Date();
-            const currentMonth = currentDate.getMonth() + 1;
-            const currentYear = currentDate.getFullYear();
-
-            // Set current month as selected
-            const monthSelect = document.getElementById('summary-month');
-            if (monthSelect) {
-                monthSelect.value = currentMonth;
-            }
-
-            // Populate year dropdown (from 2020 to current year + 1)
-            const yearSelect = document.getElementById('summary-year');
-            if (yearSelect) {
-                for (let year = 2020; year <= currentYear + 1; year++) {
-                    const option = document.createElement('option');
-                    option.value = year;
-                    option.textContent = year;
-                    if (year === currentYear) {
-                        option.selected = true;
-                    }
-                    yearSelect.appendChild(option);
-                }
-            }
-
-            // Initialize field help functionality
-            initializeFieldHelp();
-        });
-
-        // Field Help functionality
-        function initializeFieldHelp() {
-            // Map input IDs to their corresponding help element IDs
-            const fieldHelpMap = {
-                'login-username': 'login-username-help',
-                'register-username': 'register-username-help',
-                'register-password': 'register-password-help',
-                'forgot-username-email': 'forgot-username-email-help',
-                'reset-new-password': 'reset-new-password-help'
-            };
-
-            // Add event listeners for each field
-            Object.keys(fieldHelpMap).forEach(inputId => {
-                const inputElement = document.getElementById(inputId);
-                const helpElement = document.getElementById(fieldHelpMap[inputId]);
-
-                if (inputElement && helpElement) {
-                    // Show help on focus
-                    inputElement.addEventListener('focus', () => {
-                        helpElement.classList.remove('hidden');
-                    });
-
-                    // Hide help on blur (when clicking outside)
-                    inputElement.addEventListener('blur', () => {
-                        helpElement.classList.add('hidden');
-                    });
-                }
-            });
-        }
-    </script>
 </body>
 </html>

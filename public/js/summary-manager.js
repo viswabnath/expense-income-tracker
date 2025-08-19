@@ -20,7 +20,6 @@ class SummaryManager {
             const data = await this.apiClient.get(`/api/monthly-summary?month=${month}&year=${year}`);
             this.displayMonthlySummary(data, month, year);
         } catch (error) {
-            console.error('Error loading monthly summary:', error);
             // Check if it's an authentication error
             if (error.message.includes('Authentication required') || error.message.includes('401')) {
                 // User is not authenticated, redirect to login
@@ -54,15 +53,39 @@ class SummaryManager {
 
         // Check for no data message
         if (data.message) {
+            let messageDetail = '';
+            if (data.message.includes('Future')) {
+                messageDetail = 'Cannot show data for future dates.';
+            } else if (data.message.includes('before registration')) {
+                messageDetail = 'You were not registered during this period.';
+            } else if (data.message.includes('No transactions found')) {
+                messageDetail = 'You were registered but haven\'t added any transactions or setup accounts for this month.';
+            } else {
+                messageDetail = 'No data available for the selected period.';
+            }
+
             html += `<div class="summary">
                 <h3 style="color: #666; text-align: center;">${data.message}</h3>
-                <p style="text-align: center; color: #999;">
-                    ${data.message.includes('Future') ?
-        'Cannot show data for future dates.' :
-        'You were not registered during this period.'}
+                <p style="text-align: center; color: #999; margin-bottom: 20px;">
+                    ${messageDetail}
                 </p>
+                ${data.message.includes('No transactions found') ? `
+                    <div style="text-align: center;">
+                        <button class="primary-button setup-accounts-btn" style="margin-right: 10px;">
+                            Setup Accounts
+                        </button>
+                        <button class="primary-button add-transactions-btn">
+                            Add Transactions
+                        </button>
+                    </div>
+                ` : ''}
             </div>`;
             document.getElementById('summary-display').innerHTML = html;
+
+            // Add event listeners for the action buttons (CSP-compliant)
+            if (data.message.includes('No transactions found')) {
+                this.attachActionButtonListeners();
+            }
             return;
         }
 
@@ -226,6 +249,31 @@ class SummaryManager {
         }
 
         document.getElementById('summary-display').innerHTML = html;
+    }
+
+    attachActionButtonListeners() {
+        // Add event listeners for action buttons in no-transactions message
+        const summaryDisplay = document.getElementById('summary-display');
+        if (summaryDisplay) {
+            const setupBtn = summaryDisplay.querySelector('.setup-accounts-btn');
+            const transactionsBtn = summaryDisplay.querySelector('.add-transactions-btn');
+
+            if (setupBtn) {
+                setupBtn.addEventListener('click', () => {
+                    if (window.showSection) {
+                        window.showSection('setup');
+                    }
+                });
+            }
+
+            if (transactionsBtn) {
+                transactionsBtn.addEventListener('click', () => {
+                    if (window.showSection) {
+                        window.showSection('transactions');
+                    }
+                });
+            }
+        }
     }
 }
 

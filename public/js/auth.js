@@ -18,15 +18,14 @@ class AuthManager {
                 user: response
             };
         } catch (error) {
-            // If it fails with 401, user is not authenticated
+            // If it fails with 401, user is not authenticated (this is expected on login screen)
             if (error.message.includes('Authentication required') || error.message.includes('401')) {
                 return {
                     isAuthenticated: false,
                     error: error.message
                 };
             }
-            // For other errors, still consider not authenticated but log the error
-            console.error('Authentication check error:', error);
+            // For other errors (network issues, server errors), still consider not authenticated
             return {
                 isAuthenticated: false,
                 error: error.message
@@ -79,10 +78,9 @@ class AuthManager {
     }
 
     static showError(message) {
-        const errorElement = document.getElementById('auth-message');
-        if (errorElement) {
-            errorElement.className = 'error';
-            errorElement.textContent = message;
+        // Show toast notification only to avoid duplicate error messages
+        if (window.showError) {
+            window.showError(message);
         }
     }
 
@@ -91,6 +89,10 @@ class AuthManager {
         if (errorElement) {
             errorElement.className = 'success';
             errorElement.textContent = message;
+        }
+        // Also show toast notification
+        if (window.showSuccess) {
+            window.showSuccess(message);
         }
     }
 
@@ -135,7 +137,6 @@ class AuthManager {
                 AuthManager.showError(data.error);
             }
         } catch (error) {
-            console.error('Login error:', error);
             AuthManager.showError(error.message || 'Login failed');
         }
     }
@@ -164,7 +165,6 @@ class AuthManager {
                 AuthManager.showError(data.error);
             }
         } catch (error) {
-            console.error('Registration error:', error);
             AuthManager.showError(error.message || 'Registration failed');
         }
     }
@@ -240,7 +240,6 @@ class AuthManager {
                 AuthManager.showError(data.error);
             }
         } catch (error) {
-            console.error('Request password reset error:', error);
             AuthManager.showError(error.message || 'Error occurred. Please try again.');
         }
     }
@@ -290,7 +289,6 @@ class AuthManager {
                 AuthManager.showError(data.error);
             }
         } catch (error) {
-            console.error('Reset password error:', error);
             AuthManager.showError(error.message || 'Error occurred. Please try again.');
         }
     }
@@ -403,7 +401,6 @@ class AuthManager {
                 AuthManager.showError(data.error);
             }
         } catch (error) {
-            console.error('Forgot username error:', error);
             AuthManager.showError(error.message || 'Failed to retrieve username');
         }
     }
@@ -414,7 +411,7 @@ class AuthManager {
 
     async logout() {
         try {
-            const response = await fetch('/api/logout', {
+            await fetch('/api/logout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include'
@@ -431,9 +428,8 @@ class AuthManager {
             // Clear any cached data
             this.clearCachedData();
 
-        } catch (error) {
+        } catch {
             // Still clear local state even if logout request fails
-            console.error('Logout error:', error);
             window.expenseTracker.isAuthenticated = false;
             window.expenseTracker.showAuthenticationForms();
         }

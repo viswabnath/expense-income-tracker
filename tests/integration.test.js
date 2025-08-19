@@ -13,7 +13,7 @@ jest.mock('express-rate-limit', () => {
 });
 
 // Import the actual server app AFTER mocking rate limiter
-const app = require('../server');
+const { app, pool: serverPool } = require('../server');
 
 // Test database configuration
 const testPool = new Pool({
@@ -28,6 +28,45 @@ const testPool = new Pool({
 describe('Integration Tests - Server Endpoints', () => {
     let testUserId;
     let sessionCookie;
+
+    // Helper function to ensure authentication
+    const ensureAuthentication = async () => {
+        if (!sessionCookie) {
+            // First register a user if not exists
+            if (!testUserId) {
+                const userData = {
+                    username: 'testuser123',
+                    password: 'TestPass123&',
+                    name: 'Test User',
+                    email: 'test@example.com',
+                    securityQuestion: 'What is your pet name?',
+                    securityAnswer: 'Fluffy'
+                };
+
+                const registerResponse = await request(app)
+                    .post('/api/register')
+                    .send(userData);
+
+                if (registerResponse.status === 200) {
+                    testUserId = registerResponse.body.userId;
+                }
+            }
+
+            // Login to get session cookie
+            const loginData = {
+                username: 'testuser123',
+                password: 'TestPass123&'
+            };
+
+            const loginResponse = await request(app)
+                .post('/api/login')
+                .send(loginData);
+
+            if (loginResponse.status === 200) {
+                sessionCookie = loginResponse.headers['set-cookie'];
+            }
+        }
+    };
 
     // Setup and cleanup
     beforeAll(async () => {
@@ -60,8 +99,10 @@ describe('Integration Tests - Server Endpoints', () => {
                 )
             `);
 
+            // Drop and recreate cash_balance table to ensure correct schema
+            await testPool.query('DROP TABLE IF EXISTS cash_balance CASCADE');
             await testPool.query(`
-                CREATE TABLE IF NOT EXISTS cash_balance (
+                CREATE TABLE cash_balance (
                     id SERIAL PRIMARY KEY,
                     user_id INTEGER REFERENCES users(id) ON DELETE CASCADE UNIQUE,
                     balance DECIMAL(15,2) DEFAULT 0,
@@ -85,6 +126,7 @@ describe('Integration Tests - Server Endpoints', () => {
             console.warn('Test cleanup warning:', error.message);
         }
         await testPool.end();
+        await serverPool.end();
     });
 
     describe('Authentication Endpoints', () => {
@@ -169,6 +211,10 @@ describe('Integration Tests - Server Endpoints', () => {
     });
 
     describe('Protected Endpoints (Require Authentication)', () => {
+        // Ensure authentication before each test in this section
+        beforeEach(async () => {
+            await ensureAuthentication();
+        });
         test('GET /api/user should return user info when authenticated', async () => {
             const response = await request(app)
                 .get('/api/user')

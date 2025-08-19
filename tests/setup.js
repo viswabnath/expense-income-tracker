@@ -30,3 +30,18 @@ global.document = {
 afterEach(() => {
     jest.clearAllMocks();
 });
+
+// Global cleanup to ensure all handles are closed
+afterAll(async () => {
+    // Allow some time for async operations to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Force close any remaining handles
+    const used = process.memoryUsage();
+    for (let key in used) {
+        // Force garbage collection if available
+        if (global.gc) {
+            global.gc();
+        }
+    }
+});
