@@ -8,22 +8,17 @@ class ActivityManager {
         this.apiClient = window.apiClient;
         this.activities = [];
         this.filteredActivities = [];
+        this.currentPage = 1;
+        this.itemsPerPage = 10;
         this.currentFilters = {
             type: '',
             dateFrom: '',
             dateTo: ''
         };
-        this.statistics = {
-            totalIncome: 0,
-            totalExpenses: 0,
-            netBalance: 0,
-            totalTransactions: 0
-        };
     }
 
     async onSectionShow() {
         await this.loadActivityData();
-        // Note: renderActivityStatistics and renderActivityFeed are already called in loadActivityData
     }
 
     async loadActivityData() {
@@ -31,87 +26,19 @@ class ActivityManager {
             const response = await this.apiClient.get('/api/activity');
 
             if (response && typeof response === 'object') {
-                if (response.statistics) {
-                    this.statistics = response.statistics;
-                } else {
-                    this.calculateStatistics();
-                }
-
                 this.activities = response.activities || [];
                 this.filteredActivities = [...this.activities];
             } else if (Array.isArray(response)) {
                 this.activities = response;
                 this.filteredActivities = [...this.activities];
-                this.calculateStatistics();
             } else {
                 this.showError('Invalid response format from server');
                 return;
             }
 
-            this.renderActivityStatistics();
             this.renderActivityFeed();
-        } catch (error) {
+        } catch {
             this.showError('Failed to load activity data. Please try again.');
-        }
-    }
-
-    calculateStatistics() {
-        this.statistics = {
-            totalIncome: 0,
-            totalExpenses: 0,
-            netBalance: 0,
-            totalTransactions: 0
-        };
-
-        this.filteredActivities.forEach(activity => {
-            if (activity.activity_type === 'income' && activity.amount) {
-                this.statistics.totalIncome += parseFloat(activity.amount);
-                this.statistics.totalTransactions++;
-            } else if (activity.activity_type === 'expense' && activity.amount) {
-                this.statistics.totalExpenses += parseFloat(activity.amount);
-                this.statistics.totalTransactions++;
-            } else if (activity.activity_type === 'setup') {
-                // Count setup activities but don't add to income/expense
-                this.statistics.totalTransactions++;
-            }
-        });
-
-        this.statistics.netBalance = this.statistics.totalIncome - this.statistics.totalExpenses;
-    }
-
-    resetStatistics() {
-        this.statistics = {
-            totalIncome: 0,
-            totalExpenses: 0,
-            netBalance: 0,
-            totalTransactions: 0
-        };
-    }
-
-    renderActivityStatistics() {
-        // Safety check - ensure statistics are properly initialized
-        if (!this.statistics || typeof this.statistics !== 'object') {
-            this.resetStatistics();
-        }
-
-        const totalIncomeEl = document.getElementById('total-income');
-        const totalExpensesEl = document.getElementById('total-expenses');
-        const netBalanceEl = document.getElementById('net-balance');
-        const totalTransactionsEl = document.getElementById('total-transactions');
-
-        if (totalIncomeEl) {
-            totalIncomeEl.textContent = `₹${(this.statistics.totalIncome || 0).toFixed(2)}`;
-        }
-        if (totalExpensesEl) {
-            totalExpensesEl.textContent = `₹${(this.statistics.totalExpenses || 0).toFixed(2)}`;
-        }
-        if (netBalanceEl) {
-            const netBalance = this.statistics.netBalance || 0;
-            netBalanceEl.textContent = `₹${netBalance.toFixed(2)}`;
-            netBalanceEl.className = netBalance >= 0 ? 'stat-value positive' : 'stat-value negative';
-        }
-        if (totalTransactionsEl) {
-            totalTransactionsEl.textContent = (this.statistics.totalTransactions || 0).toString();
         }
     }
 
@@ -122,7 +49,7 @@ class ActivityManager {
         }
 
         if (this.filteredActivities.length === 0) {
-            activityList.innerHTML = '<p class="no-data">No activities found</p>';
+            activityList.innerHTML = '<div class="no-activities">No activities found</div>';
             return;
         }
 
@@ -133,121 +60,279 @@ class ActivityManager {
             return dateB - dateA;
         });
 
-        // Create simple HTML table
-        let tableHTML = `
-            <table class="activity-table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Action</th>
-                        <th>Type</th>
-                        <th>Description</th>
-                        <th>Amount</th>
-                        <th>Details</th>
-                    </tr>
-                </thead>
-                <tbody>
+        // Pagination
+        const totalPages = Math.ceil(sortedActivities.length / this.itemsPerPage);
+        const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+        const endIndex = startIndex + this.itemsPerPage;
+        const currentActivities = sortedActivities.slice(startIndex, endIndex);
+
+        // Create Etherscan-style activity feed
+        let feedHTML = `
+            <div class="activity-feed">
+                <div class="activity-header">
+                    <h3>Activity Feed</h3>
+                    <div class="activity-stats">
+                        <span class="stat-item">Total: ${sortedActivities.length} activities</span>
+                        <span class="stat-item">Page ${this.currentPage} of ${totalPages}</span>
+                    </div>
+                </div>
+                <div class="activity-items">
         `;
 
-        sortedActivities.forEach(activity => {
-            tableHTML += this.renderActivityRow(activity);
+        currentActivities.forEach(activity => {
+            feedHTML += this.renderEtherscanStyleActivity(activity);
         });
 
-        tableHTML += `
-                </tbody>
-            </table>
+        feedHTML += `
+                </div>
+                ${this.renderPagination(totalPages)}
+            </div>
         `;
 
-        activityList.innerHTML = tableHTML;
+        activityList.innerHTML = feedHTML;
+        this.attachPaginationEvents();
     }
 
-    renderActivityRow(activity) {
+    renderEtherscanStyleActivity(activity) {
         const date = new Date(activity.activity_date || activity.created_at);
-        const formattedDate = date.toLocaleDateString('en-IN');
+        const formattedDate = date.toLocaleDateString('en-IN', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+        const formattedTime = date.toLocaleTimeString('en-IN', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
 
-        // Determine action based on activity type
-        let action, type, description, amount, details;
+        // Handle different activity types with proper amount display
+        let actionIcon, actionText, actionClass, amount, description, accountInfo;
 
-        switch (activity.activity_type) {
-            case 'income':
-                action = 'Add Income';
-                type = 'Income';
-                description = activity.description || 'Income Transaction';
-                amount = `₹${parseFloat(activity.amount || 0).toFixed(2)}`;
-                details = activity.account_info || 'Unknown Account';
+        if (activity.activity_type === 'audit') {
+            // Handle audit logs properly
+            switch (activity.action_type) {
+            case 'created':
+                if (activity.description.includes('cash balance')) {
+                    actionIcon = '💰';
+                    actionText = 'Cash Balance Set';
+                    actionClass = 'action-cash-add';
+                } else if (activity.description.includes('bank')) {
+                    actionIcon = '🏦';
+                    actionText = 'Bank Added';
+                    actionClass = 'action-bank-add';
+                } else if (activity.description.includes('income')) {
+                    actionIcon = '📈';
+                    actionText = 'Income Added';
+                    actionClass = 'action-income';
+                } else if (activity.description.includes('expense')) {
+                    actionIcon = '📉';
+                    actionText = 'Expense Added';
+                    actionClass = 'action-expense';
+                } else {
+                    actionIcon = '➕';
+                    actionText = 'Created';
+                    actionClass = 'action-create';
+                }
                 break;
-            case 'expense':
-                action = 'Add Expense';
-                type = 'Expense';
-                description = activity.description || 'Expense Transaction';
-                amount = `₹${parseFloat(activity.amount || 0).toFixed(2)}`;
-                details = activity.account_info || 'Unknown Account';
+            case 'updated':
+                actionIcon = '✏️';
+                actionText = 'Updated';
+                actionClass = 'action-update';
                 break;
-            case 'setup':
-                action = 'Setup';
-                type = 'Setup';
-                description = activity.description || 'Account Setup';
-                amount = activity.amount ? `₹${parseFloat(activity.amount).toFixed(2)}` : '-';
-                details = 'Account Configuration';
+            case 'deleted':
+                actionIcon = '🗑️';
+                actionText = 'Deleted';
+                actionClass = 'action-delete';
                 break;
             default:
-                action = 'Other';
-                type = 'System';
-                description = activity.description || 'System Activity';
-                amount = '-';
-                details = 'System Operation';
+                actionIcon = '🔄';
+                actionText = 'Modified';
+                actionClass = 'action-other';
+            }
+            amount = activity.amount ? `₹${parseFloat(activity.amount).toLocaleString('en-IN', {minimumFractionDigits: 2})}` : '—';
+            description = activity.description || 'System operation';
+            accountInfo = activity.account_info || 'System';
+        } else {
+            // Handle legacy activity types
+            switch (activity.activity_type) {
+            case 'income':
+                actionIcon = '📈';
+                actionText = 'Income Added';
+                actionClass = 'action-income';
+                break;
+            case 'expense':
+                actionIcon = '📉';
+                actionText = 'Expense Added';
+                actionClass = 'action-expense';
+                break;
+            case 'setup':
+                actionIcon = '⚙️';
+                actionText = 'Account Setup';
+                actionClass = 'action-setup';
+                break;
+            default:
+                actionIcon = '🔄';
+                actionText = 'Transaction';
+                actionClass = 'action-other';
+            }
+            amount = activity.amount ? `₹${parseFloat(activity.amount).toLocaleString('en-IN', {minimumFractionDigits: 2})}` : '—';
+            description = activity.description || 'Transaction';
+            accountInfo = activity.account_info || 'Unknown Account';
         }
 
         return `
-            <tr class="activity-row ${activity.activity_type}">
-                <td class="activity-date">${formattedDate}</td>
-                <td class="activity-action">${action}</td>
-                <td class="activity-type">${type}</td>
-                <td class="activity-description">${description}</td>
-                <td class="activity-amount">${amount}</td>
-                <td class="activity-details">${details}</td>
-            </tr>
+            <div class="activity-item ${actionClass}">
+                <div class="activity-main">
+                    <div class="activity-icon">
+                        <span class="icon">${actionIcon}</span>
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-header-row">
+                            <span class="activity-action">${actionText}</span>
+                            <span class="activity-amount">${amount}</span>
+                        </div>
+                        <div class="activity-description">
+                            ${description}
+                        </div>
+                        <div class="activity-meta">
+                            <span class="activity-account">📍 ${accountInfo}</span>
+                            <span class="activity-timestamp">🕒 ${formattedDate} at ${formattedTime}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
     }
 
-    filterActivity() {
+    renderPagination(totalPages) {
+        if (totalPages <= 1) return '';
+
+        let paginationHTML = '<div class="pagination">';
+
+        // Previous button
+        if (this.currentPage > 1) {
+            paginationHTML += `<button class="pagination-btn" data-page="${this.currentPage - 1}">« Previous</button>`;
+        }
+
+        // Page numbers
+        const startPage = Math.max(1, this.currentPage - 2);
+        const endPage = Math.min(totalPages, this.currentPage + 2);
+
+        if (startPage > 1) {
+            paginationHTML += '<button class="pagination-btn" data-page="1">1</button>';
+            if (startPage > 2) {
+                paginationHTML += '<span class="pagination-dots">...</span>';
+            }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            const isActive = i === this.currentPage ? 'active' : '';
+            paginationHTML += `<button class="pagination-btn ${isActive}" data-page="${i}">${i}</button>`;
+        }
+
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                paginationHTML += '<span class="pagination-dots">...</span>';
+            }
+            paginationHTML += `<button class="pagination-btn" data-page="${totalPages}">${totalPages}</button>`;
+        }
+
+        // Next button
+        if (this.currentPage < totalPages) {
+            paginationHTML += `<button class="pagination-btn" data-page="${this.currentPage + 1}">Next »</button>`;
+        }
+
+        paginationHTML += '</div>';
+        return paginationHTML;
+    }
+
+    attachPaginationEvents() {
+        const paginationBtns = document.querySelectorAll('.pagination-btn');
+        paginationBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const page = parseInt(e.target.getAttribute('data-page'));
+                if (page && page !== this.currentPage) {
+                    this.currentPage = page;
+                    this.renderActivityFeed();
+                }
+            });
+        });
+    }
+
+    async filterActivity() {
         const monthFilter = document.getElementById('activity-month')?.value || '';
         const yearFilter = document.getElementById('activity-year')?.value || '';
+        const loadBtn = document.querySelector('button[data-action="filterActivity"]');
 
-        this.filteredActivities = this.activities.filter(activity => {
-            const activityDate = new Date(activity.activity_date || activity.created_at);
+        try {
+            // Add loading state
+            if (loadBtn) {
+                loadBtn.classList.add('loading');
+                loadBtn.querySelector('.btn-icon').textContent = '⏳';
+            }
+
+            // Build query parameters for server-side filtering
+            const params = new URLSearchParams();
+            if (monthFilter) params.append('month', monthFilter);
+            if (yearFilter) params.append('year', yearFilter);
             
-            // Month filter (1-12)
-            if (monthFilter && (activityDate.getMonth() + 1) !== parseInt(monthFilter)) {
-                return false;
+            const queryString = params.toString();
+            const endpoint = queryString ? `/api/activity?${queryString}` : '/api/activity';
+            
+            const response = await this.apiClient.get(endpoint);
+
+            if (response && typeof response === 'object') {
+                this.activities = response.activities || [];
+                this.filteredActivities = [...this.activities];
+            } else if (Array.isArray(response)) {
+                this.activities = response;
+                this.filteredActivities = [...this.activities];
+            } else {
+                this.showError('Invalid response format from server');
+                return;
             }
 
-            // Year filter
-            if (yearFilter && activityDate.getFullYear() !== parseInt(yearFilter)) {
-                return false;
+            // Reset to first page when filtering
+            this.currentPage = 1;
+            this.renderActivityFeed();
+        } catch (error) {
+            this.showError('Failed to load filtered activity data. Please try again.');
+        } finally {
+            // Remove loading state
+            if (loadBtn) {
+                loadBtn.classList.remove('loading');
+                loadBtn.querySelector('.btn-icon').textContent = '🔍';
             }
-
-            return true;
-        });
-
-        this.calculateStatistics();
-        this.renderActivityStatistics();
-        this.renderActivityFeed();
+        }
     }
 
     clearActivityFilters() {
         // Reset filter inputs
         const monthFilter = document.getElementById('activity-month');
         const yearFilter = document.getElementById('activity-year');
+        const clearBtn = document.querySelector('button[data-action="clearActivityFilters"]');
+
+        // Add loading state
+        if (clearBtn) {
+            clearBtn.classList.add('loading');
+            clearBtn.querySelector('.btn-icon').textContent = '⏳';
+        }
 
         if (monthFilter) monthFilter.value = '';
         if (yearFilter) yearFilter.value = '';
 
         // Reset filters and show all activities
-        this.filteredActivities = [...this.activities];
-        this.calculateStatistics();
-        this.renderActivityStatistics();
-        this.renderActivityFeed();
+        setTimeout(() => {
+            this.filteredActivities = [...this.activities];
+            this.currentPage = 1; // Reset to first page
+            this.renderActivityFeed();
+            
+            // Remove loading state
+            if (clearBtn) {
+                clearBtn.classList.remove('loading');
+                clearBtn.querySelector('.btn-icon').textContent = '🗑️';
+            }
+        }, 300); // Small delay for visual feedback
     }
 
     showLoading() {
@@ -274,7 +359,6 @@ class ActivityManager {
     // Refresh activity data (can be called when new transactions are added)
     async refreshData() {
         await this.loadActivityData();
-        // Note: renderActivityStatistics and renderActivityFeed are already called in loadActivityData
     }
 }
 

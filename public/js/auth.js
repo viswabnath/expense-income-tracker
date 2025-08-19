@@ -26,10 +26,6 @@ class AuthManager {
                 };
             }
             // For other errors (network issues, server errors), still consider not authenticated
-            // but only log if it's not a 401/authentication error
-            if (!error.message.includes('401') && !error.message.includes('Unauthorized')) {
-                console.error('Authentication check error:', error);
-            }
             return {
                 isAuthenticated: false,
                 error: error.message
@@ -141,7 +137,6 @@ class AuthManager {
                 AuthManager.showError(data.error);
             }
         } catch (error) {
-            console.error('Login error:', error);
             AuthManager.showError(error.message || 'Login failed');
         }
     }
@@ -170,7 +165,6 @@ class AuthManager {
                 AuthManager.showError(data.error);
             }
         } catch (error) {
-            console.error('Registration error:', error);
             AuthManager.showError(error.message || 'Registration failed');
         }
     }
@@ -246,7 +240,6 @@ class AuthManager {
                 AuthManager.showError(data.error);
             }
         } catch (error) {
-            console.error('Request password reset error:', error);
             AuthManager.showError(error.message || 'Error occurred. Please try again.');
         }
     }
@@ -296,7 +289,6 @@ class AuthManager {
                 AuthManager.showError(data.error);
             }
         } catch (error) {
-            console.error('Reset password error:', error);
             AuthManager.showError(error.message || 'Error occurred. Please try again.');
         }
     }
@@ -409,7 +401,6 @@ class AuthManager {
                 AuthManager.showError(data.error);
             }
         } catch (error) {
-            console.error('Forgot username error:', error);
             AuthManager.showError(error.message || 'Failed to retrieve username');
         }
     }
@@ -420,7 +411,7 @@ class AuthManager {
 
     async logout() {
         try {
-            const response = await fetch('/api/logout', {
+            await fetch('/api/logout', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include'
@@ -437,9 +428,8 @@ class AuthManager {
             // Clear any cached data
             this.clearCachedData();
 
-        } catch (error) {
+        } catch {
             // Still clear local state even if logout request fails
-            console.error('Logout error:', error);
             window.expenseTracker.isAuthenticated = false;
             window.expenseTracker.showAuthenticationForms();
         }

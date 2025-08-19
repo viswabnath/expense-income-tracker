@@ -443,38 +443,6 @@
             <div id="activity-section" class="hidden">
                 <h2>Activity Log</h2>
                 
-                <!-- Activity Statistics -->
-                <div class="activity-stats">
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <span class="stat-icon">▲</span>
-                            <span class="stat-title">Total Income</span>
-                        </div>
-                        <div class="stat-value" id="total-income">-</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <span class="stat-icon">▼</span>
-                            <span class="stat-title">Total Expenses</span>
-                        </div>
-                        <div class="stat-value" id="total-expenses">-</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <span class="stat-icon">○</span>
-                            <span class="stat-title">Net Balance</span>
-                        </div>
-                        <div class="stat-value" id="net-balance">-</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-header">
-                            <span class="stat-icon">◆</span>
-                            <span class="stat-title">Total Transactions</span>
-                        </div>
-                        <div class="stat-value" id="total-transactions">-</div>
-                    </div>
-                </div>
-
                 <!-- Activity Filters -->
                 <div class="activity-filters">
                     <div class="form-group">
@@ -504,12 +472,14 @@
                             <option value="2026">2026</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <button data-action="filterActivity" class="primary-button">
-                            Load
+                    <div class="form-group activity-button-group">
+                        <button data-action="filterActivity" class="activity-filter-btn activity-load-btn">
+                            <span class="btn-icon">🔍</span>
+                            <span class="btn-text">Load</span>
                         </button>
-                        <button data-action="clearActivityFilters" class="secondary-button">
-                            Clear
+                        <button data-action="clearActivityFilters" class="activity-filter-btn activity-clear-btn">
+                            <span class="btn-icon">🗑️</span>
+                            <span class="btn-text">Clear</span>
                         </button>
                     </div>
                 </div>

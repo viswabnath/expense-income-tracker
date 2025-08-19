@@ -314,9 +314,7 @@ class TransactionManager {
             incomeData.forEach(income => {
                 const row = document.createElement('tr');
                 const date = new Date(income.date).toLocaleDateString();
-                const creditedTo = income.credited_to_type === 'bank' ?
-                    document.querySelector(`#income-credited-to option[value="bank-${income.credited_to_id}"]`)?.textContent || 'Unknown Bank' :
-                    'Cash';
+                const creditedTo = income.credited_to_name || 'Unknown';
 
                 row.innerHTML = `
                     <td>${date}</td>
@@ -355,13 +353,7 @@ class TransactionManager {
             expenseData.forEach(expense => {
                 const row = document.createElement('tr');
                 const date = new Date(expense.date).toLocaleDateString();
-                let paymentMethod = expense.payment_method;
-                if (paymentMethod === 'bank' || paymentMethod === 'credit_card') {
-                    const select = document.querySelector(`#expense-payment-method option[value="${paymentMethod}-${expense.payment_source_id}"]`);
-                    paymentMethod = select ? select.textContent : 'Unknown Source';
-                } else {
-                    paymentMethod = 'Cash';
-                }
+                const paymentMethod = expense.payment_source_name || 'Unknown';
 
                 row.innerHTML = `
                     <td>${date}</td>
@@ -629,7 +621,7 @@ class TransactionManager {
         }
 
         try {
-            const response = await this.apiClient.put(`/api/income/${this.editingIncomeId}`, {
+            await this.apiClient.put(`/api/income/${this.editingIncomeId}`, {
                 source,
                 amount: parseFloat(amount),
                 creditedToType,
@@ -698,7 +690,7 @@ class TransactionManager {
         }
 
         try {
-            const response = await this.apiClient.put(`/api/expenses/${this.editingExpenseId}`, {
+            await this.apiClient.put(`/api/expenses/${this.editingExpenseId}`, {
                 title,
                 amount: parseFloat(amount),
                 paymentMethod: paymentMethodType,
@@ -845,6 +837,7 @@ class TransactionManager {
 window.transactionManager = new TransactionManager();
 
 // Global functions for onclick handlers
+/* eslint-disable no-unused-vars */
 function filterTransactions() {
     window.transactionManager.filterTransactions();
 }
@@ -889,3 +882,4 @@ function closeEditExpenseModal() {
 function closeDeleteModal() {
     window.transactionManager.closeDeleteModal();
 }
+/* eslint-enable no-unused-vars */

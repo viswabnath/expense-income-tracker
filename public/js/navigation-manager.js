@@ -33,8 +33,6 @@ class NavigationManager {
         } else if (section === 'activity') {
             if (window.activityManager) {
                 window.activityManager.onSectionShow();
-            } else {
-                console.error('NavigationManager: activityManager not available!');
             }
         }
     }
@@ -54,7 +52,7 @@ class NavigationManager {
             this.showMainApp();
             this.showSection('setup');
             window.setupManager.onSectionShow();
-        } catch (error) {
+        } catch {
             // Error handling code can be added here if needed
         }
     }

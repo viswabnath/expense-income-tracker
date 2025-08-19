@@ -70,11 +70,12 @@
         "testMatch": [
           "<rootDir>/tests/integration.test.js",
           "<rootDir>/tests/api.test.js",
-          "<rootDir>/tests/server.test.js",
-          "<rootDir>/tests/comprehensive-coverage.test.js",
           "<rootDir>/tests/edge-cases.test.js",
           "<rootDir>/tests/setup-db.test.js",
-          "<rootDir>/tests/setup-db-coverage.test.js"
+          "<rootDir>/tests/setup-db-coverage.test.js",
+          "<rootDir>/tests/activity-endpoint.test.js",
+          "<rootDir>/tests/comprehensive-server-coverage.test.js",
+          "<rootDir>/tests/server-edge-coverage.test.js"
         ],
         "collectCoverageFrom": [
           "server.js",
@@ -88,7 +89,11 @@
           "<rootDir>/tests/frontend-integration.test.js",
           "<rootDir>/tests/auth.test.js",
           "<rootDir>/tests/modular-architecture.test.js",
-          "<rootDir>/tests/frontend-coverage.test.js"
+          "<rootDir>/tests/frontend-coverage.test.js",
+          "<rootDir>/tests/activity-table-coverage.test.js",
+          "<rootDir>/tests/smart-cash-button.test.js",
+          "<rootDir>/tests/enhanced-summary-messages.test.js",
+          "<rootDir>/tests/csp-compliance.test.js"
         ],
         "collectCoverageFrom": [
           "public/js/**/*.js",

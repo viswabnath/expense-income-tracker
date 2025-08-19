@@ -39,6 +39,9 @@ class EventHandlers {
         // Transaction events
         this.bindTransactionEvents();
 
+        // Activity events
+        this.bindActivityEvents();
+
         // Summary events
         this.bindSummaryEvents();
     }
@@ -317,6 +320,28 @@ class EventHandlers {
             nextMonthBtn.addEventListener('click', () => {
                 if (window.transactionManager) {
                     window.transactionManager.changeMonth(1);
+                }
+            });
+        }
+    }
+
+    bindActivityEvents() {
+        // Activity filter button
+        const filterActivityBtn = document.querySelector('button[data-action="filterActivity"]');
+        if (filterActivityBtn) {
+            filterActivityBtn.addEventListener('click', () => {
+                if (window.activityManager) {
+                    window.activityManager.filterActivity();
+                }
+            });
+        }
+
+        // Clear activity filters button
+        const clearActivityBtn = document.querySelector('button[data-action="clearActivityFilters"]');
+        if (clearActivityBtn) {
+            clearActivityBtn.addEventListener('click', () => {
+                if (window.activityManager) {
+                    window.activityManager.clearActivityFilters();
                 }
             });
         }

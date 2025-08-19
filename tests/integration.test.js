@@ -13,7 +13,7 @@ jest.mock('express-rate-limit', () => {
 });
 
 // Import the actual server app AFTER mocking rate limiter
-const app = require('../server');
+const { app, pool: serverPool } = require('../server');
 
 // Test database configuration
 const testPool = new Pool({
@@ -100,7 +100,7 @@ describe('Integration Tests - Server Endpoints', () => {
             `);
 
             // Drop and recreate cash_balance table to ensure correct schema
-            await testPool.query(`DROP TABLE IF EXISTS cash_balance CASCADE`);
+            await testPool.query('DROP TABLE IF EXISTS cash_balance CASCADE');
             await testPool.query(`
                 CREATE TABLE cash_balance (
                     id SERIAL PRIMARY KEY,
@@ -126,6 +126,7 @@ describe('Integration Tests - Server Endpoints', () => {
             console.warn('Test cleanup warning:', error.message);
         }
         await testPool.end();
+        await serverPool.end();
     });
 
     describe('Authentication Endpoints', () => {

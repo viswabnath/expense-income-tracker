@@ -38,7 +38,7 @@ class ExpenseTracker {
                 // User is not authenticated, show login form
                 this.showAuthenticationForms();
             }
-        } catch (error) {
+        } catch {
             this.isAuthenticated = false;
             this.showAuthenticationForms();
         }
@@ -124,11 +124,12 @@ class ExpenseTracker {
 
     setupDateInputs() {
         const currentDate = new Date();
+        const dateString = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
         const incomeDate = document.getElementById('income-date');
         const expenseDate = document.getElementById('expense-date');
 
-        if (incomeDate) incomeDate.valueAsDate = currentDate;
-        if (expenseDate) expenseDate.valueAsDate = currentDate;
+        if (incomeDate) incomeDate.value = dateString;
+        if (expenseDate) expenseDate.value = dateString;
     }
 
     setupYearDropdown() {

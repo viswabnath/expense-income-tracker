@@ -20,7 +20,6 @@ class SummaryManager {
             const data = await this.apiClient.get(`/api/monthly-summary?month=${month}&year=${year}`);
             this.displayMonthlySummary(data, month, year);
         } catch (error) {
-            console.error('Error loading monthly summary:', error);
             // Check if it's an authentication error
             if (error.message.includes('Authentication required') || error.message.includes('401')) {
                 // User is not authenticated, redirect to login
@@ -82,7 +81,7 @@ class SummaryManager {
                 ` : ''}
             </div>`;
             document.getElementById('summary-display').innerHTML = html;
-            
+
             // Add event listeners for the action buttons (CSP-compliant)
             if (data.message.includes('No transactions found')) {
                 this.attachActionButtonListeners();
@@ -258,7 +257,7 @@ class SummaryManager {
         if (summaryDisplay) {
             const setupBtn = summaryDisplay.querySelector('.setup-accounts-btn');
             const transactionsBtn = summaryDisplay.querySelector('.add-transactions-btn');
-            
+
             if (setupBtn) {
                 setupBtn.addEventListener('click', () => {
                     if (window.showSection) {
@@ -266,7 +265,7 @@ class SummaryManager {
                     }
                 });
             }
-            
+
             if (transactionsBtn) {
                 transactionsBtn.addEventListener('click', () => {
                     if (window.showSection) {

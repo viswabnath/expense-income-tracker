@@ -63,7 +63,7 @@ class SetupManager {
         if (this.isInitialized) {
             return; // Already initialized
         }
-        
+
         await this.loadSetupData();
         this.isInitialized = true;
     }
@@ -155,7 +155,7 @@ class SetupManager {
 
             // Refresh activity data if activity manager exists
             if (window.activityManager) {
-                window.activityManager.refresh();
+                window.activityManager.refreshData();
             }
 
             // Clear success message after 3 seconds
@@ -237,7 +237,7 @@ class SetupManager {
 
                 // Refresh activity data if activity manager exists
                 if (window.activityManager) {
-                    window.activityManager.refresh();
+                    window.activityManager.refreshData();
                 }
 
                 // Clear success message after 3 seconds
@@ -318,7 +318,7 @@ class SetupManager {
 
             // Refresh activity data if activity manager exists
             if (window.activityManager) {
-                window.activityManager.refresh();
+                window.activityManager.refreshData();
             }
 
             // Clear success message after 3 seconds
@@ -580,7 +580,7 @@ class SetupManager {
 
             // Refresh activity data if activity manager exists
             if (window.activityManager) {
-                window.activityManager.refresh();
+                window.activityManager.refreshData();
             }
         } catch (error) {
             console.error('Error updating cash balance:', error);

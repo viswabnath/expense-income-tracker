@@ -13,7 +13,7 @@ jest.mock('express-rate-limit', () => {
 });
 
 // Import the actual server app AFTER mocking rate limiter
-const app = require('../server');
+const { app, pool: serverPool } = require('../server');
 
 // Test database configuration
 const testPool = new Pool({
@@ -93,6 +93,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
             // intentionally empty: cleanup failure is non-fatal
         }
         await testPool.end();
+        await serverPool.end();
     });
 
     describe('Registration Edge Cases', () => {

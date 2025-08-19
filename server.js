@@ -1,4 +1,5 @@
 // Add this to the top of both server.js and setup-db.js
+/* eslint-disable no-unused-vars */
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
@@ -733,7 +734,34 @@ app.delete('/api/credit-cards/:id', requireAuth, async (req, res) => {
 app.post('/api/income', requireAuth, async (req, res) => {
     try {
         const { source, amount, creditedToType, creditedToId, date } = req.body;
-        const dateObj = new Date(date);
+        
+        // Validate date input
+        if (!date) {
+            return res.status(400).json({ error: 'Date is required' });
+        }
+        
+        // If only date is provided (YYYY-MM-DD), add current time to make it more realistic
+        let finalDate = date;
+        if (date && date.length === 10) { // YYYY-MM-DD format
+            const now = new Date();
+            const selectedDate = new Date(date);
+            
+            // Check if the date is valid and hasn't been auto-corrected
+            if (isNaN(selectedDate.getTime()) || selectedDate.toISOString().split('T')[0] !== date) {
+                return res.status(400).json({ error: 'Invalid date format' });
+            }
+            
+            selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+            finalDate = selectedDate.toISOString();
+        }
+        
+        const dateObj = new Date(finalDate);
+        
+        // Validate the final date
+        if (isNaN(dateObj.getTime())) {
+            return res.status(400).json({ error: 'Invalid date format' });
+        }
+        
         const month = dateObj.getMonth() + 1;
         const year = dateObj.getFullYear();
 
@@ -745,7 +773,7 @@ app.post('/api/income', requireAuth, async (req, res) => {
                 amount,
                 creditedToType,
                 creditedToId,
-                date,
+                finalDate,
                 month,
                 year,
             ]
@@ -773,15 +801,26 @@ app.post('/api/income', requireAuth, async (req, res) => {
 app.get('/api/income', requireAuth, async (req, res) => {
     try {
         const { month, year } = req.query;
-        let query = 'SELECT * FROM income_entries WHERE user_id = $1';
+        let query = `
+            SELECT i.*, 
+                   CASE 
+                       WHEN i.credited_to_type = 'bank' THEN b.name
+                       WHEN i.credited_to_type = 'cash' THEN 'Cash'
+                       WHEN i.credited_to_type = 'credit_card' THEN cc.name
+                       ELSE 'Unknown'
+                   END as credited_to_name
+            FROM income_entries i
+            LEFT JOIN banks b ON i.credited_to_type = 'bank' AND i.credited_to_id = b.id
+            LEFT JOIN credit_cards cc ON i.credited_to_type = 'credit_card' AND i.credited_to_id = cc.id
+            WHERE i.user_id = $1`;
         const params = [req.session.userId];
 
         if (month && year) {
-            query += ' AND month = $2 AND year = $3';
+            query += ' AND i.month = $2 AND i.year = $3';
             params.push(month, year);
         }
 
-        query += ' ORDER BY date DESC';
+        query += ' ORDER BY i.date DESC';
 
         const result = await pool.query(query, params);
         res.json(result.rows);
@@ -794,7 +833,34 @@ app.get('/api/income', requireAuth, async (req, res) => {
 app.post('/api/expenses', requireAuth, async (req, res) => {
     try {
         const { title, amount, paymentMethod, paymentSourceId, date } = req.body;
-        const dateObj = new Date(date);
+        
+        // Validate date input
+        if (!date) {
+            return res.status(400).json({ error: 'Date is required' });
+        }
+        
+        // If only date is provided (YYYY-MM-DD), add current time to make it more realistic
+        let finalDate = date;
+        if (date && date.length === 10) { // YYYY-MM-DD format
+            const now = new Date();
+            const selectedDate = new Date(date);
+            
+            // Check if the date is valid and hasn't been auto-corrected
+            if (isNaN(selectedDate.getTime()) || selectedDate.toISOString().split('T')[0] !== date) {
+                return res.status(400).json({ error: 'Invalid date format' });
+            }
+            
+            selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+            finalDate = selectedDate.toISOString();
+        }
+        
+        const dateObj = new Date(finalDate);
+        
+        // Validate the final date
+        if (isNaN(dateObj.getTime())) {
+            return res.status(400).json({ error: 'Invalid date format' });
+        }
+        
         const month = dateObj.getMonth() + 1;
         const year = dateObj.getFullYear();
 
@@ -859,7 +925,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 amount,
                 paymentMethod,
                 paymentSourceId,
-                date,
+                finalDate,
                 month,
                 year,
             ]
@@ -894,15 +960,26 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
 app.get('/api/expenses', requireAuth, async (req, res) => {
     try {
         const { month, year } = req.query;
-        let query = 'SELECT * FROM expenses WHERE user_id = $1';
+        let query = `
+            SELECT e.*, 
+                   CASE 
+                       WHEN e.payment_method = 'bank' THEN b.name
+                       WHEN e.payment_method = 'cash' THEN 'Cash'
+                       WHEN e.payment_method = 'credit_card' THEN cc.name
+                       ELSE 'Unknown'
+                   END as payment_source_name
+            FROM expenses e
+            LEFT JOIN banks b ON e.payment_method = 'bank' AND e.payment_source_id = b.id
+            LEFT JOIN credit_cards cc ON e.payment_method = 'credit_card' AND e.payment_source_id = cc.id
+            WHERE e.user_id = $1`;
         const params = [req.session.userId];
 
         if (month && year) {
-            query += ' AND month = $2 AND year = $3';
+            query += ' AND e.month = $2 AND e.year = $3';
             params.push(month, year);
         }
 
-        query += ' ORDER BY date DESC';
+        query += ' ORDER BY e.date DESC';
 
         const result = await pool.query(query, params);
         res.json(result.rows);
@@ -1321,29 +1398,29 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
         // Get bank balances at the end of selected month
         const bankResult = await pool.query(
             `
-      SELECT 
+      SELECT
         b.id,
         b.name,
         b.initial_balance,
-        b.initial_balance + 
+        b.initial_balance +
         COALESCE((
-          SELECT SUM(amount) 
-          FROM income_entries 
-          WHERE user_id = $1 
-            AND credited_to_type = 'bank' 
-            AND credited_to_id = b.id 
+          SELECT SUM(amount)
+          FROM income_entries
+          WHERE user_id = $1
+            AND credited_to_type = 'bank'
+            AND credited_to_id = b.id
             AND date <= $2
-        ), 0) - 
+        ), 0) -
         COALESCE((
-          SELECT SUM(amount) 
-          FROM expenses 
-          WHERE user_id = $1 
-            AND payment_method = 'bank' 
-            AND payment_source_id = b.id 
+          SELECT SUM(amount)
+          FROM expenses
+          WHERE user_id = $1
+            AND payment_method = 'bank'
+            AND payment_source_id = b.id
             AND date <= $2
         ), 0) as balance_at_month_end
-      FROM banks b 
-      WHERE b.user_id = $1 
+      FROM banks b
+      WHERE b.user_id = $1
         AND b.created_at <= $2
     `,
             [userId, endOfSelectedMonth]
@@ -1352,24 +1429,24 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
         // Get cash balance at the end of selected month
         const cashResult = await pool.query(
             `
-      SELECT 
+      SELECT
         COALESCE(balance, 0) as initial_balance,
-        COALESCE(balance, 0) + 
+        COALESCE(balance, 0) +
         COALESCE((
-          SELECT SUM(amount) 
-          FROM income_entries 
-          WHERE user_id = $1 
-            AND credited_to_type = 'cash' 
+          SELECT SUM(amount)
+          FROM income_entries
+          WHERE user_id = $1
+            AND credited_to_type = 'cash'
             AND date <= $2
-        ), 0) - 
+        ), 0) -
         COALESCE((
-          SELECT SUM(amount) 
-          FROM expenses 
-          WHERE user_id = $1 
-            AND payment_method = 'cash' 
+          SELECT SUM(amount)
+          FROM expenses
+          WHERE user_id = $1
+            AND payment_method = 'cash'
             AND date <= $2
         ), 0) as cash_balance_at_month_end
-      FROM cash_balance 
+      FROM cash_balance
       WHERE user_id = $1
     `,
             [userId, endOfSelectedMonth]
@@ -1452,7 +1529,7 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
         // Check if user has no activity for this month (registered but no transactions)
         const hasNoTransactions = monthIncome === 0 && monthExpenses === 0;
         const hasNoAccountsSetup = bankResult.rows.length === 0 && (cashResult.rows[0]?.initial_balance || 0) === 0;
-        
+
         // If user was registered during this month but has no transactions or account setup
         if (hasNoTransactions && hasNoAccountsSetup) {
             return res.json({
@@ -1543,6 +1620,8 @@ app.get('/api/activity', requireAuth, async (req, res) => {
             type = '',
             from_date = '',
             to_date = '',
+            month = '',
+            year = '',
             export: exportCsv = false
         } = req.query;
 
@@ -1554,21 +1633,45 @@ app.get('/api/activity', requireAuth, async (req, res) => {
         const params = [userId];
         let paramCount = 1;
 
-        if (from_date) {
+        // Handle month/year filtering
+        if (month && year) {
+            paramCount++;
+            const startDate = `${year}-${month.padStart(2, '0')}-01`;
+            whereConditions.push(`activity_date >= $${paramCount}`);
+            params.push(startDate);
+            
+            paramCount++;
+            const nextMonth = parseInt(month) === 12 ? 1 : parseInt(month) + 1;
+            const nextYear = parseInt(month) === 12 ? parseInt(year) + 1 : parseInt(year);
+            const endDate = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01`;
+            whereConditions.push(`activity_date < $${paramCount}`);
+            params.push(endDate);
+        } else if (year) {
             paramCount++;
             whereConditions.push(`activity_date >= $${paramCount}`);
-            params.push(from_date);
-        }
-
-        if (to_date) {
+            params.push(`${year}-01-01`);
+            
             paramCount++;
-            whereConditions.push(`activity_date <= $${paramCount}`);
-            params.push(to_date);
+            whereConditions.push(`activity_date < $${paramCount}`);
+            params.push(`${parseInt(year) + 1}-01-01`);
+        } else {
+            // Handle date range filtering
+            if (from_date) {
+                paramCount++;
+                whereConditions.push(`activity_date >= $${paramCount}`);
+                params.push(from_date);
+            }
+
+            if (to_date) {
+                paramCount++;
+                whereConditions.push(`activity_date <= $${paramCount}`);
+                params.push(to_date);
+            }
         }
 
         // Enhanced activities query with audit logs - simplified version
         let activitiesQuery = `
-            SELECT 
+            SELECT
                 activity_type,
                 id,
                 description,
@@ -1578,12 +1681,12 @@ app.get('/api/activity', requireAuth, async (req, res) => {
                 action_type
             FROM (
                 -- Income transactions (created)
-                SELECT 
+                SELECT
                     'income' as activity_type,
                     i.id,
                     i.source as description,
                     i.amount,
-                    CASE 
+                    CASE
                         WHEN i.credited_to_type = 'bank' THEN COALESCE(b.name, 'Unknown Bank')
                         WHEN i.credited_to_type = 'cash' THEN 'Cash'
                         ELSE i.credited_to_type
@@ -1593,16 +1696,16 @@ app.get('/api/activity', requireAuth, async (req, res) => {
                 FROM income_entries i
                 LEFT JOIN banks b ON i.credited_to_type = 'bank' AND i.credited_to_id = b.id AND b.user_id = i.user_id
                 WHERE i.user_id = $1
-                
+
                 UNION ALL
-                
+
                 -- Expense transactions (created)
-                SELECT 
+                SELECT
                     'expense' as activity_type,
                     e.id,
                     e.title as description,
                     e.amount,
-                    CASE 
+                    CASE
                         WHEN e.payment_method = 'bank' THEN COALESCE(b.name, 'Unknown Bank')
                         WHEN e.payment_method = 'credit_card' THEN COALESCE(c.name, 'Unknown Card')
                         WHEN e.payment_method = 'cash' THEN 'Cash'
@@ -1614,11 +1717,11 @@ app.get('/api/activity', requireAuth, async (req, res) => {
                 LEFT JOIN banks b ON e.payment_method = 'bank' AND e.payment_source_id = b.id AND b.user_id = e.user_id
                 LEFT JOIN credit_cards c ON e.payment_method = 'credit_card' AND e.payment_source_id = c.id AND c.user_id = e.user_id
                 WHERE e.user_id = $1
-                
+
                 UNION ALL
-                
+
                 -- Bank setup activities
-                SELECT 
+                SELECT
                     'setup' as activity_type,
                     b.id,
                     'Added bank: ' || b.name as description,
@@ -1628,11 +1731,11 @@ app.get('/api/activity', requireAuth, async (req, res) => {
                     'created' as action_type
                 FROM banks b
                 WHERE b.user_id = $1
-                
+
                 UNION ALL
-                
+
                 -- Credit card setup activities
-                SELECT 
+                SELECT
                     'setup' as activity_type,
                     c.id,
                     'Added credit card: ' || c.name as description,
@@ -1642,6 +1745,20 @@ app.get('/api/activity', requireAuth, async (req, res) => {
                     'created' as action_type
                 FROM credit_cards c
                 WHERE c.user_id = $1
+
+                UNION ALL
+
+                -- Cash balance setup activities
+                SELECT
+                    'setup' as activity_type,
+                    cb.id,
+                    'Set cash balance' as description,
+                    cb.initial_balance as amount,
+                    'Cash' as account_info,
+                    cb.created_at as activity_date,
+                    'created' as action_type
+                FROM cash_balance cb
+                WHERE cb.user_id = $1 AND cb.initial_balance > 0
             ) combined_activities
         `;
 
@@ -1674,6 +1791,8 @@ app.get('/api/activity', requireAuth, async (req, res) => {
                 SELECT id FROM banks WHERE user_id = $1
                 UNION ALL
                 SELECT id FROM credit_cards WHERE user_id = $1
+                UNION ALL
+                SELECT id FROM cash_balance WHERE user_id = $1 AND initial_balance > 0
             ) combined_count
         `;
 
@@ -1683,14 +1802,15 @@ app.get('/api/activity', requireAuth, async (req, res) => {
 
         // Get summary statistics
         const statsResult = await pool.query(`
-            SELECT 
-                (SELECT COUNT(*) FROM income_entries WHERE user_id = $1) + 
+            SELECT
+                (SELECT COUNT(*) FROM income_entries WHERE user_id = $1) +
                 (SELECT COUNT(*) FROM expenses WHERE user_id = $1) +
                 (SELECT COUNT(*) FROM banks WHERE user_id = $1) +
-                (SELECT COUNT(*) FROM credit_cards WHERE user_id = $1) as totalTransactions,
+                (SELECT COUNT(*) FROM credit_cards WHERE user_id = $1) +
+                (SELECT COUNT(*) FROM cash_balance WHERE user_id = $1 AND initial_balance > 0) as totalTransactions,
                 (SELECT COALESCE(SUM(amount), 0) FROM income_entries WHERE user_id = $1) as totalIncome,
                 (SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE user_id = $1) as totalExpenses,
-                (SELECT COALESCE(SUM(amount), 0) FROM income_entries WHERE user_id = $1) - 
+                (SELECT COALESCE(SUM(amount), 0) FROM income_entries WHERE user_id = $1) -
                 (SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE user_id = $1) as netBalance
         `, [userId]);
 
@@ -1742,11 +1862,12 @@ if (process.env.NODE_ENV === 'production') {
     });
 }
 
-// Export the app for testing
-module.exports = app;
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
-});
+// Export the app and pool for testing
+module.exports = { app, pool };
 
-// Export the app for testing
-module.exports = app;
+// Only start server if this file is run directly (not imported for testing)
+if (require.main === module) {
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}
