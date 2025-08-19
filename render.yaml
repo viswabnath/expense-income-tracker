@@ -9,6 +9,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 10000
       - key: DB_HOST
         fromDatabase:
           name: balancetrack-db
@@ -31,6 +33,8 @@ services:
           property: password
       - key: SESSION_SECRET
         generateValue: true
+      - key: DB_SSL
+        value: true
 
 databases:
   - name: balancetrack-db
