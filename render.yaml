@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: balancetrack
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_HOST
+        fromDatabase:
+          name: balancetrack-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: balancetrack-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: balancetrack-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: balancetrack-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: balancetrack-db
+          property: password
+      - key: SESSION_SECRET
+        generateValue: true
+
+databases:
+  - name: balancetrack-db
+    plan: free
+    databaseName: expense_tracker
+    user: postgres
