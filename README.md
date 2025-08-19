@@ -75,6 +75,9 @@ BalanceTrack is a full-stack web application that allows users to:
 - ✅ Flexible tracking options (income only, expenses only, or both)
 - ✅ **Mobile-responsive design with touch-friendly interface**
 - ✅ **Real-time data synchronization**
+- ✅ **Enhanced activity feed with unified transaction history**
+- ✅ **Beautiful gradient UI with smooth animations**
+- ✅ **Advanced filtering and search capabilities**
 
 ### Data Integrity
 - ✅ Automatic balance updates
@@ -160,10 +163,11 @@ BalanceTrack is a full-stack web application that allows users to:
 - `GET /api/expenses` - Get expense entries
 - `POST /api/expenses` - Add expense entry
 - `GET /api/monthly-summary` - Get monthly financial summary
+- `GET /api/activity` - Get unified activity feed with filtering
 
 ## 🧪 Testing
 
-The project includes comprehensive testing with 325+ test cases across 11 test suites:
+The project includes comprehensive testing with 260+ test cases across 16 test suites:
 
 ### Test Coverage
 - **Backend API Testing**: Server endpoints and authentication
@@ -171,6 +175,8 @@ The project includes comprehensive testing with 325+ test cases across 11 test s
 - **Frontend Testing**: JavaScript modules and integration
 - **Security Testing**: Edge cases and vulnerability prevention
 - **Integration Testing**: End-to-end workflows
+- **Activity Testing**: Comprehensive activity feed validation
+- **CSP Compliance**: Content Security Policy adherence
 
 ### Running Tests
 ```bash
