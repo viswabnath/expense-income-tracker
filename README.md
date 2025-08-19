@@ -2,14 +2,7 @@
 
 A comprehensive web application for tracking personal finances, expenses, and income with secure authentication and real-time data management.
 
-## 🌐 Live Demo
-
-🚀 **Try BalanceTrack now**: [https://balance-track.up.railway.app/](https://balance-track.up.railway.app/)
-
-> **Production Deployment**: Fully deployed on Railway with enterprise-grade security and performance optimizations.
-
-
-## 🎯 Project Overview
+##  Project Overview
 
 BalanceTrack is a full-stack web application that allows users to:
 - Track income from multiple sources
