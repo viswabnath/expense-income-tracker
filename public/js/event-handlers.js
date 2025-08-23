@@ -106,12 +106,25 @@ class EventHandlers {
         logoutBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
-                logout();
+                this.showLogoutConfirmation();
                 if (btn.dataset.closeSidebar) {
                     closeSidebar();
                 }
             });
         });
+    }
+
+    showLogoutConfirmation() {
+        document.getElementById('logout-confirmation-modal').classList.remove('hidden');
+    }
+
+    closeLogoutConfirmation() {
+        document.getElementById('logout-confirmation-modal').classList.add('hidden');
+    }
+
+    confirmLogout() {
+        this.closeLogoutConfirmation();
+        logout();
     }
 
     bindNavigationEvents() {
@@ -125,6 +138,16 @@ class EventHandlers {
         const sidebarOverlay = document.querySelector('#sidebar-overlay');
         if (sidebarOverlay) {
             sidebarOverlay.addEventListener('click', () => closeSidebar());
+        }
+
+        // Logout modal overlay
+        const logoutModalOverlay = document.querySelector('#logout-confirmation-modal');
+        if (logoutModalOverlay) {
+            logoutModalOverlay.addEventListener('click', (e) => {
+                if (e.target === logoutModalOverlay) {
+                    this.closeLogoutConfirmation();
+                }
+            });
         }
 
         // Navigation links
@@ -252,6 +275,13 @@ class EventHandlers {
                 action === 'close-delete-setup'
             )) {
                 await window.setupManager.handleSetupAction(action);
+            }
+
+            // Handle logout confirmation actions
+            if (action === 'confirm-logout') {
+                window.eventHandlers.confirmLogout();
+            } else if (action === 'close-logout-confirmation') {
+                window.eventHandlers.closeLogoutConfirmation();
             }
         });
     }
