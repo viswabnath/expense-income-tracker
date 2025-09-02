@@ -30,7 +30,7 @@ BalanceTrack is a full-stack web application that allows users to:
 - **Database**: PostgreSQL with advanced schema
 - **Security**: bcryptjs encryption, session management, rate limiting, CSP headers
 - **API**: RESTful endpoints for all operations
-- **Deployment**: Production-ready on Railway platform
+- **Deployment**: Production-ready with Docker support
 
 ### Database Schema
 - **Users**: Secure authentication with security questions
@@ -220,6 +220,8 @@ npm run test:coverage
 
 ## 🏢 Production Deployment
 
+> **Note**: The application is ready for production deployment on any platform that supports Node.js and PostgreSQL.
+
 ### Security Checklist
 - ✅ Environment variables configured
 - ✅ Session secrets generated securely
@@ -236,30 +238,44 @@ DB_SSL=true
 PORT=443
 ```
 
-## 🌐 Live Production Deployment
+## 🐳 Docker Deployment
 
-### Railway Deployment Status
-- ✅ **Live URL**: [https://balance-track.up.railway.app/](https://balance-track.up.railway.app/)
-- ✅ **Database**: PostgreSQL on Railway
-- ✅ **SSL/HTTPS**: Automatic SSL certificates
-- ✅ **Auto-scaling**: Enabled with Railway's infrastructure
-- ✅ **Environment**: Production-optimized configuration
-- ✅ **Security**: Full CSP compliance, secure headers, rate limiting
-- ✅ **Mobile**: Fully responsive across all devices
+### Docker Setup
+The application includes Docker configuration for easy deployment:
+
+```bash
+# Build Docker image
+npm run docker:build
+
+# Run with Docker Compose
+npm run docker:run
+
+# Stop containers
+npm run docker:stop
+
+# View logs
+npm run docker:logs
+```
 
 ### Production Features
 - 🔒 **Enterprise Security**: Content Security Policy, CSRF protection
 - 📱 **Mobile Optimized**: Touch-friendly interface with sliding sidebar
 - ⚡ **High Performance**: Optimized queries and connection pooling
-- 🚀 **Auto-scaling**: Handles traffic spikes automatically
-- 💾 **Data Persistence**: PostgreSQL with automatic backups
+- 🚀 **Scalable**: Ready for cloud deployment
+- 💾 **Data Persistence**: PostgreSQL with backup support
 - 🔍 **Monitoring**: Error tracking and performance monitoring ready
 
 ### Deployment Options
-1. **Cloud Platforms**: ✅ Railway (current), Heroku, Vercel
+1. **Cloud Platforms**: Render (config included), Heroku, Vercel, DigitalOcean, AWS
 2. **VPS/Server**: Ubuntu/CentOS with nginx reverse proxy
 3. **Container**: Docker deployment ready
-4. **Database**: PostgreSQL on AWS RDS, Google Cloud SQL, Railway PostgreSQL
+4. **Database**: PostgreSQL on AWS RDS, Google Cloud SQL, or self-hosted
+
+### Render Deployment
+The application includes a `render.yaml` configuration file for easy deployment on Render:
+- Automatic PostgreSQL database setup
+- Environment variables configured
+- Free tier compatible
 
 ## 📈 Performance & Scalability
 
@@ -271,7 +287,7 @@ PORT=443
 - ✅ Connection pooling for database
 - ✅ **CSP-compliant security (no inline JavaScript)**
 - ✅ **Mobile-optimized responsive design**
-- ✅ **Production deployment on Railway with automatic scaling**
+- ✅ **Production deployment ready with Docker and cloud platform support**
 
 ### Scalability Features
 - ✅ Horizontal scaling ready

@@ -1,7 +1,7 @@
 const { Pool } = require('pg');
 
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL, // Railway provides this
+    connectionString: process.env.DATABASE_URL, // For cloud database connections
     ssl: process.env.PGSSLMODE === 'require' ? { rejectUnauthorized: false } : false,
     // fallback for local dev:
     user: process.env.DB_USER || 'postgres',

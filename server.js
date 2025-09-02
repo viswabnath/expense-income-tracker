@@ -15,7 +15,7 @@ const app = express();
 
 const PORT = process.env.PORT || 3000;
 
-// Trust proxy for correct client IP detection behind Railway/Heroku/etc
+// Trust proxy for correct client IP detection behind reverse proxies
 app.set('trust proxy', 1);
 
 // Database connection
