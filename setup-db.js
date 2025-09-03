@@ -100,6 +100,22 @@ const createTables = async () => {
       )
     `);
 
+        // Activity log table for tracking all user activities
+        await pool.query(`
+      CREATE TABLE IF NOT EXISTS activity_log (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        action_type VARCHAR(50) NOT NULL,
+        entity_type VARCHAR(50) NOT NULL,
+        entity_id INTEGER NOT NULL,
+        description TEXT NOT NULL,
+        amount DECIMAL(20,2),
+        old_values JSONB,
+        new_values JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
         // Add migration for existing users table to include new columns
         console.log('Adding new columns to existing users table');
         try {

@@ -108,8 +108,103 @@ class ActivityManager {
         // Handle different activity types with proper amount display
         let actionIcon, actionText, actionClass, amount, description, accountInfo;
 
-        if (activity.activity_type === 'audit') {
-            // Handle audit logs properly
+        // Handle activity logs from activity_log table
+        if (activity.action_type) {
+            // This is data from the activity_log table
+            switch (activity.action_type) {
+            case 'created':
+                if (activity.activity_type === 'cash_balance') {
+                    actionIcon = '💰';
+                    actionText = 'Cash Balance Set';
+                    actionClass = 'action-cash-add';
+                } else if (activity.activity_type === 'bank') {
+                    actionIcon = '🏦';
+                    actionText = 'Bank Added';
+                    actionClass = 'action-bank-add';
+                } else if (activity.activity_type === 'credit_card') {
+                    actionIcon = '💳';
+                    actionText = 'Credit Card Added';
+                    actionClass = 'action-card-add';
+                } else if (activity.activity_type === 'income') {
+                    actionIcon = '📈';
+                    actionText = 'Income Added';
+                    actionClass = 'action-income';
+                } else if (activity.activity_type === 'expense') {
+                    actionIcon = '📉';
+                    actionText = 'Expense Added';
+                    actionClass = 'action-expense';
+                } else {
+                    actionIcon = '➕';
+                    actionText = 'Created';
+                    actionClass = 'action-create';
+                }
+                break;
+            case 'updated':
+                // Entity-specific update text
+                if (activity.activity_type === 'cash_balance') {
+                    actionIcon = '💰';
+                    actionText = 'Cash Balance Updated';
+                    actionClass = 'action-cash-update';
+                } else if (activity.activity_type === 'bank') {
+                    actionIcon = '🏦';
+                    actionText = 'Bank Updated';
+                    actionClass = 'action-bank-update';
+                } else if (activity.activity_type === 'credit_card') {
+                    actionIcon = '💳';
+                    actionText = 'Credit Card Updated';
+                    actionClass = 'action-card-update';
+                } else if (activity.activity_type === 'income') {
+                    actionIcon = '📈';
+                    actionText = 'Income Updated';
+                    actionClass = 'action-income-update';
+                } else if (activity.activity_type === 'expense') {
+                    actionIcon = '✏️';
+                    actionText = 'Expense Updated';
+                    actionClass = 'action-expense-update';
+                } else {
+                    actionIcon = '✏️';
+                    actionText = 'Updated';
+                    actionClass = 'action-update';
+                }
+                break;
+            case 'deleted':
+                // Entity-specific delete text
+                if (activity.activity_type === 'cash_balance') {
+                    actionIcon = '💰';
+                    actionText = 'Cash Balance Deleted';
+                    actionClass = 'action-cash-delete';
+                } else if (activity.activity_type === 'bank') {
+                    actionIcon = '🏦';
+                    actionText = 'Bank Deleted';
+                    actionClass = 'action-bank-delete';
+                } else if (activity.activity_type === 'credit_card') {
+                    actionIcon = '💳';
+                    actionText = 'Credit Card Deleted';
+                    actionClass = 'action-card-delete';
+                } else if (activity.activity_type === 'income') {
+                    actionIcon = '📈';
+                    actionText = 'Income Deleted';
+                    actionClass = 'action-income-delete';
+                } else if (activity.activity_type === 'expense') {
+                    actionIcon = '🗑️';
+                    actionText = 'Expense Deleted';
+                    actionClass = 'action-expense-delete';
+                } else {
+                    actionIcon = '🗑️';
+                    actionText = 'Deleted';
+                    actionClass = 'action-delete';
+                }
+                break;
+            default:
+                actionIcon = '🔄';
+                actionText = 'Modified';
+                actionClass = 'action-other';
+            }
+            amount = activity.amount ? `₹${parseFloat(activity.amount).toLocaleString('en-IN', {minimumFractionDigits: 2})}` : '—';
+            description = activity.description || 'System operation';
+            accountInfo = activity.account_info || 'System';
+        } else if (activity.activity_type === 'audit') {
+            // Handle legacy audit logs properly (keeping original logic as fallback)
             switch (activity.action_type) {
             case 'created':
                 if (activity.description.includes('cash balance')) {

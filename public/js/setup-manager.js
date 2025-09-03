@@ -339,13 +339,14 @@ class SetupManager {
                 return;
             }
 
-            const balance = parseFloat(cashData.balance || 0);
-            const isZeroBalance = balance === 0;
+            // Show initial_balance in setup page, not current balance
+            const initialBalance = parseFloat(cashData.initial_balance || 0);
+            const isZeroBalance = initialBalance === 0;
 
             cashDiv.innerHTML = `
                 <h4>Cash Balance</h4>
                 <div class="cash-balance-display">
-                    <span class="cash-amount">₹${balance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    <span class="cash-amount">₹${initialBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                     <button class="edit-btn" data-action="edit-cash-balance" ${isZeroBalance ? 'disabled' : ''}>Edit</button>
                 </div>
             `;
@@ -550,8 +551,8 @@ class SetupManager {
         try {
             const cashData = await this.apiClient.get('/api/cash-balance');
 
-            // Populate modal with current cash balance
-            document.getElementById('edit-cash-balance').value = parseFloat(cashData.balance || 0);
+            // Populate modal with initial cash balance (the setup value)
+            document.getElementById('edit-cash-balance').value = parseFloat(cashData.initial_balance || 0);
 
             // Show modal
             document.getElementById('edit-cash-modal').classList.remove('hidden');
@@ -571,6 +572,7 @@ class SetupManager {
 
         try {
             await this.apiClient.post('/api/cash-balance', {
+                initial_balance: parseFloat(balance),
                 balance: parseFloat(balance)
             });
 

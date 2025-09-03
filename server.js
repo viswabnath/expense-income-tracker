@@ -54,18 +54,18 @@ pool.connect()
 
 // Rate limiting for authentication endpoints
 // DEVELOPMENT: Rate limiting disabled for easier development
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 attempts per window per IP
-    message: {
-        error: 'Too many authentication attempts. Please try again in 15 minutes.',
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-});
+// const authLimiter = rateLimit({
+//     windowMs: 15 * 60 * 1000, // 15 minutes
+//     max: 5, // 5 attempts per window per IP
+//     message: {
+//         error: 'Too many authentication attempts. Please try again in 15 minutes.',
+//     },
+//     standardHeaders: true,
+//     legacyHeaders: false,
+// });
 
 // Development bypass - no rate limiting
-// const authLimiter = (req, res, next) => next();
+const authLimiter = (req, res, next) => next();
 
 // General rate limiting
 const generalLimiter = rateLimit({
@@ -140,6 +140,19 @@ function validatePassword(password) {
     }
 
     return null; // Password is valid
+}
+
+// Activity logging function
+async function logActivity(userId, actionType, entityType, entityId, description, amount = null, oldValues = null, newValues = null) {
+    try {
+        await pool.query(
+            'INSERT INTO activity_log (user_id, action_type, entity_type, entity_id, description, amount, old_values, new_values) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+            [userId, actionType, entityType, entityId, description, amount, oldValues ? JSON.stringify(oldValues) : null, newValues ? JSON.stringify(newValues) : null]
+        );
+    } catch (error) {
+        console.error('Activity logging failed:', error);
+        // Don't throw error to avoid breaking main functionality
+    }
 }
 
 // Authentication middleware
@@ -535,7 +548,7 @@ app.get('/api/credit-cards', requireAuth, async (req, res) => {
 // Cash balance operations
 app.post('/api/cash-balance', requireAuth, async (req, res) => {
     try {
-        const { balance } = req.body;
+        const { balance, initial_balance } = req.body;
 
         // Check if user already has a cash balance record
         const existingCash = await pool.query(
@@ -544,17 +557,70 @@ app.post('/api/cash-balance', requireAuth, async (req, res) => {
         );
 
         let result;
+        let isUpdate = false;
+        let oldValues = null;
+
         if (existingCash.rows.length > 0) {
-            // Update existing record - only update balance, keep initial_balance unchanged
-            result = await pool.query(
-                'UPDATE cash_balance SET balance = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2 RETURNING *',
-                [balance || 0, req.session.userId]
-            );
+            isUpdate = true;
+            oldValues = {
+                balance: existingCash.rows[0].balance,
+                initial_balance: existingCash.rows[0].initial_balance
+            };
+
+            // Update existing record
+            if (initial_balance !== undefined && balance !== undefined) {
+                // Full update from setup page - update both values
+                result = await pool.query(
+                    'UPDATE cash_balance SET balance = $1, initial_balance = $2, updated_at = CURRENT_TIMESTAMP WHERE user_id = $3 RETURNING *',
+                    [balance || 0, initial_balance || 0, req.session.userId]
+                );
+
+                // Log the activity for cash balance update
+                await logActivity(
+                    req.session.userId,
+                    'updated',
+                    'cash_balance',
+                    result.rows[0].id,
+                    `Updated cash balance from ₹${parseFloat(oldValues.initial_balance).toFixed(2)} to ₹${parseFloat(initial_balance).toFixed(2)}`,
+                    initial_balance,
+                    oldValues,
+                    { balance: balance, initial_balance: initial_balance }
+                );
+            } else {
+                // Transaction update - only update balance, keep initial_balance unchanged
+                result = await pool.query(
+                    'UPDATE cash_balance SET balance = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2 RETURNING *',
+                    [balance || 0, req.session.userId]
+                );
+
+                // Log the activity for balance change (from transactions)
+                await logActivity(
+                    req.session.userId,
+                    'updated',
+                    'cash_balance',
+                    result.rows[0].id,
+                    `Cash balance updated to ₹${parseFloat(balance).toFixed(2)}`,
+                    balance,
+                    oldValues,
+                    { balance: balance, initial_balance: oldValues.initial_balance }
+                );
+            }
         } else {
             // Insert new record - set both balance and initial_balance to the same value
+            const initialValue = initial_balance !== undefined ? initial_balance : balance;
             result = await pool.query(
-                'INSERT INTO cash_balance (user_id, balance, initial_balance) VALUES ($1, $2, $2) RETURNING *',
-                [req.session.userId, balance || 0]
+                'INSERT INTO cash_balance (user_id, balance, initial_balance) VALUES ($1, $2, $3) RETURNING *',
+                [req.session.userId, balance || 0, initialValue || 0]
+            );
+
+            // Log the activity for initial cash balance setup
+            await logActivity(
+                req.session.userId,
+                'created',
+                'cash_balance',
+                result.rows[0].id,
+                `Set initial cash balance: ₹${parseFloat(initialValue).toFixed(2)}`,
+                initialValue
             );
         }
 
@@ -813,6 +879,16 @@ app.post('/api/income', requireAuth, async (req, res) => {
             );
         }
 
+        // Log activity
+        await logActivity(
+            req.session.userId,
+            'created',
+            'income',
+            result.rows[0].id,
+            `Added income: ${source}`,
+            amount
+        );
+
         res.json(result.rows[0]);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -972,6 +1048,16 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
             }
         }
 
+        // Log activity
+        await logActivity(
+            req.session.userId,
+            'created',
+            'expense',
+            result.rows[0].id,
+            `Added expense: ${title}`,
+            amount
+        );
+
         res.json(result.rows[0]);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -1063,7 +1149,7 @@ app.put('/api/income/:id', requireAuth, async (req, res) => {
                 );
             } else if (currentIncome.credited_to_type === 'cash') {
                 await pool.query(
-                    'UPDATE cash_balance SET amount = amount - $1 WHERE user_id = $2',
+                    'UPDATE cash_balance SET balance = balance - $1 WHERE user_id = $2',
                     [currentIncome.amount, req.session.userId]
                 );
             }
@@ -1082,12 +1168,30 @@ app.put('/api/income/:id', requireAuth, async (req, res) => {
                 );
             } else if (creditedToType === 'cash') {
                 await pool.query(
-                    'UPDATE cash_balance SET amount = amount + $1 WHERE user_id = $2',
+                    'UPDATE cash_balance SET balance = balance + $1 WHERE user_id = $2',
                     [amount, req.session.userId]
                 );
             }
 
             await pool.query('COMMIT');
+            
+            // Log activity for update
+            await logActivity(
+                req.session.userId,
+                'updated',
+                'income',
+                incomeId,
+                `Updated income: ${source}`,
+                amount,
+                { 
+                    source: currentIncome.source, 
+                    amount: currentIncome.amount, 
+                    credited_to_type: currentIncome.credited_to_type,
+                    credited_to_id: currentIncome.credited_to_id 
+                },
+                { source, amount, creditedToType, creditedToId }
+            );
+            
             res.json({ success: true, message: 'Income transaction updated successfully' });
 
         } catch (error) {
@@ -1129,7 +1233,7 @@ app.delete('/api/income/:id', requireAuth, async (req, res) => {
                 );
             } else if (currentIncome.credited_to_type === 'cash') {
                 await pool.query(
-                    'UPDATE cash_balance SET amount = amount - $1 WHERE user_id = $2',
+                    'UPDATE cash_balance SET balance = balance - $1 WHERE user_id = $2',
                     [currentIncome.amount, req.session.userId]
                 );
             }
@@ -1141,6 +1245,17 @@ app.delete('/api/income/:id', requireAuth, async (req, res) => {
             );
 
             await pool.query('COMMIT');
+            
+            // Log activity for deletion
+            await logActivity(
+                req.session.userId,
+                'deleted',
+                'income',
+                incomeId,
+                `Deleted income: ${currentIncome.source}`,
+                currentIncome.amount
+            );
+            
             res.json({ success: true, message: 'Income transaction deleted successfully' });
 
         } catch (error) {
@@ -1207,12 +1322,12 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
                 );
             } else if (currentExpense.payment_method === 'credit_card') {
                 await pool.query(
-                    'UPDATE credit_cards SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3',
+                    'UPDATE credit_cards SET used_limit = used_limit - $1 WHERE id = $2 AND user_id = $3',
                     [currentExpense.amount, currentExpense.payment_source_id, req.session.userId]
                 );
             } else if (currentExpense.payment_method === 'cash') {
                 await pool.query(
-                    'UPDATE cash_balance SET amount = amount + $1 WHERE user_id = $2',
+                    'UPDATE cash_balance SET balance = balance + $1 WHERE user_id = $2',
                     [currentExpense.amount, req.session.userId]
                 );
             }
@@ -1231,17 +1346,35 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
                 );
             } else if (paymentMethod === 'credit_card') {
                 await pool.query(
-                    'UPDATE credit_cards SET current_balance = current_balance + $1 WHERE id = $2 AND user_id = $3',
+                    'UPDATE credit_cards SET used_limit = used_limit + $1 WHERE id = $2 AND user_id = $3',
                     [amount, paymentSourceId, req.session.userId]
                 );
             } else if (paymentMethod === 'cash') {
                 await pool.query(
-                    'UPDATE cash_balance SET amount = amount - $1 WHERE user_id = $2',
+                    'UPDATE cash_balance SET balance = balance - $1 WHERE user_id = $2',
                     [amount, req.session.userId]
                 );
             }
 
             await pool.query('COMMIT');
+            
+            // Log activity for update
+            await logActivity(
+                req.session.userId,
+                'updated',
+                'expense',
+                expenseId,
+                `Updated expense: ${title}`,
+                amount,
+                { 
+                    title: currentExpense.title, 
+                    amount: currentExpense.amount, 
+                    payment_method: currentExpense.payment_method,
+                    payment_source_id: currentExpense.payment_source_id 
+                },
+                { title, amount, paymentMethod, paymentSourceId }
+            );
+            
             res.json({ success: true, message: 'Expense transaction updated successfully' });
 
         } catch (error) {
@@ -1283,12 +1416,12 @@ app.delete('/api/expenses/:id', requireAuth, async (req, res) => {
                 );
             } else if (currentExpense.payment_method === 'credit_card') {
                 await pool.query(
-                    'UPDATE credit_cards SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3',
+                    'UPDATE credit_cards SET used_limit = used_limit - $1 WHERE id = $2 AND user_id = $3',
                     [currentExpense.amount, currentExpense.payment_source_id, req.session.userId]
                 );
             } else if (currentExpense.payment_method === 'cash') {
                 await pool.query(
-                    'UPDATE cash_balance SET amount = amount + $1 WHERE user_id = $2',
+                    'UPDATE cash_balance SET balance = balance + $1 WHERE user_id = $2',
                     [currentExpense.amount, req.session.userId]
                 );
             }
@@ -1300,6 +1433,17 @@ app.delete('/api/expenses/:id', requireAuth, async (req, res) => {
             );
 
             await pool.query('COMMIT');
+            
+            // Log activity for deletion
+            await logActivity(
+                req.session.userId,
+                'deleted',
+                'expense',
+                expenseId,
+                `Deleted expense: ${currentExpense.title}`,
+                currentExpense.amount
+            );
+            
             res.json({ success: true, message: 'Expense transaction deleted successfully' });
 
         } catch (error) {
@@ -1363,7 +1507,6 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
                 [userId]
             );
         } catch (error) {
-            console.log('Tracking option column might not exist, using fallback query');
             // Fallback if tracking_option column doesn't exist
             userResult = await pool.query(
                 'SELECT created_at, \'both\' as tracking_option FROM users WHERE id = $1',
@@ -1451,8 +1594,8 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
         const cashResult = await pool.query(
             `
       SELECT
-        COALESCE(balance, 0) as initial_balance,
-        COALESCE(balance, 0) +
+        COALESCE(initial_balance, 0) as initial_balance,
+        COALESCE(initial_balance, 0) +
         COALESCE((
           SELECT SUM(amount)
           FROM income_entries
@@ -1587,40 +1730,10 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
         });
     } catch (error) {
         console.error('Monthly summary error:', error);
-        console.error('Error details:', {
-            message: error.message,
-            stack: error.stack,
-            query: error.query || 'No query info'
-        });
         res.status(500).json({ error: 'Failed to load monthly summary', details: error.message });
     }
 });
 
-// Debug endpoint to test database without auth
-app.get('/api/debug-monthly', async (req, res) => {
-    try {
-        const { month = 8, year = 2025, userId = 1 } = req.query;
-
-        console.log('Debug monthly summary for:', { month, year, userId });
-
-        // Simple test query
-        const testResult = await pool.query(
-            'SELECT COUNT(*) as count FROM users WHERE id = $1',
-            [userId]
-        );
-
-        console.log('User exists:', testResult.rows[0]);
-
-        res.json({
-            success: true,
-            userExists: testResult.rows[0].count > 0,
-            testParams: { month, year, userId }
-        });
-    } catch (error) {
-        console.error('Debug error:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
 // Logout
 app.post('/api/logout', (req, res) => {
     req.session.destroy(err => {
@@ -1658,142 +1771,88 @@ app.get('/api/activity', requireAuth, async (req, res) => {
         if (month && year) {
             paramCount++;
             const startDate = `${year}-${month.padStart(2, '0')}-01`;
-            whereConditions.push(`activity_date >= $${paramCount}`);
+            whereConditions.push(`created_at >= $${paramCount}`);
             params.push(startDate);
             
             paramCount++;
             const nextMonth = parseInt(month) === 12 ? 1 : parseInt(month) + 1;
             const nextYear = parseInt(month) === 12 ? parseInt(year) + 1 : parseInt(year);
             const endDate = `${nextYear}-${nextMonth.toString().padStart(2, '0')}-01`;
-            whereConditions.push(`activity_date < $${paramCount}`);
+            whereConditions.push(`created_at < $${paramCount}`);
             params.push(endDate);
         } else if (year) {
             paramCount++;
-            whereConditions.push(`activity_date >= $${paramCount}`);
+            whereConditions.push(`created_at >= $${paramCount}`);
             params.push(`${year}-01-01`);
             
             paramCount++;
-            whereConditions.push(`activity_date < $${paramCount}`);
+            whereConditions.push(`created_at < $${paramCount}`);
             params.push(`${parseInt(year) + 1}-01-01`);
         } else {
             // Handle date range filtering
             if (from_date) {
                 paramCount++;
-                whereConditions.push(`activity_date >= $${paramCount}`);
+                whereConditions.push(`created_at >= $${paramCount}`);
                 params.push(from_date);
             }
 
             if (to_date) {
                 paramCount++;
-                whereConditions.push(`activity_date <= $${paramCount}`);
+                whereConditions.push(`created_at <= $${paramCount}`);
                 params.push(to_date);
             }
         }
 
-        // Enhanced activities query with audit logs - simplified version
+        // Enhanced activities query using the activity_log table
         let activitiesQuery = `
             SELECT
-                activity_type,
-                id,
+                entity_type as activity_type,
+                entity_id as id,
                 description,
                 amount,
-                account_info,
-                activity_date,
-                action_type
-            FROM (
-                -- Income transactions (created)
-                SELECT
-                    'income' as activity_type,
-                    i.id,
-                    i.source as description,
-                    i.amount,
-                    CASE
-                        WHEN i.credited_to_type = 'bank' THEN COALESCE(b.name, 'Unknown Bank')
-                        WHEN i.credited_to_type = 'cash' THEN 'Cash'
-                        ELSE i.credited_to_type
-                    END as account_info,
-                    i.date as activity_date,
-                    'created' as action_type
-                FROM income_entries i
-                LEFT JOIN banks b ON i.credited_to_type = 'bank' AND i.credited_to_id = b.id AND b.user_id = i.user_id
-                WHERE i.user_id = $1
-
-                UNION ALL
-
-                -- Expense transactions (created)
-                SELECT
-                    'expense' as activity_type,
-                    e.id,
-                    e.title as description,
-                    e.amount,
-                    CASE
-                        WHEN e.payment_method = 'bank' THEN COALESCE(b.name, 'Unknown Bank')
-                        WHEN e.payment_method = 'credit_card' THEN COALESCE(c.name, 'Unknown Card')
-                        WHEN e.payment_method = 'cash' THEN 'Cash'
-                        ELSE e.payment_method
-                    END as account_info,
-                    e.date as activity_date,
-                    'created' as action_type
-                FROM expenses e
-                LEFT JOIN banks b ON e.payment_method = 'bank' AND e.payment_source_id = b.id AND b.user_id = e.user_id
-                LEFT JOIN credit_cards c ON e.payment_method = 'credit_card' AND e.payment_source_id = c.id AND c.user_id = e.user_id
-                WHERE e.user_id = $1
-
-                UNION ALL
-
-                -- Bank setup activities
-                SELECT
-                    'setup' as activity_type,
-                    b.id,
-                    'Added bank: ' || b.name as description,
-                    b.initial_balance as amount,
-                    b.name as account_info,
-                    b.created_at as activity_date,
-                    'created' as action_type
-                FROM banks b
-                WHERE b.user_id = $1
-
-                UNION ALL
-
-                -- Credit card setup activities
-                SELECT
-                    'setup' as activity_type,
-                    c.id,
-                    'Added credit card: ' || c.name as description,
-                    c.credit_limit as amount,
-                    c.name as account_info,
-                    c.created_at as activity_date,
-                    'created' as action_type
-                FROM credit_cards c
-                WHERE c.user_id = $1
-
-                UNION ALL
-
-                -- Cash balance setup activities
-                SELECT
-                    'setup' as activity_type,
-                    cb.id,
-                    'Set cash balance' as description,
-                    cb.initial_balance as amount,
-                    'Cash' as account_info,
-                    cb.updated_at as activity_date,
-                    'created' as action_type
-                FROM cash_balance cb
-                WHERE cb.user_id = $1 AND cb.initial_balance > 0
-            ) combined_activities
+                CASE
+                    WHEN entity_type = 'cash_balance' THEN 'Cash'
+                    WHEN entity_type = 'bank' THEN 
+                        COALESCE((SELECT name FROM banks WHERE id = entity_id), 'Bank')
+                    WHEN entity_type = 'credit_card' THEN 
+                        COALESCE((SELECT name FROM credit_cards WHERE id = entity_id), 'Credit Card')
+                    WHEN entity_type = 'income' AND new_values->>'creditedToType' = 'bank' THEN 
+                        COALESCE((SELECT name FROM banks WHERE id = (new_values->>'creditedToId')::int), 'Bank')
+                    WHEN entity_type = 'income' AND new_values->>'creditedToType' = 'cash' THEN 'Cash'
+                    WHEN entity_type = 'expense' AND (new_values->>'paymentMethod' = 'bank' OR old_values->>'payment_method' = 'bank') THEN 
+                        COALESCE(
+                            (SELECT name FROM banks WHERE id = (new_values->>'paymentSourceId')::int),
+                            (SELECT name FROM banks WHERE id = (old_values->>'payment_source_id')::int),
+                            'Bank'
+                        )
+                    WHEN entity_type = 'expense' AND (new_values->>'paymentMethod' = 'credit_card' OR old_values->>'payment_method' = 'credit_card') THEN 
+                        COALESCE(
+                            (SELECT name FROM credit_cards WHERE id = (new_values->>'paymentSourceId')::int),
+                            (SELECT name FROM credit_cards WHERE id = (old_values->>'payment_source_id')::int),
+                            'Credit Card'
+                        )
+                    WHEN entity_type = 'expense' AND (new_values->>'paymentMethod' = 'cash' OR old_values->>'payment_method' = 'cash') THEN 'Cash'
+                    ELSE 'System'
+                END as account_info,
+                created_at as activity_date,
+                action_type,
+                old_values,
+                new_values
+            FROM activity_log
+            WHERE user_id = $1
         `;
 
         // Apply filtering
         if (whereConditions.length > 0) {
-            activitiesQuery += ` WHERE ${whereConditions.join(' AND ')}`;
+            activitiesQuery += ` AND ${whereConditions.join(' AND ')}`;
         }
 
         // Apply type filtering if specified
         if (type && type !== '') {
-            activitiesQuery += whereConditions.length > 0 ? ` AND activity_type = '${type}'` : ` WHERE activity_type = '${type}'`;
+            activitiesQuery += ` AND entity_type = '${type}'`;
         }
 
-        activitiesQuery += ' ORDER BY activity_date DESC';
+        activitiesQuery += ' ORDER BY created_at DESC';
 
         // For CSV export, don't limit results
         if (!exportCsv) {
@@ -1802,19 +1861,9 @@ app.get('/api/activity', requireAuth, async (req, res) => {
 
         const activitiesResult = await pool.query(activitiesQuery, params);
 
-        // Get count for pagination - simplified
+        // Get count for pagination
         const countQuery = `
-            SELECT COUNT(*) as total FROM (
-                SELECT id FROM income_entries WHERE user_id = $1
-                UNION ALL
-                SELECT id FROM expenses WHERE user_id = $1
-                UNION ALL
-                SELECT id FROM banks WHERE user_id = $1
-                UNION ALL
-                SELECT id FROM credit_cards WHERE user_id = $1
-                UNION ALL
-                SELECT id FROM cash_balance WHERE user_id = $1 AND initial_balance > 0
-            ) combined_count
+            SELECT COUNT(*) as total FROM activity_log WHERE user_id = $1
         `;
 
         const countResult = await pool.query(countQuery, [userId]);
