@@ -25,7 +25,7 @@ jest.mock('pg', () => {
 });
 
 // Import the actual server app AFTER mocking
-const { app, pool } = require('../server');
+const { app, pool } = require('../legacy/server');
 
 describe('Server Edge Cases and Coverage Tests', () => {
     let mockQuery;
@@ -40,44 +40,27 @@ describe('Server Edge Cases and Coverage Tests', () => {
     });
 
     describe('Non-authenticated endpoints coverage', () => {
-        test('should cover /api/debug-monthly success path', async () => {
-            mockQuery.mockResolvedValueOnce({
-                rows: [{ registration_date: '2025-01-01' }],
-                rowCount: 1
-            });
-
-            mockQuery.mockResolvedValueOnce({
-                rows: [
-                    { month: 8, year: 2025, total_income: 5000, total_expense: 2000 }
-                ],
-                rowCount: 1
-            });
-
+        test('should cover /api/activity endpoint without auth', async () => {
             const response = await request(app)
-                .get('/api/debug-monthly?month=8&year=2025&userId=1');
+                .get('/api/activity');
 
-            expect([200, 500].includes(response.status)).toBe(true);
+            expect(response.status).toBe(401);
+            expect(response.body.error).toBe('Authentication required');
         });
 
-        test('should cover /api/debug-monthly with no user found', async () => {
-            mockQuery.mockResolvedValueOnce({
-                rows: [],
-                rowCount: 0
-            });
-
+        test('should cover /api/monthly-summary without auth', async () => {
             const response = await request(app)
-                .get('/api/debug-monthly?month=8&year=2025&userId=999');
+                .get('/api/monthly-summary');
 
-            expect([200, 404, 500].includes(response.status)).toBe(true);
+            expect(response.status).toBe(401);
+            expect(response.body.error).toBe('Authentication required');
         });
 
-        test('should cover /api/debug-monthly error handling', async () => {
-            mockQuery.mockRejectedValueOnce(new Error('Database error'));
-
+        test('should cover root endpoint', async () => {
             const response = await request(app)
-                .get('/api/debug-monthly');
+                .get('/');
 
-            expect(response.status >= 400).toBe(true);
+            expect([200, 404].includes(response.status)).toBe(true);
         });
     });
 
@@ -372,7 +355,7 @@ describe('Server Edge Cases and Coverage Tests', () => {
         });
 
         test('should cover missing fields in forgot-password', async () => {
-            // Missing username
+            // Missing both username and email
             let response = await request(app)
                 .post('/api/forgot-password')
                 .send({
@@ -380,13 +363,13 @@ describe('Server Edge Cases and Coverage Tests', () => {
                 });
             expect(response.status).toBe(400);
 
-            // Missing security answer
+            // Test with username but user not found
             response = await request(app)
                 .post('/api/forgot-password')
                 .send({
-                    username: 'testuser'
+                    username: 'nonexistentuser'
                 });
-            expect([400, 500].includes(response.status)).toBe(true);
+            expect([400, 404, 500].includes(response.status)).toBe(true);
         });
     });
 
@@ -404,7 +387,7 @@ describe('Server Edge Cases and Coverage Tests', () => {
                     securityQuestion: 'question',
                     securityAnswer: 'answer'
                 });
-            
+
             expect(response.status >= 400).toBe(true);
         });
 
@@ -417,7 +400,7 @@ describe('Server Edge Cases and Coverage Tests', () => {
                     username: 'testuser',
                     password: 'password'
                 });
-            
+
             expect(response.status >= 400).toBe(true);
         });
     });

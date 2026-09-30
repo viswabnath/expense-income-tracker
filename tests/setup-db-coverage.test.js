@@ -182,7 +182,6 @@ describe('Database Setup Execution Coverage', () => {
     });
 
     test('should execute error handling paths for coverage', async () => {
-        const { Pool } = require('pg');
         const mockPool = {
             query: jest.fn().mockRejectedValue(new Error('Database connection failed')),
             end: jest.fn()
@@ -224,7 +223,7 @@ describe('Database Setup Execution Coverage', () => {
                     const sql = sqlMatch[1].trim();
                     try {
                         await mockPool.query(sql);
-                    } catch (error) {
+                    } catch {
                         // Expected since we're using mocked database
                     }
                 }

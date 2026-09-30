@@ -17,7 +17,7 @@ describe('Enhanced Summary Messages Tests', () => {
 
     beforeAll(() => {
         // Load summary manager code
-        const summaryManagerPath = path.join(__dirname, '../public/js/summary-manager.js');
+        const summaryManagerPath = path.join(__dirname, '../legacy/public/js/summary-manager.js');
         summaryManagerCode = fs.readFileSync(summaryManagerPath, 'utf8');
     });
 

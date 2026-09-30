@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 const { Pool } = require('pg');
 
 // Database connection configuration using environment variables
@@ -8,13 +8,26 @@ const pool = new Pool({
     database: process.env.DB_NAME || 'expense_tracker',
     password: process.env.DB_PASSWORD || 'expense-tracker-2025',
     port: process.env.DB_PORT || 5432,
-    // For production SSL connection (required by most cloud providers)
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    // SSL for cloud providers; same rule as server.js
+    ssl: process.env.DB_SSL === 'true' || process.env.NODE_ENV === 'production'
+        ? { rejectUnauthorized: false }
+        : false,
+    // Optional Postgres schema (e.g. balancetrack_test for tests); defaults to public
+    ...(process.env.DB_SCHEMA && { options: `-c search_path=${process.env.DB_SCHEMA}` })
 });
 
 // Database schema setup
 const createTables = async () => {
     try {
+        // Create the target schema first when one is configured
+        if (process.env.DB_SCHEMA) {
+            if (!/^[a-z_][a-z0-9_]*$/.test(process.env.DB_SCHEMA)) {
+                throw new Error(`Invalid DB_SCHEMA: ${process.env.DB_SCHEMA}`);
+            }
+            await pool.query(`CREATE SCHEMA IF NOT EXISTS ${process.env.DB_SCHEMA}`);
+            console.log(`Using schema: ${process.env.DB_SCHEMA}`);
+        }
+
         // Users table
         await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
@@ -100,6 +113,22 @@ const createTables = async () => {
       )
     `);
 
+        // Activity log table for tracking all user activities
+        await pool.query(`
+      CREATE TABLE IF NOT EXISTS activity_log (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        action_type VARCHAR(50) NOT NULL,
+        entity_type VARCHAR(50) NOT NULL,
+        entity_id INTEGER NOT NULL,
+        description TEXT NOT NULL,
+        amount DECIMAL(20,2),
+        old_values JSONB,
+        new_values JSONB,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
         // Add migration for existing users table to include new columns
         console.log('Adding new columns to existing users table');
         try {
@@ -129,9 +158,43 @@ const createTables = async () => {
             console.error('Migration note:', migrationError);
         }
 
+        // Session store table (same definition connect-pg-simple creates)
+        await pool.query(`
+      CREATE TABLE IF NOT EXISTS session (
+        sid VARCHAR NOT NULL COLLATE "default" PRIMARY KEY,
+        sess JSON NOT NULL,
+        expire TIMESTAMP(6) NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON session (expire);
+    `);
+
+        // Indexes for the per-user queries every page makes
+        await pool.query(`
+      CREATE INDEX IF NOT EXISTS idx_banks_user ON banks (user_id);
+      CREATE INDEX IF NOT EXISTS idx_credit_cards_user ON credit_cards (user_id);
+      CREATE INDEX IF NOT EXISTS idx_income_user_period ON income_entries (user_id, year, month);
+      CREATE INDEX IF NOT EXISTS idx_expenses_user_period ON expenses (user_id, year, month);
+      CREATE INDEX IF NOT EXISTS idx_activity_user_created ON activity_log (user_id, created_at DESC);
+    `);
+
+        // Supabase exposes tables through its Data API. Row level security with no policies
+        // blocks that access; the app connects as the table owner, which RLS does not restrict.
+        await pool.query(`
+      ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE banks ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE credit_cards ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE income_entries ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE cash_balance ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE activity_log ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE session ENABLE ROW LEVEL SECURITY;
+    `);
+
         console.log('Database tables created successfully!');
     } catch (error) {
         console.error('Error creating tables:', error);
+        // Exit non-zero so a failed migration is visible to scripts and CI
+        process.exitCode = 1;
     } finally {
         pool.end();
     }

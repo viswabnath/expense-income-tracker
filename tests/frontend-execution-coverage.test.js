@@ -9,7 +9,7 @@ const path = require('path');
 
 // Helper function to load and execute JavaScript files in the window context
 function loadScript(filename) {
-    const scriptPath = path.join(__dirname, '../public/js', filename);
+    const scriptPath = path.join(__dirname, '../legacy/public/js', filename);
     const scriptContent = fs.readFileSync(scriptPath, 'utf8');
 
     // Create a script element and append to document head to properly execute in JSDOM

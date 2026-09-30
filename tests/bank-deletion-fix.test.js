@@ -4,38 +4,43 @@
  */
 
 const request = require('supertest');
-const { app } = require('../server');
+const { target } = require('./api-target');
+const { deleteTestUser } = require('../test-helpers');
 
 describe('Bank Deletion Fix', () => {
     let agent;
-    let userId; // Will be set during test setup
     let bankId;
 
     beforeAll(async () => {
-        agent = request.agent(app);
+        await deleteTestUser('testuser_bankdel');
+        agent = request.agent(target());
 
         // Register and login a test user
         const registerResponse = await agent
             .post('/api/register')
             .send({
                 username: 'testuser_bankdel',
-                password: 'Test123!',
+                password: 'Test123&',
+                name: 'Test User',
                 email: 'bankdel@example.com',
                 securityQuestion: 'What is your pet name?',
                 securityAnswer: 'fluffy'
             });
 
-        expect(registerResponse.status).toBe(201);
-        userId = registerResponse.body.id;
+        expect(registerResponse.status).toBe(200);
 
         const loginResponse = await agent
             .post('/api/login')
             .send({
                 username: 'testuser_bankdel',
-                password: 'Test123!'
+                password: 'Test123&'
             });
 
         expect(loginResponse.status).toBe(200);
+    });
+
+    afterAll(async () => {
+        await deleteTestUser('testuser_bankdel');
     });
 
     test('should be able to delete a bank without transactions', async () => {

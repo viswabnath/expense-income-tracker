@@ -24,23 +24,23 @@ jest.mock('connect-pg-simple', () => {
             constructor(options) {
                 this.options = options;
             }
-            
+
             get(sid, callback) {
                 callback(null, null);
             }
-            
+
             set(sid, session, callback) {
                 callback(null);
             }
-            
+
             destroy(sid, callback) {
                 callback(null);
             }
-            
+
             touch(sid, session, callback) {
                 callback(null);
             }
-            
+
             on(event, callback) {
                 // Mock event emitter
             }
@@ -53,10 +53,10 @@ jest.mock('pg', () => {
     const mockQuery = jest.fn();
     const mockEnd = jest.fn().mockResolvedValue(undefined);
 
-    let entities = {
-        users: [{ 
-            id: 1, 
-            username: 'testuser', 
+    const entities = {
+        users: [{
+            id: 1,
+            username: 'testuser',
             password_hash: '$2a$10$testhash',
             name: 'Test User',
             email: 'test@test.com',
@@ -71,7 +71,7 @@ jest.mock('pg', () => {
         income_entries: [{ id: 1, user_id: 1, source: 'Salary', amount: 3000, created_at: '2025-07-15' }],
         expenses: [{ id: 1, user_id: 1, title: 'Food', amount: 100, created_at: '2025-07-15' }]
     };
-    
+
     mockQuery.mockImplementation((query, params = []) => {
         // User operations
         if (query.includes('SELECT id, password_hash, name, tracking_option FROM users WHERE username')) {
@@ -171,7 +171,7 @@ jest.mock('pg', () => {
 });
 
 // Import the server after mocking
-const { app } = require('../server');
+const { app } = require('../legacy/server');
 
 describe('Server Coverage Tests', () => {
     let sessionCookie;
@@ -181,7 +181,7 @@ describe('Server Coverage Tests', () => {
         const loginResponse = await request(app)
             .post('/api/login')
             .send({ username: 'testuser', password: 'password123' });
-        
+
         sessionCookie = loginResponse.headers['set-cookie'];
     });
 

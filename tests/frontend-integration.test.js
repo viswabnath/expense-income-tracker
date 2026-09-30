@@ -54,7 +54,7 @@ describe('Frontend JavaScript Integration Tests', () => {
             // Import and test the module
             const fs = require('fs');
             const path = require('path');
-            const apiClientPath = path.join(__dirname, '../public/js/api.js');
+            const apiClientPath = path.join(__dirname, '../legacy/public/js/api.js');
             const apiClientCode = fs.readFileSync(apiClientPath, 'utf8');
 
             // Execute the code in the jsdom environment
@@ -75,7 +75,7 @@ describe('Frontend JavaScript Integration Tests', () => {
     describe('Auth Manager Module', () => {
         test('should load and initialize AuthManager', () => {
             // Read auth.js and check it contains expected class structure
-            const authScript = fs.readFileSync(path.join(__dirname, '../public/js/auth.js'), 'utf8');
+            const authScript = fs.readFileSync(path.join(__dirname, '../legacy/public/js/auth.js'), 'utf8');
 
             // Verify that the file contains the AuthManager class definition
             expect(authScript).toContain('class AuthManager');
@@ -89,7 +89,7 @@ describe('Frontend JavaScript Integration Tests', () => {
 
         test('should validate email correctly', () => {
             // Read auth.js and test email validation regex patterns
-            const authScript = fs.readFileSync(path.join(__dirname, '../public/js/auth.js'), 'utf8');
+            const authScript = fs.readFileSync(path.join(__dirname, '../legacy/public/js/auth.js'), 'utf8');
 
             // Extract and test the email validation pattern
             expect(authScript).toContain('/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/');
@@ -101,7 +101,7 @@ describe('Frontend JavaScript Integration Tests', () => {
 
         test('should validate password correctly', () => {
             // Read auth.js and test password validation logic
-            const authScript = fs.readFileSync(path.join(__dirname, '../public/js/auth.js'), 'utf8');
+            const authScript = fs.readFileSync(path.join(__dirname, '../legacy/public/js/auth.js'), 'utf8');
 
             // Verify password validation logic is present
             expect(authScript).toContain('validatePassword(password)');
@@ -160,7 +160,7 @@ describe('Frontend JavaScript Integration Tests', () => {
             // Load module
             const fs = require('fs');
             const path = require('path');
-            const transactionCode = fs.readFileSync(path.join(__dirname, '../public/js/transaction-manager.js'), 'utf8');
+            const transactionCode = fs.readFileSync(path.join(__dirname, '../legacy/public/js/transaction-manager.js'), 'utf8');
             eval(transactionCode);
 
             // Test initialization
@@ -202,7 +202,7 @@ describe('Frontend JavaScript Integration Tests', () => {
             // Load module
             const fs = require('fs');
             const path = require('path');
-            const summaryCode = fs.readFileSync(path.join(__dirname, '../public/js/summary-manager.js'), 'utf8');
+            const summaryCode = fs.readFileSync(path.join(__dirname, '../legacy/public/js/summary-manager.js'), 'utf8');
             eval(summaryCode);
 
             // Test initialization
@@ -244,7 +244,7 @@ describe('Frontend JavaScript Integration Tests', () => {
             // Load and test module
             const fs = require('fs');
             const path = require('path');
-            const summaryCode = fs.readFileSync(path.join(__dirname, '../public/js/summary-manager.js'), 'utf8');
+            const summaryCode = fs.readFileSync(path.join(__dirname, '../legacy/public/js/summary-manager.js'), 'utf8');
             eval(summaryCode);
 
             // Test summary loading
@@ -253,7 +253,7 @@ describe('Frontend JavaScript Integration Tests', () => {
             expect(window.apiClient.get).toHaveBeenCalledWith('/api/monthly-summary?month=7&year=2025');
 
             const displayContent = document.getElementById('summary-display').innerHTML;
-            expect(displayContent).toContain('📊 July 2025 Financial Summary');
+            expect(displayContent).toContain('July 2025 Financial Summary');
             expect(displayContent).toContain('as of now'); // Current month reference
             expect(displayContent).toContain('₹1,000.00'); // Income amount with INR formatting
         });
@@ -293,7 +293,7 @@ describe('Frontend JavaScript Integration Tests', () => {
             // Load module
             const fs = require('fs');
             const path = require('path');
-            const setupCode = fs.readFileSync(path.join(__dirname, '../public/js/setup-manager.js'), 'utf8');
+            const setupCode = fs.readFileSync(path.join(__dirname, '../legacy/public/js/setup-manager.js'), 'utf8');
             eval(setupCode);
 
             // Test initialization

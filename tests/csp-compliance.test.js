@@ -27,7 +27,7 @@ describe('CSP Compliance Tests', () => {
     describe('Inline Event Handler Compliance', () => {
         jsFiles.forEach(fileName => {
             test(`${fileName} should not contain inline onclick handlers`, () => {
-                const filePath = path.join(__dirname, '../public/js', fileName);
+                const filePath = path.join(__dirname, '../legacy/public/js', fileName);
                 const fileContent = fs.readFileSync(filePath, 'utf8');
 
                 // Check for inline event handlers that violate CSP
@@ -41,13 +41,14 @@ describe('CSP Compliance Tests', () => {
             });
 
             test(`${fileName} should use proper addEventListener instead`, () => {
-                const filePath = path.join(__dirname, '../public/js', fileName);
+                const filePath = path.join(__dirname, '../legacy/public/js', fileName);
                 const fileContent = fs.readFileSync(filePath, 'utf8');
 
                 // If the file has interactive elements, it should use addEventListener
-                // Exception: activity-manager.js and auth.js use global functions
+                // Exception: activity-manager.js and auth.js use global functions;
+                // api.js only toggles the loader element and binds no events
                 if ((fileContent.includes('getElementById') || fileContent.includes('querySelector')) &&
-                    fileName !== 'activity-manager.js' && fileName !== 'auth.js') {
+                    !['activity-manager.js', 'auth.js', 'api.js'].includes(fileName)) {
                     expect(fileContent).toContain('addEventListener');
                 }
             });
@@ -56,7 +57,7 @@ describe('CSP Compliance Tests', () => {
 
     describe('HTML Template CSP Compliance', () => {
         test('main index.html should not contain inline event handlers', () => {
-            const htmlPath = path.join(__dirname, '../public/index.html');
+            const htmlPath = path.join(__dirname, '../legacy/public/index.html');
             const htmlContent = fs.readFileSync(htmlPath, 'utf8');
 
             // Check for inline event handlers in HTML
@@ -67,7 +68,7 @@ describe('CSP Compliance Tests', () => {
         });
 
         test('HTML should use CSP-compliant script loading', () => {
-            const htmlPath = path.join(__dirname, '../public/index.html');
+            const htmlPath = path.join(__dirname, '../legacy/public/index.html');
             const htmlContent = fs.readFileSync(htmlPath, 'utf8');
 
             // Should load scripts with proper src attributes, not inline
@@ -87,7 +88,7 @@ describe('CSP Compliance Tests', () => {
 
     describe('Event Delegation Patterns', () => {
         test('activity-manager.js should use proper event delegation', () => {
-            const filePath = path.join(__dirname, '../public/js/activity-manager.js');
+            const filePath = path.join(__dirname, '../legacy/public/js/activity-manager.js');
             const fileContent = fs.readFileSync(filePath, 'utf8');
 
             // Activity manager uses global functions instead of direct event listeners
@@ -104,7 +105,7 @@ describe('CSP Compliance Tests', () => {
         });
 
         test('setup-manager.js should handle events through delegation', () => {
-            const filePath = path.join(__dirname, '../public/js/setup-manager.js');
+            const filePath = path.join(__dirname, '../legacy/public/js/setup-manager.js');
             const fileContent = fs.readFileSync(filePath, 'utf8');
 
             // Check for proper event handling patterns
@@ -113,7 +114,7 @@ describe('CSP Compliance Tests', () => {
         });
 
         test('summary-manager.js should use attachActionButtonListeners', () => {
-            const filePath = path.join(__dirname, '../public/js/summary-manager.js');
+            const filePath = path.join(__dirname, '../legacy/public/js/summary-manager.js');
             const fileContent = fs.readFileSync(filePath, 'utf8');
 
             // Should have dedicated function for CSP-compliant event attachment
@@ -126,7 +127,7 @@ describe('CSP Compliance Tests', () => {
     describe('Dynamic Content Security', () => {
         test('should not use eval() or Function() constructor', () => {
             jsFiles.forEach(fileName => {
-                const filePath = path.join(__dirname, '../public/js', fileName);
+                const filePath = path.join(__dirname, '../legacy/public/js', fileName);
                 const fileContent = fs.readFileSync(filePath, 'utf8');
 
                 expect(fileContent).not.toContain('eval(');
@@ -138,7 +139,7 @@ describe('CSP Compliance Tests', () => {
 
         test('should safely handle innerHTML updates', () => {
             jsFiles.forEach(fileName => {
-                const filePath = path.join(__dirname, '../public/js', fileName);
+                const filePath = path.join(__dirname, '../legacy/public/js', fileName);
                 const fileContent = fs.readFileSync(filePath, 'utf8');
 
                 // If using innerHTML, should not include script content
@@ -154,7 +155,7 @@ describe('CSP Compliance Tests', () => {
 
     describe('Security Header Compliance', () => {
         test('server.js should have proper CSP headers', () => {
-            const serverPath = path.join(__dirname, '../server.js');
+            const serverPath = path.join(__dirname, '../legacy/server.js');
             const serverContent = fs.readFileSync(serverPath, 'utf8');
 
             // Should use helmet for security headers
@@ -163,7 +164,7 @@ describe('CSP Compliance Tests', () => {
         });
 
         test('CSP configuration should be restrictive', () => {
-            const serverPath = path.join(__dirname, '../server.js');
+            const serverPath = path.join(__dirname, '../legacy/server.js');
             const serverContent = fs.readFileSync(serverPath, 'utf8');
 
             // Should not allow unsafe-inline for scripts
@@ -176,7 +177,7 @@ describe('CSP Compliance Tests', () => {
 
     describe('Data Attribute Usage', () => {
         test('should use data attributes for element identification', () => {
-            const setupManagerPath = path.join(__dirname, '../public/js/setup-manager.js');
+            const setupManagerPath = path.join(__dirname, '../legacy/public/js/setup-manager.js');
             const setupContent = fs.readFileSync(setupManagerPath, 'utf8');
 
             // Setup manager uses data-action for button identification
@@ -184,7 +185,7 @@ describe('CSP Compliance Tests', () => {
         });
 
         test('should handle data attributes in event delegation', () => {
-            const summaryManagerPath = path.join(__dirname, '../public/js/summary-manager.js');
+            const summaryManagerPath = path.join(__dirname, '../legacy/public/js/summary-manager.js');
             const summaryContent = fs.readFileSync(summaryManagerPath, 'utf8');
 
             // Should read data attributes in event handlers
@@ -198,7 +199,7 @@ describe('CSP Compliance Tests', () => {
     describe('Best Practices Compliance', () => {
         test('should use const/let instead of var', () => {
             jsFiles.forEach(fileName => {
-                const filePath = path.join(__dirname, '../public/js', fileName);
+                const filePath = path.join(__dirname, '../legacy/public/js', fileName);
                 const fileContent = fs.readFileSync(filePath, 'utf8');
 
                 // Modern code should prefer const/let
@@ -214,7 +215,7 @@ describe('CSP Compliance Tests', () => {
 
         test('should have proper error handling', () => {
             jsFiles.forEach(fileName => {
-                const filePath = path.join(__dirname, '../public/js', fileName);
+                const filePath = path.join(__dirname, '../legacy/public/js', fileName);
                 const fileContent = fs.readFileSync(filePath, 'utf8');
 
                 // If using fetch or async operations, should have error handling

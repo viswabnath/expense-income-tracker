@@ -1,0 +1,14 @@
+# Never upload local secrets or data when deploying with the Vercel CLI
+.env
+.env.*
+.db-backups/
+
+# Not needed at runtime
+tests/
+coverage/
+.code-review-graph/
+.claude/
+Dockerfile
+docker-compose.yml
+deploy.sh
+nginx.conf

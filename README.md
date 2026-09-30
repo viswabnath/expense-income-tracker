@@ -1,350 +1,184 @@
-# BalanceTrack - Complete Expense & Income Tracker
+# BalanceTrack
 
-A comprehensive web application for tracking personal finances, expenses, and income with secure authentication and real-time data management.
+A personal finance tracker for people in India. You enter your money manually: bank accounts, credit cards, cash, income and expenses. BalanceTrack keeps the balances up to date and shows where your money went each month. It does not connect to banks. Amounts are shown in rupees with Indian digit grouping (5,00,000).
 
-##  Project Overview
+## Where it is going
 
-BalanceTrack is a full-stack web application that allows users to:
-- Track income from multiple sources
-- Monitor expenses across categories
-- Manage bank accounts and credit cards
-- Generate monthly financial summaries
-- View real-time wealth calculations
+BalanceTrack is being extended into a public personal-finance product. The plan has two tracks, run one after the other.
 
-## 🏗️ Architecture
+**1. Move to Next.js (in progress).** The app is moving from plain JavaScript with Express to Next.js, one piece at a time, without changing behaviour. See [docs/nextjs-migration-plan.md](docs/nextjs-migration-plan.md).
 
-### Frontend
-- **Technology**: Vanilla JavaScript with modular architecture
-- **Components**: 
-  - Authentication Manager (login/register/password reset)
-  - Setup Manager (banks, credit cards, cash balance)
-  - Transaction Manager (income/expense tracking)
-  - Summary Manager (monthly reports)
-  - Navigation Manager (UI transitions)
-  - Event Handlers (CSP-compliant event management)
-- **UI**: Responsive HTML/CSS with mobile-first design
-- **Security**: CSP-compliant with no inline JavaScript
+| Step | What | Status |
+|---|---|---|
+| Phase 0 | Atomic writes, activity log inside transactions, audit fixes | Done |
+| N0 | Safety net: Playwright user flows, API contract suites | Done |
+| N1 | Express moved to `legacy/`, Next.js scaffolded alongside it | Done (Vercel preview check pending) |
+| N2 | Screens move to React, one at a time | Next |
+| N3 | API routes move to Next.js route handlers | |
+| N4 | Express removed | |
 
-### Backend
-- **Technology**: Node.js with Express.js
-- **Database**: PostgreSQL with advanced schema
-- **Security**: bcryptjs encryption, session management, rate limiting, CSP headers
-- **API**: RESTful endpoints for all operations
-- **Deployment**: Production-ready with Docker support
+**2. v2 features (after the migration).** The scope and decisions are in [docs/v2-audit.md](docs/v2-audit.md).
 
-### Database Schema
-- **Users**: Secure authentication with security questions
-- **Financial Accounts**: Banks, credit cards, cash balance
-- **Transactions**: Income and expense tracking with categorization
-- **Enhanced Precision**: DECIMAL(20,2) for very large amounts
+| Phase | What |
+|---|---|
+| 1. Foundation | Module toggles (Income, Expenses, Investments, Debts, Cards); money movements that are neither income nor expense (loan disbursement, EMI payment, investment buy and sell, transfers); net savings = income minus expenses, where only loan interest and fees count as expenses |
+| 2. Debts | Loans with reducing-balance and flat-rate EMIs, the effective rate, a full amortization schedule, EMI payments (full, partial, late), top-ups, prepayments, missed-payment tracking, and a public EMI calculator |
+| 3. Credit cards | Credit lines with one shared limit across cards, statements, billing and due days, and loans on cards |
+| 4. Investments | Gold, stocks, crypto and mutual funds; buys and sells; manual price updates; profit and loss; allocation |
+| 5. Net worth | Assets minus liabilities, a monthly trend, EMI-to-income and debt-to-asset ratios |
+| 6. Public launch | Stronger account recovery, rate limiting on write endpoints, data export and account deletion, PWA, monitoring |
 
-## 🚀 Features
+Principles that apply to every phase:
+- Money is stored exactly (`bigint` paise for new tables), and multi-table writes are atomic.
+- Every table is isolated per user.
+- Every change is recorded in the activity log.
+- No emoji anywhere.
+- The design follows a serious fintech dashboard: Source Sans 3 with tabular numerals, a chart library, and light and dark themes.
 
-### Authentication & Security
-- ✅ Secure user registration and login
-- ✅ Password strength validation
-- ✅ Security question-based password reset
-- ✅ Session management with secure cookies
-- ✅ Rate limiting on authentication endpoints
-- ✅ XSS and SQL injection protection
-- ✅ **Content Security Policy (CSP) compliance**
-- ✅ **Helmet.js security headers**
-- ✅ **CSRF protection with SameSite cookies**
+## What it does today
 
-### Financial Management
-- ✅ Multiple bank account management
-- ✅ Credit card tracking with limits
-- ✅ Cash balance management
-- ✅ Income tracking from various sources
-- ✅ Expense categorization and tracking
-- ✅ Real-time balance calculations
+- **Accounts:** bank accounts (with starting balance), credit cards (with limit and used amount), cash.
+- **Transactions:** income into a bank or cash; expenses paid by cash, bank or card. Adding, editing and deleting an entry updates the account behind it.
+- **Monthly summary:** income, expenses, net savings, current wealth, and each account's balance at month end.
+- **Activity log:** every change, with old and new values, filters by type and date, and CSV export.
+- **Tracking modes:** income only, expenses only, or both, chosen at sign-up.
+- **Accounts and security:**
+  - username login, 2-hour sessions stored in Postgres;
+  - password reset by security question, username lookup by email;
+  - bcrypt hashing;
+  - rate-limited login in production;
+  - Content-Security-Policy and security headers;
+  - row level security on every table.
 
-### Advanced Features
-- ✅ Monthly financial summaries
-- ✅ Wealth tracking (banks + cash)
-- ✅ Net savings calculations
-- ✅ Historical data analysis
-- ✅ Support for very large amounts (up to 999,999,999,999,999,999.99)
-- ✅ Flexible tracking options (income only, expenses only, or both)
-- ✅ **Mobile-responsive design with touch-friendly interface**
-- ✅ **Real-time data synchronization**
-- ✅ **Enhanced activity feed with unified transaction history**
-- ✅ **Beautiful gradient UI with smooth animations**
-- ✅ **Advanced filtering and search capabilities**
+## Tech stack
 
-### Data Integrity
-- ✅ Automatic balance updates
-- ✅ Transaction validation
-- ✅ Date-based filtering
-- ✅ Concurrent operation safety
+| Layer | Today | Target |
+|---|---|---|
+| Frontend | Plain JavaScript modules in `legacy/public/` | Next.js 16 App Router, React 19, TypeScript (strict) |
+| API | Express 5 in `legacy/server.js` | Next.js route handlers calling framework-free services in `lib/` |
+| Database | Supabase Postgres via `pg` (plain SQL) | Same, plus per-request database-enforced isolation |
+| Hosting | Vercel, two services in one project during the migration | Vercel, Next.js only |
+| Tests | Jest (backend, frontend, unit), Playwright, API contract suites | Same |
 
-## 🛠️ Installation & Setup
+## Repository layout
 
-### Prerequisites
-- Node.js (v14 or higher)
-- PostgreSQL (v12 or higher)
-- npm or yarn
+```
+app/                  Next.js app (only /next-health until N2)
+lib/                  Framework-free server code for Next.js (TypeScript)
+legacy/               Current Express app: server.js, public/ (frontend), lib/, package.json
+setup-db.js           Creates and migrates the schema (tables, indexes, RLS); safe to rerun
+reset-test-db.js      Clears the test schema (refuses any schema not ending in _test)
+test-helpers.js       Test database helpers
+tests/                Jest suites, tests/unit (TypeScript), tests/e2e (Playwright)
+scripts/              dev.js (runs both apps), run-contract-tests.js
+docs/                 API reference, status, v2 audit, migration plan
+vercel.json           Vercel Services, rewrites, region, security headers
+```
 
-### Installation Steps
+## Getting started
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd expense-income-tracker
-   ```
+Requirements: Node.js 20.9 or later, and a Supabase project (or any Postgres).
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Set up environment variables**
-   Create a `.env` file in the root directory:
-   ```env
-   # Database Configuration
-   DB_USER=postgres
-   DB_HOST=localhost
-   DB_NAME=expense_tracker
-   DB_PASSWORD=your-password
-   DB_PORT=5432
-   
-   # Security
-   SESSION_SECRET=your-secure-session-secret
-   NODE_ENV=development
-   
-   # Server Configuration
-   PORT=3000
-   ```
-
-4. **Set up PostgreSQL database**
-   ```bash
-   # Create database
-   createdb expense_tracker
-   
-   # Run database setup
-   npm run setup-db
-   ```
-
-5. **Start the application**
-   ```bash
-   npm start
-   ```
-
-6. **Access the application**
-   Open your browser and navigate to `http://localhost:3000`
-
-## 📚 API Documentation
-
-### Authentication Endpoints
-- `POST /api/register` - User registration
-- `POST /api/login` - User login
-- `POST /api/logout` - User logout
-- `POST /api/forgot-username` - Username recovery
-- `POST /api/reset-password` - Password reset
-
-### Financial Account Endpoints
-- `GET /api/banks` - Get user's banks
-- `POST /api/banks` - Add new bank
-- `GET /api/credit-cards` - Get user's credit cards
-- `POST /api/credit-cards` - Add new credit card
-- `GET /api/cash-balance` - Get cash balance
-- `POST /api/cash-balance` - Set cash balance
-
-### Transaction Endpoints
-- `GET /api/income` - Get income entries
-- `POST /api/income` - Add income entry
-- `GET /api/expenses` - Get expense entries
-- `POST /api/expenses` - Add expense entry
-- `GET /api/monthly-summary` - Get monthly financial summary
-- `GET /api/activity` - Get unified activity feed with filtering
-
-## 🧪 Testing
-
-The project includes comprehensive testing with 260+ test cases across 16 test suites:
-
-### Test Coverage
-- **Backend API Testing**: Server endpoints and authentication
-- **Database Testing**: Schema validation and operations
-- **Frontend Testing**: JavaScript modules and integration
-- **Security Testing**: Edge cases and vulnerability prevention
-- **Integration Testing**: End-to-end workflows
-- **Activity Testing**: Comprehensive activity feed validation
-- **CSP Compliance**: Content Security Policy adherence
-
-### Running Tests
 ```bash
-# Run all tests
-npm test
-
-# Run specific test suite
-npm run test:backend
-npm run test:frontend
-npm run test:integration
-
-# Generate coverage report
-npm run test:coverage
+npm install
 ```
 
-### Test Suites
-1. `server.test.js` - Backend API endpoints
-2. `auth.test.js` - Authentication functionality
-3. `setup-db.test.js` - Database schema validation
-4. `frontend-*.test.js` - Frontend module testing
-5. `integration.test.js` - End-to-end testing
-6. `edge-cases.test.js` - Security and edge case testing
-7. `comprehensive-coverage.test.js` - Complete system validation
+Create `.env`:
 
-## 🔧 NPM Scripts
-
-```json
-{
-  "start": "node server.js",
-  "dev": "nodemon server.js",
-  "setup-db": "node setup-db.js",
-  "migrate-db": "node migrate-db.js",
-  "check-schema": "node check-schema.js",
-  "reset-db": "node reset-db.js",
-  "test": "jest",
-  "test:backend": "jest tests/server.test.js tests/auth.test.js",
-  "test:frontend": "jest tests/frontend-*.test.js",
-  "test:integration": "jest tests/integration.test.js",
-  "test:coverage": "jest --coverage",
-  "test:watch": "jest --watch",
-  "lint": "eslint .",
-  "lint:fix": "eslint . --fix",
-  "deploy:local": "./deploy.sh local",
-  "deploy:docker": "./deploy.sh docker",
-  "deploy:production": "./deploy.sh production"
-}
-```
-
-## 🏢 Production Deployment
-
-> **Note**: The application is ready for production deployment on any platform that supports Node.js and PostgreSQL.
-
-### Security Checklist
-- ✅ Environment variables configured
-- ✅ Session secrets generated securely
-- ✅ HTTPS enabled (for production)
-- ✅ Rate limiting configured
-- ✅ Error handling secured
-- ✅ Database connections secured
-
-### Environment Configuration
 ```env
-NODE_ENV=production
-SESSION_SECRET=<generate-secure-64-byte-hex>
+DB_HOST=<supabase pooler host>
+DB_PORT=6543
+DB_NAME=postgres
+DB_USER=postgres.<project-ref>
+DB_PASSWORD=<password>
 DB_SSL=true
-PORT=443
+SESSION_SECRET=<64-byte hex>
+NODE_ENV=development
+# Optional: a separate schema for local work; without it you read and write the public schema
+DB_SCHEMA=balancetrack_dev
 ```
 
-## 🐳 Docker Deployment
-
-### Docker Setup
-The application includes Docker configuration for easy deployment:
+Create the tables and start both apps:
 
 ```bash
-# Build Docker image
-npm run docker:build
-
-# Run with Docker Compose
-npm run docker:run
-
-# Stop containers
-npm run docker:stop
-
-# View logs
-npm run docker:logs
+npm run setup-db    # creates tables in DB_SCHEMA (public if unset)
+npm run dev         # Express on :3001, Next.js on :3000; open http://localhost:3000
 ```
 
-### Production Features
-- 🔒 **Enterprise Security**: Content Security Policy, CSRF protection
-- 📱 **Mobile Optimized**: Touch-friendly interface with sliding sidebar
-- ⚡ **High Performance**: Optimized queries and connection pooling
-- 🚀 **Scalable**: Ready for cloud deployment
-- 💾 **Data Persistence**: PostgreSQL with backup support
-- 🔍 **Monitoring**: Error tracking and performance monitoring ready
+> **Warning:** the Supabase database in `.env` also holds production data (schema `public`). Set `DB_SCHEMA` for local development if you do not want to work on production data.
 
-### Deployment Options
-1. **Cloud Platforms**: Render (config included), Heroku, Vercel, DigitalOcean, AWS
-2. **VPS/Server**: Ubuntu/CentOS with nginx reverse proxy
-3. **Container**: Docker deployment ready
-4. **Database**: PostgreSQL on AWS RDS, Google Cloud SQL, or self-hosted
+## Testing
 
-### Render Deployment
-The application includes a `render.yaml` configuration file for easy deployment on Render:
-- Automatic PostgreSQL database setup
-- Environment variables configured
-- Free tier compatible
+All tests run against the `balancetrack_test` schema, never `public`. `tests/env.js` forces that schema, and the cleanup helpers refuse to delete in any schema whose name does not end in `_test`.
 
-## 📈 Performance & Scalability
+```bash
+npm run test:clean      # set up and reset the test schema, then run all Jest projects
+npm run test:unit       # TypeScript unit tests (tests/unit)
+npm run test:e2e        # Playwright user flows; starts the app on :3100
+npm run test:contract   # API contract suites over HTTP; starts the app on :3200, or uses API_BASE_URL
+npm run typecheck       # tsc --noEmit
+npm run lint            # ESLint (JavaScript and TypeScript)
+```
 
-### Optimizations Implemented
-- ✅ Modular frontend architecture (50% reduction in API calls)
-- ✅ Efficient database queries with indexing
-- ✅ Session-based authentication (minimal overhead)
-- ✅ Static file serving optimization
-- ✅ Connection pooling for database
-- ✅ **CSP-compliant security (no inline JavaScript)**
-- ✅ **Mobile-optimized responsive design**
-- ✅ **Production deployment ready with Docker and cloud platform support**
+| Suite | What it proves |
+|---|---|
+| Jest `backend` | API behaviour against the real test schema, including atomic writes and exact balance restoration on edit and delete |
+| Jest `frontend` | The legacy frontend modules (jsdom) |
+| Jest `unit` | Framework-free TypeScript in `lib/` |
+| Playwright | The main user flows end to end; used to check each migration step |
+| Contract | The same API tests against any running server, so Express and Next.js can be compared |
 
-### Scalability Features
-- ✅ Horizontal scaling ready
-- ✅ Database migration support
-- ✅ Environment-based configuration
-- ✅ Stateless session management
-- ✅ CDN-ready static assets
+## Deployment (Vercel + Supabase)
 
-## 🐛 Debugging & Monitoring
+During the migration one Vercel project runs two services (`vercel.json`):
+- `web`: Next.js, at the repo root.
+- `legacy`: the Express app in `legacy/`, which serves `legacy/public/` from the CDN.
 
-### Debug Features
-- ✅ Comprehensive error logging
-- ✅ Debug module included (`public/js/debug.js`)
-- ✅ Development vs production error handling
-- ✅ Database query logging
-- ✅ Frontend console debugging
+Rewrites send each path to one of them. Today everything except `/next-health` goes to `legacy`. Functions run in `syd1`, next to the Supabase region (`ap-southeast-2`).
 
-### Monitoring Ready
-- Request logging middleware ready
-- Error tracking integration points
-- Performance monitoring hooks
-- Health check endpoints available
+### Database layout
 
-## 🤝 Contributing
+| Schema | Used by |
+|---|---|
+| `public` | Production |
+| `balancetrack_test` | The test suite |
 
-### Development Setup
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature-name`
-3. Run tests: `npm test`
-4. Commit changes: `git commit -m 'Add feature'`
-5. Push to branch: `git push origin feature-name`
-6. Submit pull request
+Every table has row level security enabled with no policies, so Supabase's public Data API cannot read or change them. The app connects as the table owner, which RLS does not restrict.
 
-### Code Standards
-- ESLint configuration included
-- Modular JavaScript architecture
-- Comprehensive test coverage required
-- Security-first development approach
+### Vercel project setup
 
-## 📄 License
+1. Import the repository in Vercel. The services come from `vercel.json`.
+2. Set environment variables (Settings > Environment Variables):
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+   | Variable | Production | Preview |
+   |---|---|---|
+   | `DB_HOST`, `DB_PORT` (`6543`), `DB_NAME` (`postgres`), `DB_USER`, `DB_PASSWORD` | Supabase pooler values | Same |
+   | `DB_SSL` | `true` | `true` |
+   | `SESSION_SECRET` | A 64-byte hex secret | A different secret |
+   | `DB_SCHEMA` | Leave unset (uses `public`) | `balancetrack_test`, so previews never touch production data |
 
-## 🆘 Support
+   Generate a secret with `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`. Vercel sets `NODE_ENV=production` itself.
+3. Pushing a branch creates a preview; merging to `master` deploys production.
 
-### Documentation
-- API documentation in code comments
-- Security analysis in `SECURITY-ANALYSIS.md`
-- Linting guidelines in `LINTING.md`
-- Git workflow in `GIT-PUSH-GUIDE.md`
+After a deploy, check that:
+- `/next-health` returns `{"ok":true,"app":"next"}` (Next.js is routed);
+- `/` shows the BalanceTrack login (Express is routed);
+- logging in and adding a transaction works.
 
-### Troubleshooting
-1. **Database Connection Issues**: Check PostgreSQL service and credentials
-2. **Authentication Problems**: Verify session configuration and secrets
-3. **Frontend Errors**: Check browser console and network tab
-4. **Performance Issues**: Enable debug mode and check logs
+### Notes
 
----
+- The login rate limit counts in memory, so each function instance counts separately.
+- Sessions are stored in Postgres (`session` table), so they work across instances.
+- `.vercelignore` keeps `.env`, `.db-backups/` and the tests out of CLI uploads.
 
-**BalanceTrack** - Your complete solution for personal financial management! 💰📊
+## Documentation
+
+- [docs/v2-audit.md](docs/v2-audit.md): audit of the codebase, risks, and the decisions for v2
+- [docs/nextjs-migration-plan.md](docs/nextjs-migration-plan.md): migration strategy and step status
+- [docs/API.md](docs/API.md): API reference
+- [docs/STATUS.md](docs/STATUS.md): current status and known issues
+- [CLAUDE.md](CLAUDE.md): working guide for Claude Code in this repository
+
+## License
+
+`package.json` declares the ISC license. There is no LICENSE file yet.

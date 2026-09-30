@@ -4,7 +4,6 @@
  */
 
 const request = require('supertest');
-const bcrypt = require('bcryptjs');
 
 // Mock rate limiter to prevent 429 errors in tests
 jest.mock('express-rate-limit', () => {
@@ -32,7 +31,7 @@ jest.mock('bcryptjs', () => ({
 }));
 
 // Import the actual server app AFTER mocking
-const { app, pool } = require('../server');
+const { app, pool } = require('../legacy/server');
 
 describe('Comprehensive Server Coverage Tests', () => {
     let mockQuery;
@@ -323,9 +322,9 @@ describe('Comprehensive Server Coverage Tests', () => {
                 rowCount: 1
             });
 
-            const loginResponse = await agent.post('/api/login').send({ 
-                username: 'testuser', 
-                password: 'password' 
+            const loginResponse = await agent.post('/api/login').send({
+                username: 'testuser',
+                password: 'password'
             });
 
             // Ensure login was successful or at least we have a session
@@ -339,13 +338,13 @@ describe('Comprehensive Server Coverage Tests', () => {
                 })
                 .mockResolvedValueOnce({
                     rows: [
-                        { 
-                            id: 1, type: 'income', description: 'Salary', amount: 3000, 
+                        {
+                            id: 1, type: 'income', description: 'Salary', amount: 3000,
                             date: '2025-07-15', bank_name: 'Bank1', account_name: 'Checking',
                             created_at: '2025-07-15T10:00:00Z'
                         },
-                        { 
-                            id: 2, type: 'expense', description: 'Food', amount: 100, 
+                        {
+                            id: 2, type: 'expense', description: 'Food', amount: 100,
                             date: '2025-07-16', bank_name: 'Bank2', account_name: 'Credit',
                             created_at: '2025-07-16T14:30:00Z'
                         }
@@ -358,7 +357,7 @@ describe('Comprehensive Server Coverage Tests', () => {
                 });
 
             const response = await agent.get('/api/activity');
-            
+
             // The key is that we've exercised the endpoint code
             expect([200, 401, 500].includes(response.status)).toBe(true);
         });
@@ -387,8 +386,8 @@ describe('Comprehensive Server Coverage Tests', () => {
                 })
                 .mockResolvedValueOnce({
                     rows: [
-                        { 
-                            id: 1, type: 'income', description: 'Salary', amount: 3000, 
+                        {
+                            id: 1, type: 'income', description: 'Salary', amount: 3000,
                             date: '2025-07-15', bank_name: 'Bank1', account_name: 'Checking'
                         }
                     ],

@@ -26,7 +26,7 @@ document.body.innerHTML = `
 describe('Frontend JavaScript Code Coverage', () => {
     describe('Code Structure and Syntax Validation', () => {
         test('should validate auth.js structure and syntax', () => {
-            const authCode = fs.readFileSync(path.join(__dirname, '../public/js/auth.js'), 'utf8');
+            const authCode = fs.readFileSync(path.join(__dirname, '../legacy/public/js/auth.js'), 'utf8');
 
             // Verify file contains expected class and method signatures
             expect(authCode).toContain('class AuthManager');
@@ -40,7 +40,7 @@ describe('Frontend JavaScript Code Coverage', () => {
         });
 
         test('should validate api.js structure and syntax', () => {
-            const apiCode = fs.readFileSync(path.join(__dirname, '../public/js/api.js'), 'utf8');
+            const apiCode = fs.readFileSync(path.join(__dirname, '../legacy/public/js/api.js'), 'utf8');
 
             // Updated to match actual class name in the file
             expect(apiCode).toContain('class ApiClient');
@@ -53,7 +53,7 @@ describe('Frontend JavaScript Code Coverage', () => {
         });
 
         test('should validate transaction-manager.js structure and syntax', () => {
-            const transactionCode = fs.readFileSync(path.join(__dirname, '../public/js/transaction-manager.js'), 'utf8');
+            const transactionCode = fs.readFileSync(path.join(__dirname, '../legacy/public/js/transaction-manager.js'), 'utf8');
 
             expect(transactionCode).toContain('class TransactionManager');
             expect(transactionCode).toContain('addIncome');
@@ -64,7 +64,7 @@ describe('Frontend JavaScript Code Coverage', () => {
         });
 
         test('should validate summary-manager.js structure and syntax', () => {
-            const summaryCode = fs.readFileSync(path.join(__dirname, '../public/js/summary-manager.js'), 'utf8');
+            const summaryCode = fs.readFileSync(path.join(__dirname, '../legacy/public/js/summary-manager.js'), 'utf8');
 
             expect(summaryCode).toContain('class SummaryManager');
             expect(summaryCode).toContain('loadMonthlySummary');
@@ -75,7 +75,7 @@ describe('Frontend JavaScript Code Coverage', () => {
         });
 
         test('should validate setup-manager.js structure and syntax', () => {
-            const setupCode = fs.readFileSync(path.join(__dirname, '../public/js/setup-manager.js'), 'utf8');
+            const setupCode = fs.readFileSync(path.join(__dirname, '../legacy/public/js/setup-manager.js'), 'utf8');
 
             expect(setupCode).toContain('class SetupManager');
             expect(setupCode).toContain('addBank');
@@ -86,7 +86,7 @@ describe('Frontend JavaScript Code Coverage', () => {
         });
 
         test('should validate navigation-manager.js structure and syntax', () => {
-            const navCode = fs.readFileSync(path.join(__dirname, '../public/js/navigation-manager.js'), 'utf8');
+            const navCode = fs.readFileSync(path.join(__dirname, '../legacy/public/js/navigation-manager.js'), 'utf8');
 
             expect(navCode).toContain('class NavigationManager');
             expect(navCode).toContain('showSection');
@@ -96,7 +96,7 @@ describe('Frontend JavaScript Code Coverage', () => {
         });
 
         test('should validate module-validator.js structure and syntax', () => {
-            const validatorCode = fs.readFileSync(path.join(__dirname, '../public/js/module-validator.js'), 'utf8');
+            const validatorCode = fs.readFileSync(path.join(__dirname, '../legacy/public/js/module-validator.js'), 'utf8');
 
             // This file doesn't contain a class, it contains validation functions
             expect(validatorCode).toContain('validateModules');
@@ -118,7 +118,7 @@ describe('Frontend JavaScript Code Coverage', () => {
             };
 
             // Load and validate app.js
-            const appCode = fs.readFileSync(path.join(__dirname, '../public/js/app.js'), 'utf8');
+            const appCode = fs.readFileSync(path.join(__dirname, '../legacy/public/js/app.js'), 'utf8');
 
             // Check for actual content in app.js
             expect(appCode).toContain('class ExpenseTracker');
@@ -137,7 +137,7 @@ describe('Frontend JavaScript Code Coverage', () => {
             ];
 
             files.forEach(filename => {
-                const code = fs.readFileSync(path.join(__dirname, '../public/js', filename), 'utf8');
+                const code = fs.readFileSync(path.join(__dirname, '../legacy/public/js', filename), 'utf8');
 
                 // Should have try-catch blocks for error handling
                 expect(code).toMatch(/try\s*{[\s\S]*}\s*catch/);
@@ -154,7 +154,7 @@ describe('Frontend JavaScript Code Coverage', () => {
             ];
 
             files.forEach(filename => {
-                const code = fs.readFileSync(path.join(__dirname, '../public/js', filename), 'utf8');
+                const code = fs.readFileSync(path.join(__dirname, '../legacy/public/js', filename), 'utf8');
 
                 // Should use apiClient for API calls instead of direct fetch
                 expect(code).toContain('apiClient');
@@ -165,7 +165,7 @@ describe('Frontend JavaScript Code Coverage', () => {
         });
 
         test('should have proper validation patterns', () => {
-            const authCode = fs.readFileSync(path.join(__dirname, '../public/js/auth.js'), 'utf8');
+            const authCode = fs.readFileSync(path.join(__dirname, '../legacy/public/js/auth.js'), 'utf8');
 
             // Should have email validation regex (looking for the actual pattern in the file)
             expect(authCode).toContain('@');
@@ -184,7 +184,7 @@ describe('Frontend JavaScript Code Coverage', () => {
             ];
 
             files.forEach(filename => {
-                const code = fs.readFileSync(path.join(__dirname, '../public/js', filename), 'utf8');
+                const code = fs.readFileSync(path.join(__dirname, '../legacy/public/js', filename), 'utf8');
 
                 // Should use getElementById for DOM access
                 expect(code).toContain('getElementById');

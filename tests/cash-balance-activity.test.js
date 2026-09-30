@@ -4,37 +4,42 @@
  */
 
 const request = require('supertest');
-const { app } = require('../server');
+const { target } = require('./api-target');
+const { deleteTestUser } = require('../test-helpers');
 
 describe('Cash Balance Activity', () => {
     let agent;
-    let userId; // Will be set during test setup
 
     beforeAll(async () => {
-        agent = request.agent(app);
+        await deleteTestUser('testuser_cash');
+        agent = request.agent(target());
 
         // Register and login a test user
         const registerResponse = await agent
             .post('/api/register')
             .send({
                 username: 'testuser_cash',
-                password: 'Test123!',
+                password: 'Test123&',
+                name: 'Test User',
                 email: 'testcash@example.com',
                 securityQuestion: 'What is your pet name?',
                 securityAnswer: 'fluffy'
             });
 
-        expect(registerResponse.status).toBe(201);
-        userId = registerResponse.body.id;
+        expect(registerResponse.status).toBe(200);
 
         const loginResponse = await agent
             .post('/api/login')
             .send({
                 username: 'testuser_cash',
-                password: 'Test123!'
+                password: 'Test123&'
             });
 
         expect(loginResponse.status).toBe(200);
+    });
+
+    afterAll(async () => {
+        await deleteTestUser('testuser_cash');
     });
 
     test('should include cash balance in activity feed after setting cash balance', async () => {
@@ -54,10 +59,10 @@ describe('Cash Balance Activity', () => {
         expect(activityResponse.status).toBe(200);
 
         // Check if cash balance activity is included
-        const activities = activityResponse.body;
+        const { activities } = activityResponse.body;
         const cashActivity = activities.find(activity =>
-            activity.activity_type === 'setup' &&
-            activity.description === 'Set cash balance'
+            activity.activity_type === 'cash_balance' &&
+            activity.description === 'Set initial cash balance: ₹5000.00'
         );
 
         expect(cashActivity).toBeDefined();
@@ -83,24 +88,23 @@ describe('Cash Balance Activity', () => {
 
         expect(activityResponse.status).toBe(200);
 
-        const activities = activityResponse.body;
+        const { activities } = activityResponse.body;
 
         // Check both cash and bank activities exist
         const cashActivity = activities.find(activity =>
-            activity.activity_type === 'setup' &&
-            activity.description === 'Set cash balance'
+            activity.activity_type === 'cash_balance' &&
+            activity.description === 'Set initial cash balance: ₹5000.00'
         );
 
         const bankActivity = activities.find(activity =>
-            activity.activity_type === 'setup' &&
-            activity.description.includes('Added bank: TEST BANK')
+            activity.activity_type === 'bank' &&
+            activity.description.includes('Added bank account: TEST BANK')
         );
 
         expect(cashActivity).toBeDefined();
         expect(bankActivity).toBeDefined();
 
-        // Both should be setup type activities
-        expect(cashActivity.activity_type).toBe('setup');
-        expect(bankActivity.activity_type).toBe('setup');
+        expect(cashActivity.activity_type).toBe('cash_balance');
+        expect(bankActivity.activity_type).toBe('bank');
     });
 });
