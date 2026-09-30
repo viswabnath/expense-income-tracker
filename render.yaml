@@ -3,7 +3,7 @@ services:
     name: balancetrack
     env: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm ci && npm run setup-db
     startCommand: node server.js
     healthCheckPath: /
     envVars:
