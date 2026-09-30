@@ -53,7 +53,9 @@ The Supabase database in `.env` is also production. Production data is in the `p
 ### Backend (`server.js`)
 Single-file Express.js server. All routes live here. When you add or change a route, update `docs/API.md` to match. Key patterns:
 - `requireAuth` middleware guards all `/api/*` routes except auth endpoints
-- `logActivity()` is called after every mutating operation to write to `activity_log`
+- **Transactions:** any write touching more than one row or table runs in `withTransaction(pool, async (client) => ...)` from `lib/transaction.js`, with every query on `client`. Never call `pool.query('BEGIN')`: the pool can use a different connection per query (`tests/atomic-writes.test.js` guards this). Throw `RequestError(status, message)` for expected failures inside a transaction and answer with `sendError(res, error)`.
+- `logActivity(client, userId, ...)` takes the transaction's client and throws on failure, so the log entry commits or rolls back with the change it describes. Call it inside the same `withTransaction`.
+- Lock rows you check or modify with `SELECT ... FOR UPDATE` inside the transaction.
 - Sessions stored in PostgreSQL via `connect-pg-simple`
 - `authLimiter` allows 5 failed auth attempts per 15 min and is skipped when `NODE_ENV` is `development` or `test`. `generalLimiter` allows 100 req/min.
 - Helmet sends a CSP (see the `helmet({...})` directives). Adding a new external script, font or API origin needs a matching directive. `upgrade-insecure-requests` is production-only because Safari applies it to http://localhost.

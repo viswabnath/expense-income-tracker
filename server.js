@@ -10,6 +10,13 @@ const bodyParser = require('body-parser');
 const rateLimit = require('express-rate-limit');
 const pgSession = require('connect-pg-simple')(session);
 const helmet = require('helmet');
+const { withTransaction, RequestError } = require('./lib/transaction');
+
+// Without a fixed secret each Vercel instance would sign sessions with its own random key,
+// logging users out whenever a request lands on a different instance
+if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
+    throw new Error('SESSION_SECRET must be set in production');
+}
 
 const app = express();
 
@@ -158,16 +165,22 @@ function validatePassword(password) {
 }
 
 // Activity logging function
-async function logActivity(userId, actionType, entityType, entityId, description, amount = null, oldValues = null, newValues = null) {
-    try {
-        await pool.query(
-            'INSERT INTO activity_log (user_id, action_type, entity_type, entity_id, description, amount, old_values, new_values) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
-            [userId, actionType, entityType, entityId, description, amount, oldValues ? JSON.stringify(oldValues) : null, newValues ? JSON.stringify(newValues) : null]
-        );
-    } catch (error) {
-        console.error('Activity logging failed:', error);
-        // Don't throw error to avoid breaking main functionality
+// Write an activity log entry on the caller's transaction connection, so the entry commits or
+// rolls back together with the change it describes. Errors propagate and abort that transaction.
+async function logActivity(client, userId, actionType, entityType, entityId, description, amount = null, oldValues = null, newValues = null) {
+    await client.query(
+        'INSERT INTO activity_log (user_id, action_type, entity_type, entity_id, description, amount, old_values, new_values) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)',
+        [userId, actionType, entityType, entityId, description, amount, oldValues ? JSON.stringify(oldValues) : null, newValues ? JSON.stringify(newValues) : null]
+    );
+}
+
+// Send the response for an error thrown inside a route: expected RequestErrors carry their own
+// status; anything else is a generic 500
+function sendError(res, error, fallbackMessage = 'An error occurred. Please try again.') {
+    if (error instanceof RequestError) {
+        return res.status(error.status).json({ error: error.message });
     }
+    return res.status(500).json({ error: fallbackMessage });
 }
 
 // Authentication middleware
@@ -517,28 +530,30 @@ app.post('/api/banks', requireAuth, async (req, res) => {
         const { name, initialBalance } = req.body;
         const upperName = name.toUpperCase();
 
-        const result = await pool.query(
-            'INSERT INTO banks (user_id, name, initial_balance, current_balance) VALUES ($1, $2, $3, $3) RETURNING *',
-            [req.session.userId, upperName, initialBalance || 0]
-        );
+        const newBank = await withTransaction(pool, async (client) => {
+            const result = await client.query(
+                'INSERT INTO banks (user_id, name, initial_balance, current_balance) VALUES ($1, $2, $3, $3) RETURNING *',
+                [req.session.userId, upperName, initialBalance || 0]
+            );
+            const bank = result.rows[0];
 
-        const newBank = result.rows[0];
-
-        // Log activity
-        await logActivity(
-            req.session.userId,
-            'create',
-            'bank',
-            newBank.id,
-            `Added bank account: ${upperName}`,
-            initialBalance || 0,
-            null,
-            {
-                name: upperName,
-                initialBalance: initialBalance || 0,
-                currentBalance: initialBalance || 0
-            }
-        );
+            await logActivity(
+                client,
+                req.session.userId,
+                'create',
+                'bank',
+                bank.id,
+                `Added bank account: ${upperName}`,
+                initialBalance || 0,
+                null,
+                {
+                    name: upperName,
+                    initialBalance: initialBalance || 0,
+                    currentBalance: initialBalance || 0
+                }
+            );
+            return bank;
+        });
 
         res.json(newBank);
     } catch (error) {
@@ -568,29 +583,31 @@ app.post('/api/credit-cards', requireAuth, async (req, res) => {
         const { name, creditLimit } = req.body;
         const upperName = name.toUpperCase();
 
-        const result = await pool.query(
-            'INSERT INTO credit_cards (user_id, name, credit_limit) VALUES ($1, $2, $3) RETURNING *',
-            [req.session.userId, upperName, creditLimit]
-        );
+        const newCard = await withTransaction(pool, async (client) => {
+            const result = await client.query(
+                'INSERT INTO credit_cards (user_id, name, credit_limit) VALUES ($1, $2, $3) RETURNING *',
+                [req.session.userId, upperName, creditLimit]
+            );
+            const card = result.rows[0];
 
-        const newCard = result.rows[0];
-
-        // Log activity
-        await logActivity(
-            req.session.userId,
-            'create',
-            'credit_card',
-            newCard.id,
-            `Added credit card: ${upperName}`,
-            creditLimit,
-            null,
-            {
-                name: upperName,
-                creditLimit: creditLimit,
-                usedLimit: 0,
-                availableLimit: creditLimit
-            }
-        );
+            await logActivity(
+                client,
+                req.session.userId,
+                'create',
+                'credit_card',
+                card.id,
+                `Added credit card: ${upperName}`,
+                creditLimit,
+                null,
+                {
+                    name: upperName,
+                    creditLimit: creditLimit,
+                    usedLimit: 0,
+                    availableLimit: creditLimit
+                }
+            );
+            return card;
+        });
 
         res.json(newCard);
     } catch (error) {
@@ -619,83 +636,83 @@ app.post('/api/cash-balance', requireAuth, async (req, res) => {
     try {
         const { balance, initial_balance } = req.body;
 
-        // Check if user already has a cash balance record
-        const existingCash = await pool.query(
-            'SELECT * FROM cash_balance WHERE user_id = $1',
-            [req.session.userId]
-        );
+        const cashRow = await withTransaction(pool, async (client) => {
+            // Lock the existing record so concurrent saves can't both read the old values
+            const existingCash = await client.query(
+                'SELECT * FROM cash_balance WHERE user_id = $1 FOR UPDATE',
+                [req.session.userId]
+            );
 
-        let result;
-        let isUpdate = false;
-        let oldValues = null;
+            let result;
 
-        if (existingCash.rows.length > 0) {
-            isUpdate = true;
-            oldValues = {
-                balance: existingCash.rows[0].balance,
-                initial_balance: existingCash.rows[0].initial_balance
-            };
+            if (existingCash.rows.length > 0) {
+                const oldValues = {
+                    balance: existingCash.rows[0].balance,
+                    initial_balance: existingCash.rows[0].initial_balance
+                };
 
-            // Update existing record
-            if (initial_balance !== undefined && balance !== undefined) {
-                // Full update from setup page - update both values
-                result = await pool.query(
-                    'UPDATE cash_balance SET balance = $1, initial_balance = $2, updated_at = CURRENT_TIMESTAMP WHERE user_id = $3 RETURNING *',
-                    [balance || 0, initial_balance || 0, req.session.userId]
-                );
+                if (initial_balance !== undefined && balance !== undefined) {
+                    // Full update from setup page - update both values
+                    result = await client.query(
+                        'UPDATE cash_balance SET balance = $1, initial_balance = $2, updated_at = CURRENT_TIMESTAMP WHERE user_id = $3 RETURNING *',
+                        [balance || 0, initial_balance || 0, req.session.userId]
+                    );
 
-                // Log the activity for cash balance update
-                await logActivity(
-                    req.session.userId,
-                    'updated',
-                    'cash_balance',
-                    result.rows[0].id,
-                    `Updated cash balance from ₹${parseFloat(oldValues.initial_balance).toFixed(2)} to ₹${parseFloat(initial_balance).toFixed(2)}`,
-                    initial_balance,
-                    oldValues,
-                    { balance: balance, initial_balance: initial_balance }
-                );
+                    await logActivity(
+                        client,
+                        req.session.userId,
+                        'updated',
+                        'cash_balance',
+                        result.rows[0].id,
+                        `Updated cash balance from ₹${parseFloat(oldValues.initial_balance).toFixed(2)} to ₹${parseFloat(initial_balance).toFixed(2)}`,
+                        initial_balance,
+                        oldValues,
+                        { balance: balance, initial_balance: initial_balance }
+                    );
+                } else {
+                    // Transaction update - only update balance, keep initial_balance unchanged
+                    result = await client.query(
+                        'UPDATE cash_balance SET balance = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2 RETURNING *',
+                        [balance || 0, req.session.userId]
+                    );
+
+                    await logActivity(
+                        client,
+                        req.session.userId,
+                        'updated',
+                        'cash_balance',
+                        result.rows[0].id,
+                        `Cash balance updated to ₹${parseFloat(balance).toFixed(2)}`,
+                        balance,
+                        oldValues,
+                        { balance: balance, initial_balance: oldValues.initial_balance }
+                    );
+                }
             } else {
-                // Transaction update - only update balance, keep initial_balance unchanged
-                result = await pool.query(
-                    'UPDATE cash_balance SET balance = $1, updated_at = CURRENT_TIMESTAMP WHERE user_id = $2 RETURNING *',
-                    [balance || 0, req.session.userId]
+                // Insert new record - set both balance and initial_balance to the same value
+                const initialValue = initial_balance !== undefined ? initial_balance : balance;
+                result = await client.query(
+                    'INSERT INTO cash_balance (user_id, balance, initial_balance) VALUES ($1, $2, $3) RETURNING *',
+                    [req.session.userId, balance || 0, initialValue || 0]
                 );
 
-                // Log the activity for balance change (from transactions)
                 await logActivity(
+                    client,
                     req.session.userId,
-                    'updated',
+                    'created',
                     'cash_balance',
                     result.rows[0].id,
-                    `Cash balance updated to ₹${parseFloat(balance).toFixed(2)}`,
-                    balance,
-                    oldValues,
-                    { balance: balance, initial_balance: oldValues.initial_balance }
+                    `Set initial cash balance: ₹${parseFloat(initialValue).toFixed(2)}`,
+                    initialValue
                 );
             }
-        } else {
-            // Insert new record - set both balance and initial_balance to the same value
-            const initialValue = initial_balance !== undefined ? initial_balance : balance;
-            result = await pool.query(
-                'INSERT INTO cash_balance (user_id, balance, initial_balance) VALUES ($1, $2, $3) RETURNING *',
-                [req.session.userId, balance || 0, initialValue || 0]
-            );
 
-            // Log the activity for initial cash balance setup
-            await logActivity(
-                req.session.userId,
-                'created',
-                'cash_balance',
-                result.rows[0].id,
-                `Set initial cash balance: ₹${parseFloat(initialValue).toFixed(2)}`,
-                initialValue
-            );
-        }
+            return result.rows[0];
+        });
 
-        res.json(result.rows[0]);
+        res.json(cashRow);
     } catch (error) {
-        res.status(500).json({ error: 'An error occurred. Please try again.' });
+        sendError(res, error);
     }
 });
 
@@ -925,46 +942,50 @@ app.post('/api/income', requireAuth, async (req, res) => {
         const month = dateObj.getMonth() + 1;
         const year = dateObj.getFullYear();
 
-        const result = await pool.query(
-            'INSERT INTO income_entries (user_id, source, amount, credited_to_type, credited_to_id, date, month, year) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-            [
+        // Entry, balance change and activity log commit together or not at all
+        const income = await withTransaction(pool, async (client) => {
+            const result = await client.query(
+                'INSERT INTO income_entries (user_id, source, amount, credited_to_type, credited_to_id, date, month, year) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+                [
+                    req.session.userId,
+                    source,
+                    amount,
+                    creditedToType,
+                    creditedToId,
+                    finalDate,
+                    month,
+                    year,
+                ]
+            );
+
+            if (creditedToType === 'bank') {
+                await client.query(
+                    'UPDATE banks SET current_balance = current_balance + $1 WHERE id = $2 AND user_id = $3',
+                    [amount, creditedToId, req.session.userId]
+                );
+            } else if (creditedToType === 'cash') {
+                await client.query(
+                    'UPDATE cash_balance SET balance = balance + $1 WHERE user_id = $2',
+                    [amount, req.session.userId]
+                );
+            }
+
+            await logActivity(
+                client,
                 req.session.userId,
-                source,
-                amount,
-                creditedToType,
-                creditedToId,
-                finalDate,
-                month,
-                year,
-            ]
-        );
-
-        // Update balance
-        if (creditedToType === 'bank') {
-            await pool.query(
-                'UPDATE banks SET current_balance = current_balance + $1 WHERE id = $2 AND user_id = $3',
-                [amount, creditedToId, req.session.userId]
+                'created',
+                'income',
+                result.rows[0].id,
+                `Added income: ${source}`,
+                amount
             );
-        } else if (creditedToType === 'cash') {
-            await pool.query(
-                'UPDATE cash_balance SET balance = balance + $1 WHERE user_id = $2',
-                [amount, req.session.userId]
-            );
-        }
 
-        // Log activity
-        await logActivity(
-            req.session.userId,
-            'created',
-            'income',
-            result.rows[0].id,
-            `Added income: ${source}`,
-            amount
-        );
+            return result.rows[0];
+        });
 
-        res.json(result.rows[0]);
+        res.json(income);
     } catch (error) {
-        res.status(500).json({ error: 'An error occurred. Please try again.' });
+        sendError(res, error);
     }
 });
 
@@ -1034,106 +1055,112 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
         const month = dateObj.getMonth() + 1;
         const year = dateObj.getFullYear();
 
-        // Get user's tracking option to determine validation behavior
-        const userResult = await pool.query(
-            'SELECT tracking_option FROM users WHERE id = $1',
-            [req.session.userId]
-        );
+        // Balance check, entry, balance change and activity log commit together or not at all
+        const expense = await withTransaction(pool, async (client) => {
+            // Get user's tracking option to determine validation behavior
+            const userResult = await client.query(
+                'SELECT tracking_option FROM users WHERE id = $1',
+                [req.session.userId]
+            );
 
-        const trackingOption = userResult.rows[0]?.tracking_option || 'both';
+            const trackingOption = userResult.rows[0]?.tracking_option || 'both';
 
-        // For expense-only users, allow expense tracking without strict balance validation
-        // For 'both' or 'income' users, enforce balance validation
-        const shouldValidateBalance = trackingOption !== 'expenses';
+            // For expense-only users, allow expense tracking without strict balance validation
+            // For 'both' or 'income' users, enforce balance validation
+            const shouldValidateBalance = trackingOption !== 'expenses';
 
-        if (shouldValidateBalance) {
-            // Validate balance/limit only for users who also track income
-            if (paymentMethod === 'bank') {
-                const bankResult = await pool.query(
-                    'SELECT current_balance FROM banks WHERE id = $1 AND user_id = $2',
-                    [paymentSourceId, req.session.userId]
-                );
+            if (shouldValidateBalance) {
+                // Validate balance/limit only for users who also track income.
+                // FOR UPDATE locks the row so concurrent expenses can't both pass the check.
+                if (paymentMethod === 'bank') {
+                    const bankResult = await client.query(
+                        'SELECT current_balance FROM banks WHERE id = $1 AND user_id = $2 FOR UPDATE',
+                        [paymentSourceId, req.session.userId]
+                    );
 
-                if (
-                    bankResult.rows.length === 0 ||
-          bankResult.rows[0].current_balance < amount
-                ) {
-                    return res.status(400).json({ error: 'Insufficient bank balance' });
-                }
-            } else if (paymentMethod === 'cash') {
-                const cashResult = await pool.query(
-                    'SELECT balance FROM cash_balance WHERE user_id = $1',
-                    [req.session.userId]
-                );
+                    if (
+                        bankResult.rows.length === 0 ||
+                        bankResult.rows[0].current_balance < amount
+                    ) {
+                        throw new RequestError(400, 'Insufficient bank balance');
+                    }
+                } else if (paymentMethod === 'cash') {
+                    const cashResult = await client.query(
+                        'SELECT balance FROM cash_balance WHERE user_id = $1 FOR UPDATE',
+                        [req.session.userId]
+                    );
 
-                if (
-                    cashResult.rows.length === 0 ||
-          cashResult.rows[0].balance < amount
-                ) {
-                    return res.status(400).json({ error: 'Insufficient cash balance' });
-                }
-            } else if (paymentMethod === 'credit_card') {
-                const ccResult = await pool.query(
-                    'SELECT credit_limit, used_limit FROM credit_cards WHERE id = $1 AND user_id = $2',
-                    [paymentSourceId, req.session.userId]
-                );
+                    if (
+                        cashResult.rows.length === 0 ||
+                        cashResult.rows[0].balance < amount
+                    ) {
+                        throw new RequestError(400, 'Insufficient cash balance');
+                    }
+                } else if (paymentMethod === 'credit_card') {
+                    const ccResult = await client.query(
+                        'SELECT credit_limit, used_limit FROM credit_cards WHERE id = $1 AND user_id = $2 FOR UPDATE',
+                        [paymentSourceId, req.session.userId]
+                    );
 
-                if (
-                    ccResult.rows.length === 0 ||
-          ccResult.rows[0].credit_limit - ccResult.rows[0].used_limit < amount
-                ) {
-                    return res.status(400).json({ error: 'Insufficient credit limit' });
+                    if (
+                        ccResult.rows.length === 0 ||
+                        ccResult.rows[0].credit_limit - ccResult.rows[0].used_limit < amount
+                    ) {
+                        throw new RequestError(400, 'Insufficient credit limit');
+                    }
                 }
             }
-        }
 
-        const result = await pool.query(
-            'INSERT INTO expenses (user_id, title, amount, payment_method, payment_source_id, date, month, year) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-            [
+            const result = await client.query(
+                'INSERT INTO expenses (user_id, title, amount, payment_method, payment_source_id, date, month, year) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+                [
+                    req.session.userId,
+                    title,
+                    amount,
+                    paymentMethod,
+                    paymentSourceId,
+                    finalDate,
+                    month,
+                    year,
+                ]
+            );
+
+            // Update balance/limit only for users who track both income and expenses
+            if (shouldValidateBalance) {
+                if (paymentMethod === 'bank') {
+                    await client.query(
+                        'UPDATE banks SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3',
+                        [amount, paymentSourceId, req.session.userId]
+                    );
+                } else if (paymentMethod === 'cash') {
+                    await client.query(
+                        'UPDATE cash_balance SET balance = balance - $1 WHERE user_id = $2',
+                        [amount, req.session.userId]
+                    );
+                } else if (paymentMethod === 'credit_card') {
+                    await client.query(
+                        'UPDATE credit_cards SET used_limit = used_limit + $1 WHERE id = $2 AND user_id = $3',
+                        [amount, paymentSourceId, req.session.userId]
+                    );
+                }
+            }
+
+            await logActivity(
+                client,
                 req.session.userId,
-                title,
-                amount,
-                paymentMethod,
-                paymentSourceId,
-                finalDate,
-                month,
-                year,
-            ]
-        );
+                'created',
+                'expense',
+                result.rows[0].id,
+                `Added expense: ${title}`,
+                amount
+            );
 
-        // Update balance/limit only for users who track both income and expenses
-        if (shouldValidateBalance) {
-            if (paymentMethod === 'bank') {
-                await pool.query(
-                    'UPDATE banks SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3',
-                    [amount, paymentSourceId, req.session.userId]
-                );
-            } else if (paymentMethod === 'cash') {
-                await pool.query(
-                    'UPDATE cash_balance SET balance = balance - $1 WHERE user_id = $2',
-                    [amount, req.session.userId]
-                );
-            } else if (paymentMethod === 'credit_card') {
-                await pool.query(
-                    'UPDATE credit_cards SET used_limit = used_limit + $1 WHERE id = $2 AND user_id = $3',
-                    [amount, paymentSourceId, req.session.userId]
-                );
-            }
-        }
+            return result.rows[0];
+        });
 
-        // Log activity
-        await logActivity(
-            req.session.userId,
-            'created',
-            'expense',
-            result.rows[0].id,
-            `Added expense: ${title}`,
-            amount
-        );
-
-        res.json(result.rows[0]);
+        res.json(expense);
     } catch (error) {
-        res.status(500).json({ error: 'An error occurred. Please try again.' });
+        sendError(res, error);
     }
 });
 
@@ -1198,58 +1225,54 @@ app.put('/api/income/:id', requireAuth, async (req, res) => {
         const month = dateObj.getMonth() + 1;
         const year = dateObj.getFullYear();
 
-        // Get current transaction for balance calculation
-        const currentResult = await pool.query(
-            'SELECT * FROM income_entries WHERE id = $1 AND user_id = $2',
-            [incomeId, req.session.userId]
-        );
+        // Reversal, update, re-application and activity log commit together or not at all
+        await withTransaction(pool, async (client) => {
+            // Lock the row so concurrent edits can't both reverse the same old amount
+            const currentResult = await client.query(
+                'SELECT * FROM income_entries WHERE id = $1 AND user_id = $2 FOR UPDATE',
+                [incomeId, req.session.userId]
+            );
 
-        if (currentResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Income transaction not found' });
-        }
+            if (currentResult.rows.length === 0) {
+                throw new RequestError(404, 'Income transaction not found');
+            }
 
-        const currentIncome = currentResult.rows[0];
+            const currentIncome = currentResult.rows[0];
 
-        // Begin transaction for balance updates
-        await pool.query('BEGIN');
-
-        try {
             // Reverse the previous transaction effect
             if (currentIncome.credited_to_type === 'bank') {
-                await pool.query(
+                await client.query(
                     'UPDATE banks SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3',
                     [currentIncome.amount, currentIncome.credited_to_id, req.session.userId]
                 );
             } else if (currentIncome.credited_to_type === 'cash') {
-                await pool.query(
+                await client.query(
                     'UPDATE cash_balance SET balance = balance - $1 WHERE user_id = $2',
                     [currentIncome.amount, req.session.userId]
                 );
             }
 
             // Update the income transaction
-            await pool.query(
+            await client.query(
                 'UPDATE income_entries SET source = $1, amount = $2, credited_to_type = $3, credited_to_id = $4, date = $5, month = $6, year = $7 WHERE id = $8 AND user_id = $9',
                 [source, amount, creditedToType, creditedToId, dateObj, month, year, incomeId, req.session.userId]
             );
 
             // Apply the new transaction effect
             if (creditedToType === 'bank') {
-                await pool.query(
+                await client.query(
                     'UPDATE banks SET current_balance = current_balance + $1 WHERE id = $2 AND user_id = $3',
                     [amount, creditedToId, req.session.userId]
                 );
             } else if (creditedToType === 'cash') {
-                await pool.query(
+                await client.query(
                     'UPDATE cash_balance SET balance = balance + $1 WHERE user_id = $2',
                     [amount, req.session.userId]
                 );
             }
 
-            await pool.query('COMMIT');
-
-            // Log activity for update
             await logActivity(
+                client,
                 req.session.userId,
                 'updated',
                 'income',
@@ -1264,16 +1287,11 @@ app.put('/api/income/:id', requireAuth, async (req, res) => {
                 },
                 { source, amount, creditedToType, creditedToId }
             );
+        });
 
-            res.json({ success: true, message: 'Income transaction updated successfully' });
-
-        } catch (error) {
-            await pool.query('ROLLBACK');
-            throw error;
-        }
-
+        res.json({ success: true, message: 'Income transaction updated successfully' });
     } catch (error) {
-        res.status(500).json({ error: 'An error occurred. Please try again.' });
+        sendError(res, error);
     }
 });
 
@@ -1282,45 +1300,39 @@ app.delete('/api/income/:id', requireAuth, async (req, res) => {
     try {
         const incomeId = req.params.id;
 
-        // Get current transaction for balance calculation
-        const currentResult = await pool.query(
-            'SELECT * FROM income_entries WHERE id = $1 AND user_id = $2',
-            [incomeId, req.session.userId]
-        );
+        // Reversal, deletion and activity log commit together or not at all
+        await withTransaction(pool, async (client) => {
+            const currentResult = await client.query(
+                'SELECT * FROM income_entries WHERE id = $1 AND user_id = $2 FOR UPDATE',
+                [incomeId, req.session.userId]
+            );
 
-        if (currentResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Income transaction not found' });
-        }
+            if (currentResult.rows.length === 0) {
+                throw new RequestError(404, 'Income transaction not found');
+            }
 
-        const currentIncome = currentResult.rows[0];
+            const currentIncome = currentResult.rows[0];
 
-        // Begin transaction for balance updates
-        await pool.query('BEGIN');
-
-        try {
             // Reverse the transaction effect
             if (currentIncome.credited_to_type === 'bank') {
-                await pool.query(
+                await client.query(
                     'UPDATE banks SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3',
                     [currentIncome.amount, currentIncome.credited_to_id, req.session.userId]
                 );
             } else if (currentIncome.credited_to_type === 'cash') {
-                await pool.query(
+                await client.query(
                     'UPDATE cash_balance SET balance = balance - $1 WHERE user_id = $2',
                     [currentIncome.amount, req.session.userId]
                 );
             }
 
-            // Delete the income transaction
-            await pool.query(
+            await client.query(
                 'DELETE FROM income_entries WHERE id = $1 AND user_id = $2',
                 [incomeId, req.session.userId]
             );
 
-            await pool.query('COMMIT');
-
-            // Log activity for deletion
             await logActivity(
+                client,
                 req.session.userId,
                 'deleted',
                 'income',
@@ -1328,16 +1340,11 @@ app.delete('/api/income/:id', requireAuth, async (req, res) => {
                 `Deleted income: ${currentIncome.source}`,
                 currentIncome.amount
             );
+        });
 
-            res.json({ success: true, message: 'Income transaction deleted successfully' });
-
-        } catch (error) {
-            await pool.query('ROLLBACK');
-            throw error;
-        }
-
+        res.json({ success: true, message: 'Income transaction deleted successfully' });
     } catch (error) {
-        res.status(500).json({ error: 'An error occurred. Please try again.' });
+        sendError(res, error);
     }
 });
 
@@ -1371,68 +1378,64 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
         const month = dateObj.getMonth() + 1;
         const year = dateObj.getFullYear();
 
-        // Get current transaction for balance calculation
-        const currentResult = await pool.query(
-            'SELECT * FROM expenses WHERE id = $1 AND user_id = $2',
-            [expenseId, req.session.userId]
-        );
+        // Reversal, update, re-application and activity log commit together or not at all
+        await withTransaction(pool, async (client) => {
+            // Lock the row so concurrent edits can't both reverse the same old amount
+            const currentResult = await client.query(
+                'SELECT * FROM expenses WHERE id = $1 AND user_id = $2 FOR UPDATE',
+                [expenseId, req.session.userId]
+            );
 
-        if (currentResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Expense transaction not found' });
-        }
+            if (currentResult.rows.length === 0) {
+                throw new RequestError(404, 'Expense transaction not found');
+            }
 
-        const currentExpense = currentResult.rows[0];
+            const currentExpense = currentResult.rows[0];
 
-        // Begin transaction for balance updates
-        await pool.query('BEGIN');
-
-        try {
             // Reverse the previous transaction effect
             if (currentExpense.payment_method === 'bank') {
-                await pool.query(
+                await client.query(
                     'UPDATE banks SET current_balance = current_balance + $1 WHERE id = $2 AND user_id = $3',
                     [currentExpense.amount, currentExpense.payment_source_id, req.session.userId]
                 );
             } else if (currentExpense.payment_method === 'credit_card') {
-                await pool.query(
+                await client.query(
                     'UPDATE credit_cards SET used_limit = used_limit - $1 WHERE id = $2 AND user_id = $3',
                     [currentExpense.amount, currentExpense.payment_source_id, req.session.userId]
                 );
             } else if (currentExpense.payment_method === 'cash') {
-                await pool.query(
+                await client.query(
                     'UPDATE cash_balance SET balance = balance + $1 WHERE user_id = $2',
                     [currentExpense.amount, req.session.userId]
                 );
             }
 
             // Update the expense transaction
-            await pool.query(
+            await client.query(
                 'UPDATE expenses SET title = $1, amount = $2, payment_method = $3, payment_source_id = $4, date = $5, month = $6, year = $7 WHERE id = $8 AND user_id = $9',
                 [title, amount, paymentMethod, paymentSourceId, dateObj, month, year, expenseId, req.session.userId]
             );
 
             // Apply the new transaction effect
             if (paymentMethod === 'bank') {
-                await pool.query(
+                await client.query(
                     'UPDATE banks SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3',
                     [amount, paymentSourceId, req.session.userId]
                 );
             } else if (paymentMethod === 'credit_card') {
-                await pool.query(
+                await client.query(
                     'UPDATE credit_cards SET used_limit = used_limit + $1 WHERE id = $2 AND user_id = $3',
                     [amount, paymentSourceId, req.session.userId]
                 );
             } else if (paymentMethod === 'cash') {
-                await pool.query(
+                await client.query(
                     'UPDATE cash_balance SET balance = balance - $1 WHERE user_id = $2',
                     [amount, req.session.userId]
                 );
             }
 
-            await pool.query('COMMIT');
-
-            // Log activity for update
             await logActivity(
+                client,
                 req.session.userId,
                 'updated',
                 'expense',
@@ -1447,16 +1450,11 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
                 },
                 { title, amount, paymentMethod, paymentSourceId }
             );
+        });
 
-            res.json({ success: true, message: 'Expense transaction updated successfully' });
-
-        } catch (error) {
-            await pool.query('ROLLBACK');
-            throw error;
-        }
-
+        res.json({ success: true, message: 'Expense transaction updated successfully' });
     } catch (error) {
-        res.status(500).json({ error: 'An error occurred. Please try again.' });
+        sendError(res, error);
     }
 });
 
@@ -1465,50 +1463,44 @@ app.delete('/api/expenses/:id', requireAuth, async (req, res) => {
     try {
         const expenseId = req.params.id;
 
-        // Get current transaction for balance calculation
-        const currentResult = await pool.query(
-            'SELECT * FROM expenses WHERE id = $1 AND user_id = $2',
-            [expenseId, req.session.userId]
-        );
+        // Reversal, deletion and activity log commit together or not at all
+        await withTransaction(pool, async (client) => {
+            const currentResult = await client.query(
+                'SELECT * FROM expenses WHERE id = $1 AND user_id = $2 FOR UPDATE',
+                [expenseId, req.session.userId]
+            );
 
-        if (currentResult.rows.length === 0) {
-            return res.status(404).json({ error: 'Expense transaction not found' });
-        }
+            if (currentResult.rows.length === 0) {
+                throw new RequestError(404, 'Expense transaction not found');
+            }
 
-        const currentExpense = currentResult.rows[0];
+            const currentExpense = currentResult.rows[0];
 
-        // Begin transaction for balance updates
-        await pool.query('BEGIN');
-
-        try {
             // Reverse the transaction effect
             if (currentExpense.payment_method === 'bank') {
-                await pool.query(
+                await client.query(
                     'UPDATE banks SET current_balance = current_balance + $1 WHERE id = $2 AND user_id = $3',
                     [currentExpense.amount, currentExpense.payment_source_id, req.session.userId]
                 );
             } else if (currentExpense.payment_method === 'credit_card') {
-                await pool.query(
+                await client.query(
                     'UPDATE credit_cards SET used_limit = used_limit - $1 WHERE id = $2 AND user_id = $3',
                     [currentExpense.amount, currentExpense.payment_source_id, req.session.userId]
                 );
             } else if (currentExpense.payment_method === 'cash') {
-                await pool.query(
+                await client.query(
                     'UPDATE cash_balance SET balance = balance + $1 WHERE user_id = $2',
                     [currentExpense.amount, req.session.userId]
                 );
             }
 
-            // Delete the expense transaction
-            await pool.query(
+            await client.query(
                 'DELETE FROM expenses WHERE id = $1 AND user_id = $2',
                 [expenseId, req.session.userId]
             );
 
-            await pool.query('COMMIT');
-
-            // Log activity for deletion
             await logActivity(
+                client,
                 req.session.userId,
                 'deleted',
                 'expense',
@@ -1516,16 +1508,11 @@ app.delete('/api/expenses/:id', requireAuth, async (req, res) => {
                 `Deleted expense: ${currentExpense.title}`,
                 currentExpense.amount
             );
+        });
 
-            res.json({ success: true, message: 'Expense transaction deleted successfully' });
-
-        } catch (error) {
-            await pool.query('ROLLBACK');
-            throw error;
-        }
-
+        res.json({ success: true, message: 'Expense transaction deleted successfully' });
     } catch (error) {
-        res.status(500).json({ error: 'An error occurred. Please try again.' });
+        sendError(res, error);
     }
 });
 

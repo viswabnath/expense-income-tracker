@@ -74,11 +74,14 @@
           "<rootDir>/tests/server.test.js",
           "<rootDir>/tests/bank-deletion-fix.test.js",
           "<rootDir>/tests/cash-balance-activity.test.js",
-          "<rootDir>/tests/security-middleware.test.js"
+          "<rootDir>/tests/security-middleware.test.js",
+          "<rootDir>/tests/atomic-writes.test.js",
+          "<rootDir>/tests/transaction-helper.test.js"
         ],
         "collectCoverageFrom": [
           "server.js",
-          "setup-db.js"
+          "setup-db.js",
+          "lib/**/*.js"
         ],
         "setupFiles": [
           "<rootDir>/tests/env.js"

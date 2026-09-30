@@ -39,6 +39,17 @@ describe('Security middleware in production', () => {
         expect(csp).toContain('upgrade-insecure-requests');
     });
 
+    test('should refuse to start in production without SESSION_SECRET', () => {
+        // Empty rather than deleted: dotenv would refill a deleted variable from .env
+        const previous = process.env.SESSION_SECRET;
+        process.env.SESSION_SECRET = '';
+        try {
+            expect(() => loadServer('production')).toThrow('SESSION_SECRET must be set in production');
+        } finally {
+            process.env.SESSION_SECRET = previous;
+        }
+    });
+
     test('should export the Express app as the default export (required by Vercel)', () => {
         const exported = loadServer('production');
 
