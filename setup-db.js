@@ -8,8 +8,10 @@ const pool = new Pool({
     database: process.env.DB_NAME || 'expense_tracker',
     password: process.env.DB_PASSWORD || 'expense-tracker-2025',
     port: process.env.DB_PORT || 5432,
-    // For production SSL connection (required by most cloud providers)
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    // SSL for cloud providers; same rule as server.js
+    ssl: process.env.DB_SSL === 'true' || process.env.NODE_ENV === 'production'
+        ? { rejectUnauthorized: false }
+        : false
 });
 
 // Database schema setup
@@ -148,6 +150,8 @@ const createTables = async () => {
         console.log('Database tables created successfully!');
     } catch (error) {
         console.error('Error creating tables:', error);
+        // Exit non-zero so a failed migration is visible to scripts and CI
+        process.exitCode = 1;
     } finally {
         pool.end();
     }

@@ -261,7 +261,7 @@ describe('Database Setup Tests', () => {
         });
 
         test('should validate SSL configuration logic', () => {
-            const sslConfigMatch = setupDbCode.match(/ssl: process\.env\.NODE_ENV === 'production' \? .+ : false/);
+            const sslConfigMatch = setupDbCode.match(/ssl: process\.env\.DB_SSL === 'true' \|\| process\.env\.NODE_ENV === 'production'\s+\? .+\s+: false/);
             expect(sslConfigMatch).toBeTruthy();
             expect(sslConfigMatch[0]).toContain('{ rejectUnauthorized: false }');
         });
