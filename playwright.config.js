@@ -2,10 +2,13 @@
 const { defineConfig, devices } = require('@playwright/test');
 
 const PORT = Number(process.env.E2E_PORT || 3100);
+const LEGACY_PORT = PORT + 1;
 
 /**
- * End-to-end tests of real user flows. They start the app against the isolated
- * balancetrack_test schema, never production data (public).
+ * End-to-end tests of real user flows, run the way production routes traffic: a production
+ * build of Next.js on PORT, forwarding every path it does not own to the legacy Express app
+ * on LEGACY_PORT (see next.config.ts). Both use the isolated balancetrack_test schema, never
+ * production data (public).
  * Set E2E_BASE_URL to run them against an already running or deployed app instead.
  */
 module.exports = defineConfig({
@@ -26,15 +29,27 @@ module.exports = defineConfig({
     projects: [
         { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
     ],
-    webServer: process.env.E2E_BASE_URL ? undefined : {
-        command: 'node legacy/server.js',
-        url: `http://localhost:${PORT}`,
-        reuseExistingServer: false,
-        timeout: 60_000,
-        env: {
-            PORT: String(PORT),
-            NODE_ENV: 'test',
-            DB_SCHEMA: 'balancetrack_test',
+    webServer: process.env.E2E_BASE_URL ? undefined : [
+        {
+            command: 'node legacy/server.js',
+            url: `http://localhost:${LEGACY_PORT}`,
+            reuseExistingServer: false,
+            timeout: 60_000,
+            env: {
+                PORT: String(LEGACY_PORT),
+                NODE_ENV: 'test',
+                DB_SCHEMA: 'balancetrack_test',
+            },
         },
-    },
+        {
+            // Rewrites are fixed at build time, so LEGACY_URL is needed for the build too
+            command: `npx next build && npx next start --port ${PORT}`,
+            url: `http://localhost:${PORT}/next-health`,
+            reuseExistingServer: false,
+            timeout: 240_000,
+            env: {
+                LEGACY_URL: `http://localhost:${LEGACY_PORT}`,
+            },
+        },
+    ],
 });

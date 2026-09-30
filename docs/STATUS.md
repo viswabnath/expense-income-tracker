@@ -4,7 +4,7 @@ _Last reviewed: 2026-09-30_
 
 ## Summary
 
-The core features work: auth, accounts, transactions, the activity log and monthly summaries. The full test suite passes (342 passed, 2 skipped, 24 suites). The security gaps found on 2026-09-30 are fixed; the remaining [known issues](#known-issues) are low severity.
+The core features work: auth, accounts, transactions, the activity log and monthly summaries. The full test suite passes (356 passed, 2 skipped, 26 suites; plus 11 Playwright flows and 70 API contract tests). The security gaps found on 2026-09-30 are fixed; the remaining [known issues](#known-issues) are low severity.
 
 ## Features
 

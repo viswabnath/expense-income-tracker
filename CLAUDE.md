@@ -57,9 +57,12 @@ The Supabase database in `.env` is also production. Production data is in the `p
 
 ### Migration layout (Next.js, in progress: see `docs/nextjs-migration-plan.md`)
 - `legacy/`: the current Express app (`server.js`, `public/`, `lib/transaction.js`, own `package.json`). It still serves every page and API route.
-- `app/`, `lib/*.ts`: the Next.js 16 app (App Router, TypeScript strict). Until N2 it only serves `/next-health`.
+- `app/`, `components/`, `lib/*.ts`: the Next.js 16 app (App Router, TypeScript strict). It serves the public pages `/about`, `/security`, `/privacy`, `/terms` (route group `app/(public)`) and `/next-health`; everything else is still Express.
 - `vercel.json` defines two Vercel Services (`web` = Next.js at `./`, `legacy` = Express at `legacy/`), with rewrites deciding which one gets each path. To move a path to Next.js, add a rewrite above the catch-all.
-- Locally, `npm run dev` mirrors this: `next.config.ts` forwards unhandled paths to Express via `LEGACY_DEV_URL`.
+- Locally, `npm run dev` and Playwright mirror this: `next.config.ts` forwards unhandled paths to Express when `LEGACY_URL` is set (it must be set at build time too, since rewrites are fixed by `next build`).
+- **Adding a Next.js page takes three edits:** the page in `app/`, its path in the `web` rewrite in `vercel.json`, and its path in the `proxy.ts` matcher. Also exclude it from the legacy-only CSP header rule in `vercel.json`. `tests/unit/routing.test.ts` fails if they disagree.
+- **CSP for Next.js pages:** `proxy.ts` sets a per-request nonce policy built by `lib/csp.ts`, and pages read `headers()` so they render per request. Never add inline scripts; bundle third-party code from npm instead of loading it from a CDN.
+- Ported screens reuse `legacy/public/css/fintech-theme.css` (imported in `app/(public)/layout.tsx`) and keep the legacy class names, so they look the same until the redesign pass.
 - `lib/transaction.ts` (Next.js) and `legacy/lib/transaction.js` (Express) must behave identically until Express is removed.
 - New server code goes in `lib/` with no Next.js imports; financial logic goes in `src/core/`.
 
