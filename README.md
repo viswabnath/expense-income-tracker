@@ -143,7 +143,7 @@ BalanceTrack is a full-stack web application that allows users to:
 
 ## 📚 API Documentation
 
-Full request/response reference: [API-DOCUMENTATION.md](API-DOCUMENTATION.md).
+Full request/response reference: [docs/API.md](docs/API.md).
 
 ### Authentication Endpoints
 - `POST /api/register`, `POST /api/login`, `POST /api/logout`
@@ -306,8 +306,8 @@ npm run docker:logs
 ## 🆘 Support
 
 ### Documentation
-- [API-DOCUMENTATION.md](API-DOCUMENTATION.md) - endpoint reference
-- [PROJECT-COMPLETENESS-ANALYSIS.md](PROJECT-COMPLETENESS-ANALYSIS.md) - current status and known issues
+- [docs/API.md](docs/API.md) - endpoint reference
+- [docs/STATUS.md](docs/STATUS.md) - current status and known issues
 - [CLAUDE.md](CLAUDE.md) - codebase guide for Claude Code
 
 ### Troubleshooting

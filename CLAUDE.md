@@ -46,7 +46,7 @@ Backend tests connect to the database in `.env` (no separate test DB) and delete
 ## Architecture
 
 ### Backend (`server.js`)
-Single-file Express.js server. All routes live here. Key patterns:
+Single-file Express.js server. All routes live here. When you add or change a route, update `docs/API.md` to match. Key patterns:
 - `requireAuth` middleware guards all `/api/*` routes except auth endpoints
 - `logActivity()` is called after every mutating operation to write to `activity_log`
 - Sessions stored in PostgreSQL via `connect-pg-simple`

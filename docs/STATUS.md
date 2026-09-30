@@ -4,7 +4,7 @@ _Last reviewed: 2026-09-30_
 
 ## Summary
 
-The core features work: auth, accounts, transactions, the activity log and monthly summaries. The full test suite passes (291 passed, 2 skipped, 20 suites). A few security settings are still in their "development" state and need to change before this can be called production-ready. See [Known issues](#known-issues).
+The core features work: auth, accounts, transactions, the activity log and monthly summaries. The full test suite passes (291 passed, 2 skipped, 20 suites). The security gaps found on 2026-09-30 are fixed; the remaining [known issues](#known-issues) are low severity.
 
 ## Features
 
