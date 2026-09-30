@@ -1,0 +1,162 @@
+# Next.js migration plan
+
+_Drafted 2026-09-30, after Phase 0 (`c03c72b`). Nothing in this plan is implemented yet._
+
+## Goal and constraints
+
+Move BalanceTrack from plain JavaScript plus Express to Next.js (App Router, TypeScript) on Vercel, without changing behaviour. Specifically:
+
+- **Same behaviour.** Every screen and API response works as it does today. Known bugs are carried over unchanged and fixed separately (see the audit).
+- **Nobody is logged out.** Sessions created by Express keep working after each route moves.
+- **No data changes.** The migration touches code only. The database schema, including the `session` table, stays as it is.
+- **Deployable at every step.** Each step ships to production on its own. There is never a long-lived branch holding half an app.
+
+Versions at time of writing: Next.js 16.3.7 (requires Node 20.9+), React 19.3, TypeScript 7.0, Playwright 1.63.
+
+## Strategy: replace piece by piece, not all at once
+
+Rewriting 31 API routes and 10 screens in one go would leave nothing to compare against until the end. Instead, the Next.js app and the existing Express API run side by side in **one Vercel project**, using Vercel Services:
+
+```json
+{
+  "services": {
+    "web": { "root": "./" },
+    "legacy_api": { "root": "legacy/", "framework": "express" }
+  },
+  "rewrites": [
+    { "source": "/(setup|transactions)", "destination": { "service": "web" } },
+    { "source": "/(.*)", "destination": { "service": "legacy_api" } }
+  ]
+}
+```
+
+At first everything still goes to the legacy service, which serves both the old pages and `/api`. Each migration step adds one rule sending a path to Next.js: first screens (as in the example), then API route groups. When the legacy service no longer receives anything, Express is deleted.
+
+Both services sit under one domain, so the session cookie (`sessionId`, `SameSite=strict`) reaches both without changes.
+
+## Target layout (no monorepo)
+
+```
+app/                    Next.js App Router
+  (auth)/login, register, forgot-username, forgot-password
+  (app)/setup, transactions, summary, activity, welcome
+  (public)/about, security, privacy, terms
+  api/...               Route handlers (thin: parse request, call lib, return JSON)
+components/             React components built on the design tokens
+src/core/               Framework-free financial logic (money, EMI, schedules...), per the brief
+lib/                    Server-only, framework-free: db pool, transaction.ts, session.ts,
+                        rate-limit.ts, services/ (accounts, transactions, summary, activity)
+styles/tokens.css       Design tokens (Source Sans 3, light/dark)
+proxy.ts                CSP nonce and security headers
+legacy/                 Express app + old public/ during the migration; deleted at the end
+tests/
+  api/                  API contract tests (real DB, test schema), run against either implementation
+  e2e/                  Playwright tests of real user flows
+  unit/                 src/core and lib unit tests
+```
+
+The rules the brief asks for:
+- `src/core` imports nothing from React, Next.js, `pg` or Supabase.
+- `lib/` imports nothing from Next.js.
+- Route handlers stay under about 20 lines each, with the logic in `lib/services`.
+
+## Steps
+
+Each step ends with every test passing, a production deploy, and a stop for approval.
+
+### N0. Safety net (before any migration code)
+1. **Playwright tests of today's app**: register, choose tracking mode, add bank, card and cash, add, edit and delete income and expenses, month summary, activity filter and CSV export, logout, and the forgot-username and forgot-password flows. They run against the current app and must pass there first.
+2. **API contract suite**: turn the real-database Jest tests (`integration`, `atomic-writes`, `edge-cases`, `api`, `bank-deletion-fix`, `cash-balance-activity`, `security-middleware`) into HTTP-level tests with a configurable base URL, so the same suite can check Express and Next.js.
+3. Tests that mock `pg` and only exist for coverage of `server.js` internals are marked for deletion with Express. They cannot test a new implementation.
+
+### N1. Scaffold alongside Express
+- `git mv` `server.js`, `public/`, `setup-db.js`, `reset-test-db.js` and `test-helpers.js` into `legacy/`, and update require paths. No code changes.
+- Add Next.js 16 (App Router, TypeScript, strict mode) at the repo root. Add the Services config and rewrites above. Configure ESLint and `tsc --noEmit`.
+- Convert `lib/transaction.js` to TypeScript with the same behaviour. It is shared by both apps until Express is removed.
+- Local development: `next dev` on port 3000 with a rewrite of `/api/*` to Express on port 3001.
+- **Exit:** with only the catch-all rewrite to the legacy service, the deployed site behaves exactly as before, and all tests pass. The Next.js app is deployed but receives no traffic yet.
+
+### N2. Screens to React (Express API unchanged)
+Port one screen per step, each behind its Playwright test. The first ones use the existing `fintech-theme.css` so nothing changes visually. The redesign is a separate later pass, as the brief requires.
+
+| Old section | New route | Old module(s) |
+|---|---|---|
+| auth-section | `/login`, `/register`, `/forgot-username`, `/forgot-password` | `auth.js` |
+| welcome-section | `/welcome` | `auth.js` (tracking choice) |
+| setup-section | `/setup` | `setup-manager.js` |
+| transactions-section | `/transactions` | `transaction-manager.js` |
+| summary-section | `/summary` | `summary-manager.js` |
+| activity-section | `/activity` | `activity-manager.js` |
+| about / security / privacy / terms | `/about`, `/security`, `/privacy`, `/terms` | static HTML |
+
+Other changes in this step:
+- Each section becomes a real URL, so the browser back button and deep links start working. That is the only behaviour addition.
+- `navigation-manager.js`, `event-handlers.js`, `initialization.js`, `module-validator.js` and `toast-manager.js` are replaced by the Next.js layout, React events and one toast component.
+- `api.js` becomes a typed fetch client.
+
+### N3. API routes to route handlers (group by group)
+Each group moves its logic from `legacy/server.js` into `lib/services/*.ts`, adds thin handlers under `app/api`, and adds a rewrite sending its paths to the web service. The contract suite runs against both implementations before the switch.
+
+| Group | Routes | Notes |
+|---|---|---|
+| Session and auth | `POST register, login, logout, forgot-username, forgot-password, reset-password`; `GET user`; `POST set-tracking-option` | Needs `lib/session.ts` (below) and `lib/rate-limit.ts` |
+| Accounts | `GET/POST banks`, `PUT/DELETE banks/:id`, `GET/POST credit-cards`, `PUT/DELETE credit-cards/:id`, `GET/POST cash-balance` | |
+| Transactions | `GET/POST income`, `GET/PUT/DELETE income/:id`, `GET/POST expenses`, `GET/PUT/DELETE expenses/:id` | Keep `withTransaction` and `FOR UPDATE` exactly |
+| Reports | `GET monthly-summary`, `GET activity` (including CSV export) | |
+
+Route handlers use the Node.js runtime, never Edge, because `pg` and bcrypt need Node APIs.
+
+**Order:** accounts, then transactions, then reports, then auth last. Auth is last because while any Express route remains, both apps must read the same session, and moving auth last keeps session creation in Express until the end.
+
+### N4. Remove Express
+- Delete `legacy/`, the Services config and rewrites (Next.js becomes a plain project again) and the mocked-`pg` tests.
+- Move security headers from `vercel.json` into `proxy.ts` and `next.config.ts` (below).
+- Update the README, `CLAUDE.md` and `docs/API.md`.
+
+## Sessions: staying compatible
+
+Express signs the cookie as `s:<sid>.<HMAC-SHA256 of sid with SESSION_SECRET>` and stores the session in the `session` table (`sid`, `sess` JSON with `cookie` and `userId`, `expire`). `lib/session.ts` reimplements the parts in use:
+- **Read:** verify the signature with `cookie-signature` (the same package Express uses), then `SELECT sess FROM session WHERE sid = $1 AND expire > now()`.
+- **Create (login and register):** generate a new `sid`, which also covers the current session-fixation regeneration. Insert the row with the same JSON shape and a 2-hour expiry, and set a `sessionId` cookie with `httpOnly`, `SameSite=strict` and `Secure` in production.
+- **Destroy (logout):** delete the row and clear `sessionId`. This also fixes the audit finding where logout cleared the wrong cookie name.
+
+Unit tests prove the round trip in both directions: a cookie signed by `express-session` is accepted by `lib/session.ts`, and one signed by `lib/session.ts` is accepted by `express-session`. That compatibility is what lets both apps run at once.
+
+## Security headers and CSP
+
+- Next.js needs inline scripts to load pages in the browser, so the current `script-src 'self'` policy would block the app. `proxy.ts` generates a nonce per request and sends `script-src 'self' 'nonce-<n>' 'strict-dynamic'`, and Next.js applies that nonce to its own scripts. The catch is that nonce pages must be rendered per request. This app's pages are all personal data, so they would be rendered per request anyway.
+- The chart library (decision 6) is installed from npm and bundled, so no external script origin is needed. Lucide becomes the `lucide-react` package, which lets `https://unpkg.com` be removed from the policy.
+- The other headers (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Strict-Transport-Security`, `Cross-Origin-Opener-Policy`) move to `next.config.ts` `headers()`. A test checks them, like the current `vercel.json` parity test.
+- The production HTTP to HTTPS redirect is dropped. Vercel already serves HTTPS only.
+
+## Rate limiting
+
+`express-rate-limit` does not work in route handlers. `lib/rate-limit.ts` gives the same behaviour (5 failed auth attempts per 15 minutes per IP, 100 requests per minute) with the same in-memory, per-instance limits as today, so nothing regresses. It is written behind an interface, so a shared store (for example Upstash Redis) can replace it later without touching the handlers.
+
+## Testing
+
+| Suite | Runs against | Purpose |
+|---|---|---|
+| Playwright e2e | Deployed preview and local | The same user flows before and after every step |
+| API contract (Jest, real DB test schema) | Express and Next.js via base URL | Same responses, balances and activity log entries |
+| Unit (`src/core`, `lib`) | In process | Money math, sessions, transactions, rate limiting |
+| `tsc --noEmit`, ESLint, `next build` | CI | The brief's type-check, lint and build requirements |
+
+The existing protections stay: the test schema guard, the no-emoji test and the no-`pool.query('BEGIN')` guard.
+
+## Risks
+
+| Risk | Mitigation |
+|---|---|
+| Users logged out mid-migration | Session format compatibility, proven by the round-trip tests |
+| Behaviour drift while porting screens | Playwright flows written against the old app first |
+| Vercel Services is a newer feature | Before N1, deploy the Services config to a preview first. Fallback: a Next.js `rewrites()` fallback to the Express deployment URL |
+| Every page rendered per request because of CSP nonces | Acceptable for a logged-in finance app. Public pages (about, terms) can stay static by leaving them out of the nonce policy |
+| Two copies of a route during N3 | Each group switches in one deploy. The contract suite must pass on both before the rewrite is removed |
+| Migration drags on | Every step deploys on its own and is useful alone. No long-lived branch |
+
+## Open questions
+
+1. **Expenses-only users** (carried over from Phase 0): should editing or deleting an expense change balances? The migration keeps today's inconsistent behaviour until you decide.
+2. **Public pages:** should `/about`, `/security`, `/privacy` and `/terms` be viewable without logging in (today they are only reachable from the logged-in footer)? The brief's public EMI calculator suggests yes.
+3. **Order relative to v2 Phase 1:** this plan finishes the migration (N0–N4) before starting v2 Phase 1, so new features are only built once, in Next.js. The alternative is to start Phase 1 after N3's accounts group, but new screens would then be written against a half-migrated app.
