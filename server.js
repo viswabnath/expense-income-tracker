@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 3000;
 app.set('trust proxy', 1);
 
 // Database connection
-console.log('📊 Setting up database connection...');
+console.log('Setting up database connection...');
 console.log('Database config:');
 console.log('- Host:', process.env.DB_HOST);
 console.log('- Port:', process.env.DB_PORT);
@@ -42,11 +42,11 @@ const pool = new Pool({
 if (process.env.NODE_ENV !== 'test') {
     pool.connect()
         .then(client => {
-            console.log('✅ Database connected successfully!');
+            console.log('Database connected successfully!');
             client.release();
         })
         .catch(err => {
-            console.error('❌ Database connection failed:');
+            console.error('Database connection failed:');
             console.error('Error code:', err.code);
             console.error('Error message:', err.message);
             console.error('Error details:', err);
@@ -2006,32 +2006,32 @@ function cleanup() {
 
 // Only start server if this file is run directly (not imported for testing)
 if (require.main === module) {
-    console.log('🚀 Starting Express server...');
+    console.log('Starting Express server...');
     const server = app.listen(PORT, '0.0.0.0', () => {
-        console.log(`✅ Server running on port ${PORT}`);
-        console.log(`🌐 Environment: ${process.env.NODE_ENV}`);
-        console.log(`🔗 Database: ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`);
-        console.log('🎉 BalanceTrack is ready!');
+        console.log(`Server running on port ${PORT}`);
+        console.log(`Environment: ${process.env.NODE_ENV}`);
+        console.log(`Database: ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`);
+        console.log('BalanceTrack is ready!');
     });
 
     // Graceful shutdown
     process.on('SIGTERM', async () => {
-        console.log('🛑 SIGTERM received, shutting down gracefully...');
+        console.log('SIGTERM received, shutting down gracefully...');
         server.close(() => {
-            console.log('✅ HTTP server closed');
+            console.log('HTTP server closed');
             cleanup().then(() => {
-                console.log('✅ Database connections closed');
+                console.log('Database connections closed');
                 process.exit(0);
             });
         });
     });
 
     process.on('SIGINT', async () => {
-        console.log('🛑 SIGINT received, shutting down gracefully...');
+        console.log('SIGINT received, shutting down gracefully...');
         server.close(() => {
-            console.log('✅ HTTP server closed');
+            console.log('HTTP server closed');
             cleanup().then(() => {
-                console.log('✅ Database connections closed');
+                console.log('Database connections closed');
                 process.exit(0);
             });
         });

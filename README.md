@@ -2,7 +2,7 @@
 
 A comprehensive web application for tracking personal finances, expenses, and income with secure authentication and real-time data management.
 
-##  Project Overview
+## Project Overview
 
 BalanceTrack is a full-stack web application that allows users to:
 - Track income from multiple sources
@@ -11,7 +11,7 @@ BalanceTrack is a full-stack web application that allows users to:
 - Generate monthly financial summaries
 - View real-time wealth calculations
 
-## 🏗️ Architecture
+## Architecture
 
 ### Frontend
 - **Technology**: Vanilla JavaScript with modular architecture
@@ -38,55 +38,55 @@ BalanceTrack is a full-stack web application that allows users to:
 - **Transactions**: Income and expense tracking with categorization
 - **Enhanced Precision**: DECIMAL(20,2) for very large amounts
 
-## 🚀 Features
+## Features
 
 ### Authentication & Security
-- ✅ Secure user registration and login
-- ✅ Password strength validation
-- ✅ Security question-based password reset
-- ✅ Session management with secure cookies
-- ✅ General rate limiting (100 requests/minute per IP)
-- ✅ Auth-endpoint rate limiting (5 failed attempts per 15 minutes; off in development/test)
-- ✅ Parameterized SQL queries
-- ✅ **CSP-compliant frontend** (no inline scripts or handlers)
-- ✅ **Helmet.js security headers and Content-Security-Policy**
-- ✅ HTTP → HTTPS redirect in production
-- ✅ **CSRF protection with SameSite cookies**
+- Secure user registration and login
+- Password strength validation
+- Security question-based password reset
+- Session management with secure cookies
+- General rate limiting (100 requests/minute per IP)
+- Auth-endpoint rate limiting (5 failed attempts per 15 minutes; off in development/test)
+- Parameterized SQL queries
+- **CSP-compliant frontend** (no inline scripts or handlers)
+- **Helmet.js security headers and Content-Security-Policy**
+- HTTP → HTTPS redirect in production
+- **CSRF protection with SameSite cookies**
 
 ### Financial Management
-- ✅ Multiple bank account management
-- ✅ Credit card tracking with limits
-- ✅ Cash balance management
-- ✅ Income tracking from various sources
-- ✅ Expense categorization and tracking
-- ✅ Real-time balance calculations
-- ✅ **Professional 2-hour session timeout policy**
-- ✅ **Dedicated Resource Pages (About, Security, Privacy, Terms)**
-- ✅ **Structured Ledger Tables with row borders and hover effects**
+- Multiple bank account management
+- Credit card tracking with limits
+- Cash balance management
+- Income tracking from various sources
+- Expense categorization and tracking
+- Real-time balance calculations
+- **Professional 2-hour session timeout policy**
+- **Dedicated Resource Pages (About, Security, Privacy, Terms)**
+- **Structured Ledger Tables with row borders and hover effects**
 
 
 ### Advanced Features
-- ✅ Monthly financial summaries
-- ✅ Wealth tracking (banks + cash)
-- ✅ Net savings calculations
-- ✅ Historical data analysis
-- ✅ Support for very large amounts (up to 999,999,999,999,999,999.99)
-- ✅ Flexible tracking options (income only, expenses only, or both)
-- ✅ **Mobile-responsive design with touch-friendly interface**
-- ✅ **Real-time data synchronization**
-- ✅ **Enhanced activity feed with unified transaction history and change tracking**
-- ✅ **Beautiful gradient UI with smooth animations**
-- ✅ **Advanced filtering and search capabilities**
-- ✅ **Comprehensive activity logging with old/new value comparison**
-- ✅ **Entity-specific action descriptions and account information display**
+- Monthly financial summaries
+- Wealth tracking (banks + cash)
+- Net savings calculations
+- Historical data analysis
+- Support for very large amounts (up to 999,999,999,999,999,999.99)
+- Flexible tracking options (income only, expenses only, or both)
+- **Mobile-responsive design with touch-friendly interface**
+- **Real-time data synchronization**
+- **Enhanced activity feed with unified transaction history and change tracking**
+- **Beautiful gradient UI with smooth animations**
+- **Advanced filtering and search capabilities**
+- **Comprehensive activity logging with old/new value comparison**
+- **Entity-specific action descriptions and account information display**
 
 ### Data Integrity
-- ✅ Automatic balance updates
-- ✅ Transaction validation
-- ✅ Date-based filtering
-- ✅ Concurrent operation safety
+- Automatic balance updates
+- Transaction validation
+- Date-based filtering
+- Concurrent operation safety
 
-## 🛠️ Installation & Setup
+## Installation & Setup
 
 ### Prerequisites
 - Node.js (v18 or higher)
@@ -141,7 +141,7 @@ BalanceTrack is a full-stack web application that allows users to:
 6. **Access the application**
    Open your browser and navigate to `http://localhost:3000`
 
-## 📚 API Documentation
+## API Documentation
 
 Full request/response reference: [docs/API.md](docs/API.md).
 
@@ -161,11 +161,11 @@ Full request/response reference: [docs/API.md](docs/API.md).
 - `GET /api/monthly-summary` - Monthly financial summary
 - `GET /api/activity` - Activity feed with filtering, pagination and CSV export
 
-## 🧪 Testing
+## Testing
 
 Jest runs two projects defined in `package.json`: **backend** (node environment, real database) and **frontend** (jsdom).
 
-> ⚠️ Backend tests run against the database configured in `.env` and **delete all rows** in the app tables (`npm run test:clean` resets it first). Point `.env` at a dedicated test database before running them.
+> **Warning:** Backend tests run against the database configured in `.env` and **delete all rows** in the app tables (`npm run test:clean` resets it first). Point `.env` at a dedicated test database before running them.
 
 ### Test Coverage
 - **Backend API Testing**: Server endpoints and authentication
@@ -199,7 +199,7 @@ npm run test:coverage
 - **Backend:** `server`, `api`, `integration`, `edge-cases`, `activity-endpoint`, `setup-db`, `setup-db-coverage`, `comprehensive-server-coverage`, `server-edge-coverage`, `bank-deletion-fix`, `cash-balance-activity`
 - **Frontend:** `auth`, `frontend-integration`, `frontend-coverage`, `modular-architecture`, `activity-table-coverage`, `smart-cash-button`, `enhanced-summary-messages`, `csp-compliance`
 
-## 🔧 NPM Scripts
+## NPM Scripts
 
 | Script | What it does |
 |---|---|
@@ -213,17 +213,17 @@ npm run test:coverage
 | `npm run lint` / `lint:fix` | ESLint |
 | `npm run deploy:*`, `npm run docker:*` | Use `deploy.sh`, `Dockerfile` and `docker-compose.yml`, which are gitignored and only exist locally |
 
-## 🏢 Production Deployment
+## Production Deployment
 
 > **Note**: The application is ready for production deployment on any platform that supports Node.js and PostgreSQL.
 
 ### Security Checklist
-- ✅ Environment variables configured
-- ✅ Session secrets generated securely
-- ✅ HTTPS enabled (for production)
-- ✅ Rate limiting configured
-- ✅ Error handling secured
-- ✅ Database connections secured
+- Environment variables configured
+- Session secrets generated securely
+- HTTPS enabled (for production)
+- Rate limiting configured
+- Error handling secured
+- Database connections secured
 
 ### Environment Configuration
 ```env
@@ -233,7 +233,7 @@ DB_SSL=true
 PORT=443
 ```
 
-## 🐳 Docker Deployment
+## Docker Deployment
 
 ### Docker Setup
 The application includes Docker configuration for easy deployment:
@@ -262,28 +262,28 @@ npm run docker:logs
 ### Render Deployment
 `render.yaml` defines a free-tier web service plus a Render PostgreSQL database (`balancetrack-db`). The `DB_*` variables are wired from that database, `SESSION_SECRET` is generated, and `DB_SSL=true` is set. The Supabase database in the local `.env` is used for development and tests only.
 
-## 📈 Performance & Scalability
+## Performance & Scalability
 
 ### Optimizations Implemented
-- ✅ Modular frontend architecture (50% reduction in API calls)
-- ✅ Efficient database queries with indexing
-- ✅ Session-based authentication (minimal overhead)
-- ✅ Static file serving optimization
-- ✅ Connection pooling for database
-- ✅ **CSP-compliant security (no inline JavaScript)**
-- ✅ **Mobile-optimized responsive design**
-- ✅ **Production deployment ready with Docker and cloud platform support**
+- Modular frontend architecture (50% reduction in API calls)
+- Efficient database queries with indexing
+- Session-based authentication (minimal overhead)
+- Static file serving optimization
+- Connection pooling for database
+- **CSP-compliant security (no inline JavaScript)**
+- **Mobile-optimized responsive design**
+- **Production deployment ready with Docker and cloud platform support**
 
 ### Scalability Features
-- ✅ Sessions stored in PostgreSQL (`connect-pg-simple`), so multiple app instances can share them
-- ✅ Environment-based configuration
+- Sessions stored in PostgreSQL (`connect-pg-simple`), so multiple app instances can share them
+- Environment-based configuration
 
-## 🐛 Debugging & Monitoring
+## Debugging & Monitoring
 
 - Server errors are logged to the console with `console.error`.
 - `public/js/module-validator.js` checks that the frontend modules loaded (used by the tests; not loaded by `index.html`).
 
-## 🤝 Contributing
+## Contributing
 
 ### Development Setup
 1. Fork the repository
@@ -299,11 +299,11 @@ npm run docker:logs
 - Comprehensive test coverage required
 - Security-first development approach
 
-## 📄 License
+## License
 
 `package.json` declares the ISC license. There is no LICENSE file in the repository yet.
 
-## 🆘 Support
+## Support
 
 ### Documentation
 - [docs/API.md](docs/API.md) - endpoint reference
@@ -318,4 +318,4 @@ npm run docker:logs
 
 ---
 
-**BalanceTrack** - Your complete solution for personal financial management! 💰📊
+**BalanceTrack** - Your complete solution for personal financial management!

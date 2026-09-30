@@ -166,7 +166,7 @@ async function setupTestEnvironment(customData = {}) {
         const existingUser = await query('SELECT * FROM users WHERE username = $1', ['testuser']);
         if (existingUser.rows.length > 0) {
             user = existingUser.rows[0];
-            console.log('🔄 Reusing existing test user:', user.username);
+            console.log('Reusing existing test user:', user.username);
         }
     } catch {
         // User doesn't exist, we'll create one
@@ -174,7 +174,7 @@ async function setupTestEnvironment(customData = {}) {
 
     // Only clear and recreate if no user exists
     if (!user) {
-        console.log('🧹 Creating fresh test environment...');
+        console.log('Creating fresh test environment...');
         await clearTestData();
         user = await createTestUser(customData.user);
     }

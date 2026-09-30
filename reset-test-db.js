@@ -22,35 +22,35 @@ async function resetTestDatabase() {
     const client = await pool.connect();
     
     try {
-        console.log('🧹 Starting test database reset...');
+        console.log('Starting test database reset...');
 
         // Begin transaction
         await client.query('BEGIN');
 
         // Delete all data in the correct order (respecting foreign key constraints)
-        console.log('📋 Clearing activity logs...');
+        console.log('Clearing activity logs...');
         await client.query('DELETE FROM activity_log');
 
-        console.log('💸 Clearing expenses...');
+        console.log('Clearing expenses...');
         await client.query('DELETE FROM expenses');
 
-        console.log('💰 Clearing income entries...');
+        console.log('Clearing income entries...');
         await client.query('DELETE FROM income_entries');
 
-        console.log('💵 Clearing cash balances...');
+        console.log('Clearing cash balances...');
         await client.query('DELETE FROM cash_balance');
 
-        console.log('💳 Clearing credit cards...');
+        console.log('Clearing credit cards...');
         await client.query('DELETE FROM credit_cards');
 
-        console.log('🏦 Clearing banks...');
+        console.log('Clearing banks...');
         await client.query('DELETE FROM banks');
 
-        console.log('👤 Clearing users...');
+        console.log('Clearing users...');
         await client.query('DELETE FROM users');
 
         // Reset sequences to start from 1
-        console.log('🔄 Resetting sequences...');
+        console.log('Resetting sequences...');
         await client.query('ALTER SEQUENCE users_id_seq RESTART WITH 1');
         await client.query('ALTER SEQUENCE banks_id_seq RESTART WITH 1');
         await client.query('ALTER SEQUENCE credit_cards_id_seq RESTART WITH 1');
@@ -63,7 +63,7 @@ async function resetTestDatabase() {
         await client.query('COMMIT');
 
         // Verify cleanup
-        console.log('✅ Verifying cleanup...');
+        console.log('Verifying cleanup...');
         const counts = await Promise.all([
             client.query('SELECT COUNT(*) FROM users'),
             client.query('SELECT COUNT(*) FROM banks'),
@@ -78,7 +78,7 @@ async function resetTestDatabase() {
             result => parseInt(result.rows[0].count)
         );
 
-        console.log('📊 Final counts:');
+        console.log('Final counts:');
         console.log(`  Users: ${users}`);
         console.log(`  Banks: ${banks}`);
         console.log(`  Credit Cards: ${creditCards}`);
@@ -88,14 +88,14 @@ async function resetTestDatabase() {
         console.log(`  Activity Logs: ${activities}`);
 
         if (users + banks + creditCards + income + expenses + cash + activities === 0) {
-            console.log('✅ Database successfully reset to clean state!');
+            console.log('Database successfully reset to clean state!');
         } else {
-            console.log('⚠️  Warning: Some data may remain in the database');
+            console.log('Warning: Some data may remain in the database');
         }
 
     } catch (error) {
         await client.query('ROLLBACK');
-        console.error('❌ Error resetting database:', error);
+        console.error('Error resetting database:', error);
         throw error;
     } finally {
         client.release();
@@ -107,7 +107,7 @@ async function createTestUser() {
     const client = await pool.connect();
     
     try {
-        console.log('👤 Creating test user...');
+        console.log('Creating test user...');
         
         const bcrypt = require('bcryptjs');
         const hashedPassword = await bcrypt.hash('TestPass123&', 10);
@@ -127,11 +127,11 @@ async function createTestUser() {
             ]
         );
 
-        console.log(`✅ Test user created with ID: ${result.rows[0].id}`);
+        console.log(`Test user created with ID: ${result.rows[0].id}`);
         return result.rows[0].id;
 
     } catch (error) {
-        console.error('❌ Error creating test user:', error);
+        console.error('Error creating test user:', error);
         throw error;
     } finally {
         client.release();
@@ -147,7 +147,7 @@ async function main() {
         const skipConfirmation = args.includes('--yes') || args.includes('-y');
 
         if (!skipConfirmation && process.env.NODE_ENV === 'production') {
-            console.log('⚠️  WARNING: You are about to reset the PRODUCTION database!');
+            console.log('WARNING: You are about to reset the PRODUCTION database!');
             console.log('This will delete ALL data permanently.');
             console.log('Use --yes flag if you really want to proceed.');
             process.exit(1);
@@ -155,7 +155,7 @@ async function main() {
 
         // Test database connection
         const client = await pool.connect();
-        console.log('✅ Database connection successful');
+        console.log('Database connection successful');
         client.release();
 
         // Reset database
@@ -166,14 +166,14 @@ async function main() {
             await createTestUser();
         }
 
-        console.log('\n🎉 Test database reset completed successfully!');
+        console.log('\nTest database reset completed successfully!');
         
         if (!createUser) {
-            console.log('\n💡 Tip: Use --with-user flag to create a test user automatically');
+            console.log('\nTip: Use --with-user flag to create a test user automatically');
         }
 
     } catch (error) {
-        console.error('\n❌ Failed to reset test database:', error);
+        console.error('\nFailed to reset test database:', error);
         process.exit(1);
     } finally {
         await pool.end();

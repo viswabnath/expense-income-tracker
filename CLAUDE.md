@@ -43,6 +43,10 @@ NODE_ENV=development
 
 Backend tests connect to the database in `.env` (no separate test DB) and delete all rows in the app tables. The local `.env` points at the development Supabase database; production uses the Render database from `render.yaml`. Confirm the target DB before running backend tests. Run `npm run test:clean` for a clean run. `testTimeout` is 30s because of the remote database round trips, and `maxWorkers` is 1 because suites share one database (parallel runs hang on the Supabase pooler and clobber each other's data).
 
+## Conventions
+
+- **No emoji anywhere**: not in the UI (`public/`), docs, README, or console/log messages. Use plain text labels such as `Warning:` instead. `tests/no-emoji.test.js` enforces this.
+
 ## Architecture
 
 ### Backend (`server.js`)

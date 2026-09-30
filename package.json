@@ -98,7 +98,8 @@
           "<rootDir>/tests/activity-table-coverage.test.js",
           "<rootDir>/tests/smart-cash-button.test.js",
           "<rootDir>/tests/enhanced-summary-messages.test.js",
-          "<rootDir>/tests/csp-compliance.test.js"
+          "<rootDir>/tests/csp-compliance.test.js",
+          "<rootDir>/tests/no-emoji.test.js"
         ],
         "collectCoverageFrom": [
           "public/js/**/*.js",

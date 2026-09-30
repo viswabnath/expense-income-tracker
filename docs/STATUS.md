@@ -4,7 +4,7 @@ _Last reviewed: 2026-09-30_
 
 ## Summary
 
-The core features work: auth, accounts, transactions, the activity log and monthly summaries. The full test suite passes (291 passed, 2 skipped, 20 suites). The security gaps found on 2026-09-30 are fixed; the remaining [known issues](#known-issues) are low severity.
+The core features work: auth, accounts, transactions, the activity log and monthly summaries. The full test suite passes (313 passed, 2 skipped, 21 suites). The security gaps found on 2026-09-30 are fixed; the remaining [known issues](#known-issues) are low severity.
 
 ## Features
 
@@ -45,7 +45,7 @@ The core features work: auth, accounts, transactions, the activity log and month
 | Project | Environment | Suites | Notes |
 |---|---|---|---|
 | backend | node | 12 | Uses the real database from `.env` |
-| frontend | jsdom | 8 | `fetch` is mocked |
+| frontend | jsdom | 9 | `fetch` is mocked; includes the no-emoji check |
 
 - `npm run test:clean` resets the database and runs everything.
 - **Backend tests delete all rows in the app tables.** `.env` currently points at the development Supabase database. Production runs on Render's own database (`render.yaml`), so tests do not touch it.
