@@ -311,7 +311,7 @@ jest.mock('pg', () => {
 });
 
 // Import the actual server app AFTER mocking
-const { app, pool: serverPool } = require('../server');
+const { app, pool: serverPool } = require('../legacy/server');
 
 // Test database configuration - now mocked
 const testPool = new Pool({});

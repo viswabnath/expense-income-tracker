@@ -4,7 +4,7 @@ _Last reviewed: 2026-09-30_
 
 ## Summary
 
-The core features work: auth, accounts, transactions, the activity log and monthly summaries. The full test suite passes (334 passed, 2 skipped, 23 suites). The security gaps found on 2026-09-30 are fixed; the remaining [known issues](#known-issues) are low severity.
+The core features work: auth, accounts, transactions, the activity log and monthly summaries. The full test suite passes (342 passed, 2 skipped, 24 suites). The security gaps found on 2026-09-30 are fixed; the remaining [known issues](#known-issues) are low severity.
 
 ## Features
 
@@ -53,7 +53,7 @@ The core features work: auth, accounts, transactions, the activity log and month
 
 ## Deployment
 
-- **Vercel**: `server.js` exports the Express app, which Vercel runs as a function in `syd1` (next to Supabase `ap-southeast-2`); `public/` is served from the CDN. `vercel.json` repeats helmet's security headers for static files, and a test keeps the two in sync.
+- **Vercel**: two services in one project during the Next.js migration: `web` (Next.js) and `legacy` (the Express app in `legacy/`, run as a function in `syd1`, next to Supabase `ap-southeast-2`, with `legacy/public/` on the CDN). `vercel.json` repeats helmet's security headers for static files, and a test keeps the two in sync.
 - **Supabase**: one project. Production data is in `public`, and tests use `balancetrack_test`. It is reached through the transaction pooler (port 6543) with SSL, and every table has RLS enabled to block the public Data API.
 - Setup steps are in the README under "Deployment (Vercel + Supabase)".
 
@@ -61,15 +61,15 @@ The core features work: auth, accounts, transactions, the activity log and month
 
 | Severity | Issue | Where |
 |---|---|---|
-| High | Account recovery discloses usernames and names by email, and reveals whether accounts exist; security answers are guessable (see `docs/v2-audit.md`) | `server.js` recovery routes |
+| High | Account recovery discloses usernames and names by email, and reveals whether accounts exist; security answers are guessable (see `docs/v2-audit.md`) | `legacy/server.js` recovery routes |
 | Medium | CSV export does not escape quotes or neutralize formula-like values | `GET /api/activity?export=true` |
-| Low | Logout clears a cookie named `connect.sid` instead of `sessionId` | `server.js`, logout route |
+| Low | Logout clears a cookie named `connect.sid` instead of `sessionId` | `legacy/server.js`, logout route |
 | Low | `tests/setup.js` never runs: `setupFilesAfterEnv` is set at the top level, which Jest ignores when `projects` is used | `package.json` |
-| Low | Auth rate-limit counters are in memory, so on Vercel each function instance counts separately | `server.js`, `authLimiter` |
+| Low | Auth rate-limit counters are in memory, so on Vercel each function instance counts separately | `legacy/server.js`, `authLimiter` |
 | Low | 9 ESLint warnings, all in three obsolete test files that aren't run (`comprehensive-coverage`, `server-coverage`, `frontend-execution-coverage`) | `tests/` |
 
 ### Fixed on 2026-09-30
-- Income and expense edit/delete ran `pool.query('BEGIN')`, so their writes were not atomic and the open transaction leaked to other requests. All writes that change balances now run in one transaction via `lib/transaction.js`, with the activity log entry inside it (`tests/atomic-writes.test.js`).
+- Income and expense edit/delete ran `pool.query('BEGIN')`, so their writes were not atomic and the open transaction leaked to other requests. All writes that change balances now run in one transaction via `legacy/lib/transaction.js`, with the activity log entry inside it (`tests/atomic-writes.test.js`).
 - The server refuses to start in production without `SESSION_SECRET`.
 - Expenses-only users: adding an expense now changes balances like editing and deleting already did (decision: balances always change). They still skip the overspend check, so their balances can go negative.
 - SQL injection in `GET /api/activity?type=` (the value was concatenated into the query, which let one user read other users' activity). Now parameterized, with a regression test in `tests/integration.test.js`.

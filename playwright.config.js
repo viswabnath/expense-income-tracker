@@ -27,7 +27,7 @@ module.exports = defineConfig({
         { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
     ],
     webServer: process.env.E2E_BASE_URL ? undefined : {
-        command: 'node server.js',
+        command: 'node legacy/server.js',
         url: `http://localhost:${PORT}`,
         reuseExistingServer: false,
         timeout: 60_000,

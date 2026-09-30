@@ -1,21 +1,21 @@
 /**
- * Unit tests for lib/transaction.js (no database)
- * @jest-environment node
+ * Unit tests for lib/transaction.ts (no database)
  */
+import type { PoolClient } from 'pg';
+import { withTransaction, RequestError, type TransactionPool } from '../../lib/transaction';
 
-const { withTransaction, RequestError } = require('../legacy/lib/transaction');
-
-function mockPool({ failOn } = {}) {
-    const statements = [];
+function mockPool({ failOn }: { failOn?: string } = {}) {
+    const statements: string[] = [];
     const client = {
-        query: jest.fn(async (sql) => {
+        query: jest.fn(async (sql: string) => {
             statements.push(sql);
             if (failOn && sql === failOn) throw new Error(`${sql} failed`);
             return { rows: [] };
         }),
-        release: jest.fn()
+        release: jest.fn(),
     };
-    return { pool: { connect: jest.fn(async () => client) }, client, statements };
+    const pool = { connect: jest.fn(async () => client as unknown as PoolClient) } as unknown as TransactionPool;
+    return { pool, client, statements };
 }
 
 describe('withTransaction', () => {

@@ -21,9 +21,11 @@ function collectFiles(dir, extensions) {
 }
 
 const files = [
-    ...collectFiles(path.join(root, 'public'), ['.html', '.js', '.css']),
+    ...collectFiles(path.join(root, 'legacy', 'public'), ['.html', '.js', '.css']),
     ...collectFiles(path.join(root, 'docs'), ['.md']),
-    ...['README.md', 'CLAUDE.md', 'server.js', 'setup-db.js', 'reset-test-db.js', 'test-helpers.js']
+    ...collectFiles(path.join(root, 'app'), ['.ts', '.tsx', '.css']),
+    ...collectFiles(path.join(root, 'lib'), ['.ts']),
+    ...['README.md', 'CLAUDE.md', 'legacy/server.js', 'setup-db.js', 'reset-test-db.js', 'test-helpers.js']
         .map(name => path.join(root, name))
         .filter(fullPath => fs.existsSync(fullPath))
 ];

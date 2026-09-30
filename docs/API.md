@@ -1,6 +1,6 @@
 # BalanceTrack API Documentation
 
-All endpoints live in `server.js` under `/api`. Request and response bodies are JSON.
+All endpoints live in `legacy/server.js` under `/api` (moving to Next.js route handlers in migration step N3). Request and response bodies are JSON.
 
 ## Base URL
 ```

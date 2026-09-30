@@ -1,5 +1,6 @@
 import js from "@eslint/js";
 import globals from "globals";
+import tseslint from "typescript-eslint";
 
 export default [
   {
@@ -12,6 +13,10 @@ export default [
       "*.sqlite",
       "*.log",
       "coverage/",
+      ".next/",
+      "next-env.d.ts",
+      "test-results/",
+      "playwright-report/",
       "dist/",
       "build/",
       "check-schema.js",
@@ -48,7 +53,7 @@ export default [
     }
   },
   {
-    files: ["public/js/transaction-manager.js"],
+    files: ["legacy/public/js/transaction-manager.js"],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -76,7 +81,7 @@ export default [
     }
   },
   {
-    files: ["public/js/event-handlers.js"],
+    files: ["legacy/public/js/event-handlers.js"],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -102,6 +107,18 @@ export default [
         beforeAll: "readonly",
         afterAll: "readonly"
       }
+    }
+  },
+  // TypeScript (Next.js app, lib, unit tests): typescript-eslint recommended plus the project's style rules
+  ...tseslint.configs.recommended.map((config) => ({ ...config, files: ["**/*.ts", "**/*.tsx"] })),
+  {
+    files: ["**/*.ts", "**/*.tsx"],
+    rules: {
+      "semi": ["error", "always"],
+      "quotes": ["warn", "single"],
+      "indent": ["warn", 4],
+      "no-trailing-spaces": "warn",
+      "eol-last": "warn"
     }
   }
 ];

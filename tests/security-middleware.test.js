@@ -12,7 +12,7 @@ function loadServer(nodeEnv) {
     process.env.NODE_ENV = nodeEnv;
     let server;
     jest.isolateModules(() => {
-        server = require('../server');
+        server = require('../legacy/server');
     });
     process.env.NODE_ENV = previous;
     return server;

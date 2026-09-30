@@ -67,7 +67,7 @@ afterAll(async () => {
     } catch {
         // If that fails, try the individual modules
         try {
-            const serverModule = require('../server');
+            const serverModule = require('../legacy/server');
             if (serverModule && serverModule.pool && typeof serverModule.pool.end === 'function' && !serverModule.pool.ended) {
                 await serverModule.pool.end();
             }

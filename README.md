@@ -135,7 +135,7 @@ BalanceTrack is a full-stack web application that allows users to:
 
 5. **Start the application**
    ```bash
-   npm start
+   npm run dev
    ```
 
 6. **Access the application**
@@ -203,7 +203,10 @@ npm run test:coverage
 
 | Script | What it does |
 |---|---|
-| `npm start` / `npm run dev` | Start the server (dev uses nodemon) |
+| `npm run dev` | Express (`legacy/`) on :3001 and Next.js on :3000; open http://localhost:3000 |
+| `npm run dev:legacy` / `npm run start:legacy` | Express only (nodemon / plain node) |
+| `npm run build` / `npm run typecheck` | `next build` / `tsc --noEmit` |
+| `npm run test:unit` / `test:e2e` / `test:contract` | TypeScript unit tests / Playwright flows / API contract suites |
 | `npm run setup-db` | Create/migrate all tables |
 | `npm run reset-test-db` | Delete all rows from the app tables (`--with-user` also seeds `testuser`) |
 | `npm test` | Run all tests |
@@ -215,7 +218,7 @@ npm run test:coverage
 
 ## Deployment (Vercel + Supabase)
 
-The Express app runs on Vercel as a serverless function and the database is Supabase Postgres. Vercel detects the Express app from `server.js` (it exports the app), serves `public/` from its CDN, and runs everything else through the function. `vercel.json` pins the function to `syd1`, next to the Supabase region (`ap-southeast-2`), and applies the security headers to static files.
+The app is moving from Express to Next.js (`docs/nextjs-migration-plan.md`). During the migration one Vercel project runs two services (`vercel.json`): `web` (Next.js, repo root) and `legacy` (the Express app in `legacy/`, which exports the app from `server.js` and serves `legacy/public/` from the CDN). Rewrites send each path to one of them; today everything except `/next-health` goes to `legacy`. The database is Supabase Postgres. `vercel.json` pins the function to `syd1`, next to the Supabase region (`ap-southeast-2`), and applies the security headers to static files.
 
 ### 1. How the Supabase database is laid out
 
@@ -287,7 +290,7 @@ vercel --prod
 ## Debugging & Monitoring
 
 - Server errors are logged to the console with `console.error`.
-- `public/js/module-validator.js` checks that the frontend modules loaded (used by the tests; not loaded by `index.html`).
+- `legacy/public/js/module-validator.js` checks that the frontend modules loaded (used by the tests; not loaded by `index.html`).
 
 ## Contributing
 

@@ -25,7 +25,7 @@ jest.mock('pg', () => {
 });
 
 // Import the actual server app AFTER mocking
-const { app, pool } = require('../server');
+const { app, pool } = require('../legacy/server');
 
 describe('Activity Endpoint Coverage Tests', () => {
     let mockQuery;

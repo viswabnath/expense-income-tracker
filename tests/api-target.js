@@ -13,7 +13,7 @@ const baseUrl = process.env.API_BASE_URL;
 let inProcessServer = null;
 function loadInProcessServer() {
     if (!inProcessServer) {
-        inProcessServer = require('../server');
+        inProcessServer = require('../legacy/server');
     }
     return inProcessServer;
 }

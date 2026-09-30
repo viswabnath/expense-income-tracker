@@ -37,7 +37,7 @@ describe('Smart Cash Button Implementation Tests', () => {
 
     beforeAll(() => {
         // Load setup manager code
-        const setupManagerPath = path.join(__dirname, '../public/js/setup-manager.js');
+        const setupManagerPath = path.join(__dirname, '../legacy/public/js/setup-manager.js');
         setupManagerCode = fs.readFileSync(setupManagerPath, 'utf8');
     });
 
@@ -71,7 +71,7 @@ describe('Smart Cash Button Implementation Tests', () => {
         const fs = require('fs');
         const path = require('path');
         const setupManagerCode = fs.readFileSync(
-            path.join(__dirname, '../public/js/setup-manager.js'),
+            path.join(__dirname, '../legacy/public/js/setup-manager.js'),
             'utf8'
         );
 

@@ -289,7 +289,7 @@ describe('expenses-only users', () => {
 
 describe('guards', () => {
     test('server.js never starts a transaction on the pool', () => {
-        const source = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');
+        const source = fs.readFileSync(path.join(__dirname, '../legacy/server.js'), 'utf8');
 
         expect(source).not.toMatch(/pool\.query\(\s*['"`]BEGIN/);
     });

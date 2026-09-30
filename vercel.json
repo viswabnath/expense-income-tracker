@@ -1,6 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["syd1"],
+  "services": {
+    "web": { "root": "./", "framework": "nextjs" },
+    "legacy": { "root": "legacy/", "framework": "express" }
+  },
+  "rewrites": [
+    { "source": "/next-health", "destination": { "service": "web" } },
+    { "source": "/(.*)", "destination": { "service": "legacy" } }
+  ],
   "headers": [
     {
       "source": "/(.*)",

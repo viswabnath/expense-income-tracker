@@ -31,7 +31,7 @@ jest.mock('bcryptjs', () => ({
 }));
 
 // Import the actual server app AFTER mocking
-const { app, pool } = require('../server');
+const { app, pool } = require('../legacy/server');
 
 describe('Comprehensive Server Coverage Tests', () => {
     let mockQuery;

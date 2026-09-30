@@ -1,10 +1,10 @@
 {
   "name": "expense-income-tracker",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "legacy/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "start": "next start",
+    "dev": "node scripts/dev.js",
     "setup-db": "node setup-db.js",
     "reset-test-db": "node reset-test-db.js",
     "reset-test-db-with-user": "node reset-test-db.js --with-user",
@@ -18,12 +18,17 @@
     "lint:fix": "eslint . --fix",
     "setup-test-db": "DB_SCHEMA=balancetrack_test node setup-db.js",
     "test:e2e": "playwright test",
-    "test:contract": "node scripts/run-contract-tests.js"
+    "test:contract": "node scripts/run-contract-tests.js",
+    "dev:legacy": "PORT=3001 nodemon legacy/server.js",
+    "dev:web": "next dev",
+    "build": "next build",
+    "start:legacy": "node legacy/server.js",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "jest --selectProjects unit"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "description": "",
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -34,19 +39,31 @@
     "express-rate-limit": "^8.0.1",
     "express-session": "^1.18.2",
     "helmet": "^8.1.0",
+    "next": "^16.3.7",
     "path": "^0.12.7",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.31.0",
     "@playwright/test": "^1.63.0",
+    "@swc/core": "^1.16.13",
+    "@swc/jest": "^0.2.39",
     "@testing-library/jest-dom": "^6.1.4",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^26.6.3",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "eslint": "^9.31.0",
     "globals": "^16.3.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "nodemon": "^3.1.10",
-    "supertest": "^6.3.4"
+    "supertest": "^6.3.4",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.0"
   },
   "jest": {
     "testEnvironment": "node",
@@ -82,9 +99,9 @@
           "<rootDir>/tests/transaction-helper.test.js"
         ],
         "collectCoverageFrom": [
-          "server.js",
+          "legacy/server.js",
           "setup-db.js",
-          "lib/**/*.js"
+          "legacy/lib/**/*.js"
         ],
         "setupFiles": [
           "<rootDir>/tests/env.js"
@@ -105,11 +122,39 @@
           "<rootDir>/tests/no-emoji.test.js"
         ],
         "collectCoverageFrom": [
-          "public/js/**/*.js",
-          "!public/js/lib/**"
+          "legacy/public/js/**/*.js",
+          "!legacy/public/js/lib/**"
         ],
         "setupFiles": [
           "<rootDir>/tests/env.js"
+        ]
+      },
+      {
+        "displayName": "unit",
+        "testEnvironment": "node",
+        "testMatch": [
+          "<rootDir>/tests/unit/**/*.test.ts"
+        ],
+        "transform": {
+          "^.+\\.(t|j)sx?$": [
+            "@swc/jest",
+            {
+              "jsc": {
+                "parser": {
+                  "syntax": "typescript",
+                  "tsx": true
+                },
+                "target": "es2022"
+              },
+              "module": {
+                "type": "commonjs"
+              }
+            }
+          ]
+        },
+        "collectCoverageFrom": [
+          "lib/**/*.ts",
+          "src/**/*.ts"
         ]
       }
     ],

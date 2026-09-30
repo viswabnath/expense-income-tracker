@@ -10,7 +10,7 @@ describe('Debug Smart Cash Button', () => {
     let setupManagerCode;
 
     beforeAll(() => {
-        const setupManagerPath = path.join(__dirname, '../public/js/setup-manager.js');
+        const setupManagerPath = path.join(__dirname, '../legacy/public/js/setup-manager.js');
         setupManagerCode = fs.readFileSync(setupManagerPath, 'utf8');
     });
 

@@ -2,7 +2,7 @@
 /**
  * Run the API contract suites against a running server instead of the in-process app.
  *
- *   node scripts/run-contract-tests.js                 start server.js on port 3200 and test it
+ *   node scripts/run-contract-tests.js                 start legacy/server.js on port 3200 and test it
  *   API_BASE_URL=http://localhost:3000 node scripts/run-contract-tests.js
  *                                                      test an already running server (e.g. Next.js)
  *
@@ -48,7 +48,7 @@ async function main() {
 
     if (!baseUrl) {
         baseUrl = `http://localhost:${PORT}`;
-        server = spawn('node', ['server.js'], {
+        server = spawn('node', ['legacy/server.js'], {
             cwd: ROOT,
             env: { ...process.env, PORT: String(PORT), NODE_ENV: 'test', DB_SCHEMA: 'balancetrack_test' },
             stdio: 'ignore',

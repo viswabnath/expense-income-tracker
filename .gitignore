@@ -220,3 +220,8 @@ ci-cd.yml
 # Playwright output
 test-results/
 playwright-report/
+
+# Next.js
+.next/
+next-env.d.ts
+*.tsbuildinfo

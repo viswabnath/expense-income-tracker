@@ -83,6 +83,20 @@ Status: done.
    - `security-middleware` loads Express under different environments. It is replaced by header and CSP tests against Next.js in N4.
 
 ### N1. Scaffold alongside Express
+Status: done.
+
+What was done:
+- `server.js`, `public/` and `lib/transaction.js` moved to `legacy/` with `git mv`, with no code changes. `setup-db.js`, `reset-test-db.js` and `test-helpers.js` stayed at the root, because they are database tooling the Next.js side also uses.
+- Next.js 16.3.7, React 19.3 and TypeScript 6.0 in strict mode are set up. TypeScript 7.0 was not used: `typescript-eslint` supports only TypeScript below 6.1.
+- `lib/transaction.ts` has unit tests in the new `unit` Jest project. `vercel.json` defines the two Services, `legacy/package.json` holds the Express runtime dependencies, and `npm run dev` runs both apps.
+
+Verified locally:
+- `next build`, `tsc --noEmit` and lint all pass.
+- All Jest suites (342 tests) pass, and the 5 contract suites pass against `legacy/server.js` over HTTP.
+- All 6 Playwright flows pass directly against Express and also **through** `next dev` forwarding to Express, which checks that session cookies survive the pass-through.
+
+Not yet verified: the Vercel Services deployment itself (see Risks). Deploy a preview and check `/next-health` (Next.js) and `/` (Express) before merging.
+
 - `git mv` `server.js`, `public/`, `setup-db.js`, `reset-test-db.js` and `test-helpers.js` into `legacy/`, and update require paths. No code changes.
 - Add Next.js 16 (App Router, TypeScript, strict mode) at the repo root. Add the Services config and rewrites above. Configure ESLint and `tsc --noEmit`.
 - Convert `lib/transaction.js` to TypeScript with the same behaviour. It is shared by both apps until Express is removed.

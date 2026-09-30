@@ -171,7 +171,7 @@ jest.mock('pg', () => {
 });
 
 // Import the server after mocking
-const { app } = require('../server');
+const { app } = require('../legacy/server');
 
 describe('Server Coverage Tests', () => {
     let sessionCookie;

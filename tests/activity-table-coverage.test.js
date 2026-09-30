@@ -17,7 +17,7 @@ describe('Activity Feed Implementation Tests', () => {
 
     beforeAll(() => {
         // Load activity manager code
-        const activityManagerPath = path.join(__dirname, '../public/js/activity-manager.js');
+        const activityManagerPath = path.join(__dirname, '../legacy/public/js/activity-manager.js');
         activityManagerCode = fs.readFileSync(activityManagerPath, 'utf8');
     });
 
@@ -148,7 +148,7 @@ describe('Activity Feed Implementation Tests', () => {
 
     describe('Responsive Design', () => {
         test('should have mobile-responsive card styling', () => {
-            const cssPath = path.join(__dirname, '../public/css/fintech-theme.css');
+            const cssPath = path.join(__dirname, '../legacy/public/css/fintech-theme.css');
             const cssContent = fs.readFileSync(cssPath, 'utf8');
 
             expect(cssContent).toContain('.activity-feed');
