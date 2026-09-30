@@ -82,6 +82,8 @@ const generalLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
     max: 100, // 100 requests per minute per IP
     message: { error: 'Too many requests. Please slow down.' },
+    // End-to-end tests drive a real server faster than a person would
+    skip: () => process.env.NODE_ENV === 'test',
 });
 
 // Redirect HTTP to HTTPS in production (must run before static files and routes).

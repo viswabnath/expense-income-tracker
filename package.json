@@ -16,7 +16,8 @@
     "test:watch": "jest --watch --detectOpenHandles",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "setup-test-db": "DB_SCHEMA=balancetrack_test node setup-db.js"
+    "setup-test-db": "DB_SCHEMA=balancetrack_test node setup-db.js",
+    "test:e2e": "playwright test"
   },
   "keywords": [],
   "author": "",
@@ -37,6 +38,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.31.0",
+    "@playwright/test": "^1.63.0",
     "@testing-library/jest-dom": "^6.1.4",
     "eslint": "^9.31.0",
     "globals": "^16.3.0",

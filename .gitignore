@@ -216,3 +216,7 @@ docker-compose.yml
 Dockerfile
 ci-cd.yml
 .db-backups/
+
+# Playwright output
+test-results/
+playwright-report/
