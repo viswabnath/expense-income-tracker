@@ -17,7 +17,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "setup-test-db": "DB_SCHEMA=balancetrack_test node setup-db.js",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:contract": "node scripts/run-contract-tests.js"
   },
   "keywords": [],
   "author": "",

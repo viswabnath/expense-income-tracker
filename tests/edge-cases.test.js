@@ -12,14 +12,15 @@ jest.mock('express-rate-limit', () => {
 });
 
 // Import the actual server app AFTER mocking rate limiter
-const { app, pool: serverPool } = require('../server');
+const { target, closeTarget } = require('./api-target');
+const { deleteTestUser } = require('../test-helpers');
 
 describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
-    let testUserId;
     let sessionCookie;
 
     beforeAll(async () => {
-        // Register test user
+        // Remove leftovers from an interrupted run, then register the test user
+        await deleteTestUser('edgetest123');
         const userData = {
             username: 'edgetest123',
             password: 'EdgeTest123&',
@@ -29,14 +30,12 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
             securityAnswer: 'boundaries'
         };
 
-        const registerResponse = await request(app)
+        await request(target())
             .post('/api/register')
             .send(userData);
 
-        testUserId = registerResponse.body.userId;
-
         // Login to get session
-        const loginResponse = await request(app)
+        const loginResponse = await request(target())
             .post('/api/login')
             .send({
                 username: 'edgetest123',
@@ -46,7 +45,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
         sessionCookie = loginResponse.headers['set-cookie'];
 
         // Create bank and credit card for testing
-        await request(app)
+        await request(target())
             .post('/api/banks')
             .set('Cookie', sessionCookie)
             .send({
@@ -54,7 +53,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
                 initialBalance: 1000
             });
 
-        await request(app)
+        await request(target())
             .post('/api/credit-cards')
             .set('Cookie', sessionCookie)
             .send({
@@ -63,31 +62,21 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
             });
 
         // Set initial cash balance
-        await request(app)
+        await request(target())
             .post('/api/cash-balance')
             .set('Cookie', sessionCookie)
             .send({ balance: 500 });
     }, 30000);
 
     afterAll(async () => {
-        // Clean up
-        try {
-            await serverPool.query('DELETE FROM activity_log WHERE user_id = $1', [testUserId]);
-            await serverPool.query('DELETE FROM expenses WHERE user_id = $1', [testUserId]);
-            await serverPool.query('DELETE FROM income_entries WHERE user_id = $1', [testUserId]);
-            await serverPool.query('DELETE FROM credit_cards WHERE user_id = $1', [testUserId]);
-            await serverPool.query('DELETE FROM banks WHERE user_id = $1', [testUserId]);
-            await serverPool.query('DELETE FROM cash_balance WHERE user_id = $1', [testUserId]);
-            await serverPool.query('DELETE FROM users WHERE id = $1', [testUserId]);
-        } catch {
-            // intentionally empty: cleanup failure is non-fatal
-        }
-        await serverPool.end();
+        // deleteTestUser only works in a *_test schema
+        await deleteTestUser('edgetest123');
+        await closeTarget();
     });
 
     describe('Registration Edge Cases', () => {
         test('should handle username taken error', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/register')
                 .send({
                     username: 'edgetest123', // Already exists
@@ -103,7 +92,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
         });
 
         test('should handle email taken error', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/register')
                 .send({
                     username: 'uniqueuser123',
@@ -129,7 +118,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
             ];
 
             for (const testCase of testCases) {
-                const response = await request(app)
+                const response = await request(target())
                     .post('/api/register')
                     .send({
                         username: `test${Date.now()}${Math.random()}`,
@@ -149,7 +138,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
 
     describe('Authentication Edge Cases', () => {
         test('should handle login with non-existent user', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/login')
                 .send({
                     username: 'nonexistentuser',
@@ -161,7 +150,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
         });
 
         test('should handle login with wrong password', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/login')
                 .send({
                     username: 'edgetest123',
@@ -173,7 +162,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
         });
 
         test('should handle logout', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/logout')
                 .set('Cookie', sessionCookie);
 
@@ -181,7 +170,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
             expect(response.body.success).toBe(true);
 
             // Re-login for other tests
-            const loginResponse = await request(app)
+            const loginResponse = await request(target())
                 .post('/api/login')
                 .send({
                     username: 'edgetest123',
@@ -193,7 +182,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
 
     describe('Financial Operations Edge Cases', () => {
         test('should handle negative amounts in bank creation', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/banks')
                 .set('Cookie', sessionCookie)
                 .send({
@@ -206,7 +195,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
         });
 
         test('should handle zero amounts', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/credit-cards')
                 .set('Cookie', sessionCookie)
                 .send({
@@ -219,7 +208,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
         });
 
         test('should handle very large amounts', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/banks')
                 .set('Cookie', sessionCookie)
                 .send({
@@ -231,7 +220,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
         });
 
         test('should handle decimal precision edge cases', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/cash-balance')
                 .set('Cookie', sessionCookie)
                 .send({ balance: 123.456789 }); // More than 2 decimal places
@@ -244,7 +233,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
 
     describe('Income/Expense Validation Edge Cases', () => {
         test('should handle zero amount transactions', async () => {
-            const incomeResponse = await request(app)
+            const incomeResponse = await request(target())
                 .post('/api/income')
                 .set('Cookie', sessionCookie)
                 .send({
@@ -257,7 +246,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
 
             expect(incomeResponse.status).toBe(200);
 
-            const expenseResponse = await request(app)
+            const expenseResponse = await request(target())
                 .post('/api/expenses')
                 .set('Cookie', sessionCookie)
                 .send({
@@ -282,7 +271,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
             ];
 
             for (const testCase of testCases) {
-                const response = await request(app)
+                const response = await request(target())
                     .get(`/api/monthly-summary?month=${testCase.month}&year=${testCase.year}`)
                     .set('Cookie', sessionCookie);
 
@@ -299,7 +288,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
             ];
 
             for (const endpoint of endpoints) {
-                const response = await request(app)
+                const response = await request(target())
                     .get(endpoint)
                     .set('Cookie', sessionCookie);
 
@@ -311,7 +300,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
 
     describe('Password Reset Edge Cases', () => {
         test('should handle forgot password for non-existent user', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/forgot-password')
                 .send({ username: 'nonexistentuser' });
 
@@ -320,7 +309,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
         });
 
         test('should handle forgot password with non-existent email', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/forgot-password')
                 .send({ email: 'nonexistent@example.com' });
 
@@ -329,7 +318,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
         });
 
         test('should handle reset password for non-existent user ID', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/reset-password')
                 .send({
                     userId: 99999,
@@ -343,11 +332,11 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
 
         test('should handle reset password with invalid new password', async () => {
             // First get user for reset
-            const forgotResponse = await request(app)
+            const forgotResponse = await request(target())
                 .post('/api/forgot-password')
                 .send({ username: 'edgetest123' });
 
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/reset-password')
                 .send({
                     userId: forgotResponse.body.userId,
@@ -362,7 +351,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
 
     describe('Session and Authentication State Edge Cases', () => {
         test('should handle invalid session cookie', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .get('/api/banks')
                 .set('Cookie', ['connect.sid=invalid_session_id']);
 
@@ -371,7 +360,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
         });
 
         test('should handle no session cookie', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .get('/api/banks');
 
             expect(response.status).toBe(401);
@@ -379,7 +368,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
         });
 
         test('should handle malformed session cookie', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .get('/api/banks')
                 .set('Cookie', ['malformed_cookie']);
 
@@ -390,7 +379,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
 
     describe('HTTP Method and Route Edge Cases', () => {
         test('should handle unsupported HTTP methods', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .patch('/api/banks')
                 .set('Cookie', sessionCookie);
 
@@ -399,7 +388,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
         });
 
         test('should handle non-existent routes', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .get('/api/nonexistent')
                 .set('Cookie', sessionCookie);
 
@@ -410,7 +399,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
             const paths = ['/', '/index.html', '/public/index.html'];
 
             for (const path of paths) {
-                const response = await request(app).get(path);
+                const response = await request(target()).get(path);
                 // Should handle gracefully - either serve file or 404
                 expect([200, 404]).toContain(response.status);
             }
@@ -424,7 +413,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
 
             for (let i = 0; i < 5; i++) {
                 promises.push(
-                    request(app)
+                    request(target())
                         .post('/api/expenses')
                         .set('Cookie', sessionCookie)
                         .send({
@@ -458,7 +447,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
             ];
 
             for (const input of maliciousInputs) {
-                const response = await request(app)
+                const response = await request(target())
                     .post('/api/banks')
                     .set('Cookie', sessionCookie)
                     .send({
@@ -480,7 +469,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
             ];
 
             for (const injection of sqlInjections) {
-                const response = await request(app)
+                const response = await request(target())
                     .post('/api/banks')
                     .set('Cookie', sessionCookie)
                     .send({
@@ -499,7 +488,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
             const invalidOptions = ['invalid', 'all', 'none', ''];
 
             for (const option of invalidOptions) {
-                const response = await request(app)
+                const response = await request(target())
                     .post('/api/set-tracking-option')
                     .set('Cookie', sessionCookie)
                     .send({ trackingOption: option });
@@ -509,13 +498,13 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
             }
 
             // Test null and undefined separately as they might be handled differently
-            const nullResponse = await request(app)
+            const nullResponse = await request(target())
                 .post('/api/set-tracking-option')
                 .set('Cookie', sessionCookie)
                 .send({ trackingOption: null });
             expect([400, 500]).toContain(nullResponse.status);
 
-            const undefinedResponse = await request(app)
+            const undefinedResponse = await request(target())
                 .post('/api/set-tracking-option')
                 .set('Cookie', sessionCookie)
                 .send({});
@@ -524,12 +513,12 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
 
         test('should validate tracking option constraints in expenses', async () => {
             // Set to income-only and try to add expense
-            await request(app)
+            await request(target())
                 .post('/api/set-tracking-option')
                 .set('Cookie', sessionCookie)
                 .send({ trackingOption: 'income' });
 
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/expenses')
                 .set('Cookie', sessionCookie)
                 .send({
@@ -541,7 +530,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
                 });
 
             // Reset to both for other tests
-            await request(app)
+            await request(target())
                 .post('/api/set-tracking-option')
                 .set('Cookie', sessionCookie)
                 .send({ trackingOption: 'both' });
@@ -553,7 +542,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
 
     describe('Date and Time Edge Cases', () => {
         test('should handle leap year dates', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/income')
                 .set('Cookie', sessionCookie)
                 .send({
@@ -572,7 +561,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
             futureDate.setFullYear(futureDate.getFullYear() + 1);
             const futureDateString = futureDate.toISOString().split('T')[0];
 
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/income')
                 .set('Cookie', sessionCookie)
                 .send({
@@ -591,7 +580,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
             const invalidDates = ['2025-13-01', '2025-02-30', 'invalid-date', ''];
 
             for (const invalidDate of invalidDates) {
-                const response = await request(app)
+                const response = await request(target())
                     .post('/api/income')
                     .set('Cookie', sessionCookie)
                     .send({
@@ -609,7 +598,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
 
     describe('Rate Limiting and Security Headers', () => {
         test('should handle CORS preflight requests', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .options('/api/banks')
                 .set('Origin', 'http://localhost:3000')
                 .set('Access-Control-Request-Method', 'POST');
@@ -619,7 +608,7 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
         });
 
         test('should handle requests with suspicious headers', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .get('/api/banks')
                 .set('Cookie', sessionCookie)
                 .set('X-Forwarded-For', '127.0.0.1; DROP TABLE users; --')

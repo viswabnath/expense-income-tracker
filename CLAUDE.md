@@ -20,6 +20,8 @@ npm run test:backend            # Backend Jest project only
 npm run test:frontend           # Frontend Jest project only (jsdom)
 npm run test:coverage           # With coverage report
 npm run test:clean              # Reset test DB then run all tests
+npm run test:e2e                # Playwright user flows (starts the app on :3100 against balancetrack_test)
+npm run test:contract           # API contract suites against a running server (API_BASE_URL, or starts one on :3200)
 
 # Run a single test file
 npx jest tests/server.test.js --detectOpenHandles --forceExit

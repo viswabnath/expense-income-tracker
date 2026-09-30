@@ -12,10 +12,10 @@ jest.mock('express-rate-limit', () => {
 });
 
 // Import the actual server app AFTER mocking rate limiter
-const { app, pool } = require('../server');
+const { target, closeTarget } = require('./api-target');
 
 // Test helpers for database operations
-const { setupTestEnvironment, createTestUser, deleteTestUser } = require('../test-helpers');
+const { setupTestEnvironment, createTestUser, deleteTestUser, query } = require('../test-helpers');
 
 describe('Integration Tests - Server Endpoints', () => {
     let testUserId;
@@ -32,6 +32,7 @@ describe('Integration Tests - Server Endpoints', () => {
     afterAll(async () => {
         // Note: Database pool cleanup is handled in the global Jest setup
         // Data is preserved for local development
+        await closeTarget();
     });
 
     // Helper function to ensure authentication
@@ -43,7 +44,7 @@ describe('Integration Tests - Server Endpoints', () => {
                 password: 'TestPass123&'
             };
 
-            const loginResponse = await request(app)
+            const loginResponse = await request(target())
                 .post('/api/login')
                 .send(loginData);
 
@@ -55,7 +56,7 @@ describe('Integration Tests - Server Endpoints', () => {
 
     describe('Authentication Endpoints', () => {
         test('GET / should serve the main HTML file', async () => {
-            const response = await request(app).get('/');
+            const response = await request(target()).get('/');
 
             expect(response.status).toBe(200);
             expect(response.type).toBe('text/html');
@@ -71,7 +72,7 @@ describe('Integration Tests - Server Endpoints', () => {
                 securityAnswer: 'Fluffy'
             };
 
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/register')
                 .send(userData);
 
@@ -90,7 +91,7 @@ describe('Integration Tests - Server Endpoints', () => {
                 securityAnswer: 'Fluffy'
             };
 
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/register')
                 .send(userData);
 
@@ -104,7 +105,7 @@ describe('Integration Tests - Server Endpoints', () => {
                 password: 'TestPass123&'
             };
 
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/login')
                 .send(loginData);
 
@@ -121,7 +122,7 @@ describe('Integration Tests - Server Endpoints', () => {
                 password: 'wrongpassword'
             };
 
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/login')
                 .send(loginData);
 
@@ -136,7 +137,7 @@ describe('Integration Tests - Server Endpoints', () => {
             await ensureAuthentication();
         });
         test('GET /api/user should return user info when authenticated', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .get('/api/user')
                 .set('Cookie', sessionCookie);
 
@@ -146,7 +147,7 @@ describe('Integration Tests - Server Endpoints', () => {
         });
 
         test('GET /api/user should require authentication', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .get('/api/user');
 
             expect(response.status).toBe(401);
@@ -159,7 +160,7 @@ describe('Integration Tests - Server Endpoints', () => {
                 initialBalance: 1000
             };
 
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/banks')
                 .set('Cookie', sessionCookie)
                 .send(bankData);
@@ -170,7 +171,7 @@ describe('Integration Tests - Server Endpoints', () => {
         });
 
         test('GET /api/banks should return user banks', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .get('/api/banks')
                 .set('Cookie', sessionCookie);
 
@@ -185,7 +186,7 @@ describe('Integration Tests - Server Endpoints', () => {
                 balance: 500
             };
 
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/cash-balance')
                 .set('Cookie', sessionCookie)
                 .send(cashData);
@@ -196,7 +197,7 @@ describe('Integration Tests - Server Endpoints', () => {
         });
 
         test('GET /api/cash-balance should return cash balance', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .get('/api/cash-balance')
                 .set('Cookie', sessionCookie);
 
@@ -209,7 +210,7 @@ describe('Integration Tests - Server Endpoints', () => {
                 trackingOption: 'income'
             };
 
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/set-tracking-option')
                 .set('Cookie', sessionCookie)
                 .send(trackingData);
@@ -225,7 +226,7 @@ describe('Integration Tests - Server Endpoints', () => {
             const month = currentDate.getMonth() + 1;
             const year = currentDate.getFullYear();
 
-            const response = await request(app)
+            const response = await request(target())
                 .get(`/api/monthly-summary?month=${month}&year=${year}`)
                 .set('Cookie', sessionCookie);
 
@@ -239,7 +240,7 @@ describe('Integration Tests - Server Endpoints', () => {
         });
 
         test('GET /api/monthly-summary should require month and year', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .get('/api/monthly-summary')
                 .set('Cookie', sessionCookie);
 
@@ -250,7 +251,7 @@ describe('Integration Tests - Server Endpoints', () => {
         test('GET /api/monthly-summary should handle future dates', async () => {
             const futureYear = new Date().getFullYear() + 1;
 
-            const response = await request(app)
+            const response = await request(target())
                 .get(`/api/monthly-summary?month=1&year=${futureYear}`)
                 .set('Cookie', sessionCookie);
 
@@ -261,7 +262,7 @@ describe('Integration Tests - Server Endpoints', () => {
 
     describe('Password Reset Flow', () => {
         test('POST /api/forgot-username should find username by email', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/forgot-username')
                 .send({ email: 'test@example.com' });
 
@@ -272,7 +273,7 @@ describe('Integration Tests - Server Endpoints', () => {
         });
 
         test('POST /api/forgot-password should return security question', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/forgot-password')
                 .send({ username: 'testuser' });
 
@@ -294,7 +295,7 @@ describe('Integration Tests - Server Endpoints', () => {
                 securityAnswer: 'Fluffy'
             };
 
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/register')
                 .send(userData);
 
@@ -303,7 +304,7 @@ describe('Integration Tests - Server Endpoints', () => {
         });
 
         test('Should handle malformed requests', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/register')
                 .send({}); // Empty data
 
@@ -314,7 +315,7 @@ describe('Integration Tests - Server Endpoints', () => {
 
     describe('Session Management', () => {
         test('POST /api/logout should destroy session', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .post('/api/logout')
                 .set('Cookie', sessionCookie);
 
@@ -323,7 +324,7 @@ describe('Integration Tests - Server Endpoints', () => {
         });
 
         test('Should require new login after logout', async () => {
-            const response = await request(app)
+            const response = await request(target())
                 .get('/api/user')
                 .set('Cookie', sessionCookie);
 
@@ -336,19 +337,19 @@ describe('Integration Tests - Server Endpoints', () => {
         test('should treat type as a value, not SQL (no cross-user leak)', async () => {
             await deleteTestUser('otheruser_sqli');
             const otherUser = await createTestUser({ username: 'otheruser_sqli', email: 'sqli@example.com' });
-            await pool.query(
+            await query(
                 'INSERT INTO activity_log (user_id, action_type, entity_type, entity_id, description, amount) VALUES ($1, $2, $3, $4, $5, $6)',
                 [otherUser.id, 'created', 'bank', 1, 'OTHER USER SECRET', 1]
             );
 
             try {
                 // Fresh login: the shared sessionCookie is logged out by earlier tests
-                const loginResponse = await request(app)
+                const loginResponse = await request(target())
                     .post('/api/login')
                     .send({ username: 'testuser', password: 'TestPass123&' });
                 expect(loginResponse.status).toBe(200);
 
-                const response = await request(app)
+                const response = await request(target())
                     .get('/api/activity')
                     .query({ type: 'x\' OR \'1\'=\'1' })
                     .set('Cookie', loginResponse.headers['set-cookie']);

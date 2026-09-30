@@ -4,7 +4,7 @@
  */
 
 const request = require('supertest');
-const { app } = require('../server');
+const { target } = require('./api-target');
 const { deleteTestUser } = require('../test-helpers');
 
 describe('Bank Deletion Fix', () => {
@@ -13,7 +13,7 @@ describe('Bank Deletion Fix', () => {
 
     beforeAll(async () => {
         await deleteTestUser('testuser_bankdel');
-        agent = request.agent(app);
+        agent = request.agent(target());
 
         // Register and login a test user
         const registerResponse = await agent

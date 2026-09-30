@@ -13,7 +13,7 @@ const request = require('supertest');
 
 jest.mock('express-rate-limit', () => () => (req, res, next) => next());
 
-const { app, pool } = require('../server');
+const { target, closeTarget } = require('./api-target');
 const {
     createTestUser,
     createTestBank,
@@ -79,7 +79,7 @@ beforeAll(async () => {
     card = await createTestCreditCard(userId, { name: 'ATOMIC CARD', creditLimit: 5000 });
     await createTestCashBalance(userId, 500);
 
-    agent = request.agent(app);
+    agent = request.agent(target());
     const login = await agent.post('/api/login').send({ username: USERNAME, password: PASSWORD });
     expect(login.status).toBe(200);
 });
@@ -88,7 +88,7 @@ afterAll(async () => {
     await query('DROP TRIGGER IF EXISTS fail_marked_activity ON activity_log');
     await query('DROP FUNCTION IF EXISTS fail_marked_activity()');
     await deleteTestUser(USERNAME);
-    await pool.end();
+    await closeTarget();
 });
 
 describe('failed writes leave no partial changes', () => {
@@ -253,7 +253,7 @@ describe('expenses-only users', () => {
         expensesUserId = user.id;
         expensesBank = await createTestBank(expensesUserId, { name: 'EXPENSES ONLY BANK', balance: 100 });
 
-        expensesAgent = request.agent(app);
+        expensesAgent = request.agent(target());
         const login = await expensesAgent.post('/api/login').send({ username: EXPENSES_USER, password: PASSWORD });
         expect(login.status).toBe(200);
     });

@@ -65,9 +65,22 @@ The rules the brief asks for:
 Each step ends with every test passing, a production deploy, and a stop for approval.
 
 ### N0. Safety net (before any migration code)
-1. **Playwright tests of today's app**: register, choose tracking mode, add bank, card and cash, add, edit and delete income and expenses, month summary, activity filter and CSV export, logout, and the forgot-username and forgot-password flows. They run against the current app and must pass there first.
-2. **API contract suite**: turn the real-database Jest tests (`integration`, `atomic-writes`, `edge-cases`, `api`, `bank-deletion-fix`, `cash-balance-activity`, `security-middleware`) into HTTP-level tests with a configurable base URL, so the same suite can check Express and Next.js.
-3. Tests that mock `pg` and only exist for coverage of `server.js` internals are marked for deletion with Express. They cannot test a new implementation.
+Status: done.
+
+1. **Playwright flows** (`tests/e2e/`, `npm run test:e2e`), all 6 passing against the current app:
+   - account setup;
+   - income and expense add, edit and delete, with balance checks;
+   - monthly summary, activity feed and CSV export;
+   - logout and login;
+   - forgot username;
+   - forgot password.
+
+   The flows found one real bug: the first click on "Continue" in the password reset did nothing. It is fixed in `b16684d`.
+2. **API contract suites.** `integration`, `atomic-writes`, `edge-cases`, `bank-deletion-fix` and `cash-balance-activity` send requests through `tests/api-target.js`. That means the in-process Express app by default, or a running server when `API_BASE_URL` is set. `npm run test:contract` starts `server.js` on port 3200 and runs them over HTTP.
+3. **Retired with Express (N4)**, because these tests cannot check a new implementation:
+   - They mock `pg` and cover `server.js` internals: `activity-endpoint`, `comprehensive-server-coverage`, `server-edge-coverage`, `setup-db`, `setup-db-coverage`.
+   - They test copies of code defined inside the test file instead of the real code: `api.test.js` (a copied `ApiClient`), `server.test.js` (a separate mini Express app).
+   - `security-middleware` loads Express under different environments. It is replaced by header and CSP tests against Next.js in N4.
 
 ### N1. Scaffold alongside Express
 - `git mv` `server.js`, `public/`, `setup-db.js`, `reset-test-db.js` and `test-helpers.js` into `legacy/`, and update require paths. No code changes.
