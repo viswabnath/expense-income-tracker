@@ -1125,24 +1125,23 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                 ]
             );
 
-            // Update balance/limit only for users who track both income and expenses
-            if (shouldValidateBalance) {
-                if (paymentMethod === 'bank') {
-                    await client.query(
-                        'UPDATE banks SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3',
-                        [amount, paymentSourceId, req.session.userId]
-                    );
-                } else if (paymentMethod === 'cash') {
-                    await client.query(
-                        'UPDATE cash_balance SET balance = balance - $1 WHERE user_id = $2',
-                        [amount, req.session.userId]
-                    );
-                } else if (paymentMethod === 'credit_card') {
-                    await client.query(
-                        'UPDATE credit_cards SET used_limit = used_limit + $1 WHERE id = $2 AND user_id = $3',
-                        [amount, paymentSourceId, req.session.userId]
-                    );
-                }
+            // Balances always change, for every tracking option, so adding, editing and deleting
+            // stay consistent (expenses-only users skip only the overspend check above)
+            if (paymentMethod === 'bank') {
+                await client.query(
+                    'UPDATE banks SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3',
+                    [amount, paymentSourceId, req.session.userId]
+                );
+            } else if (paymentMethod === 'cash') {
+                await client.query(
+                    'UPDATE cash_balance SET balance = balance - $1 WHERE user_id = $2',
+                    [amount, req.session.userId]
+                );
+            } else if (paymentMethod === 'credit_card') {
+                await client.query(
+                    'UPDATE credit_cards SET used_limit = used_limit + $1 WHERE id = $2 AND user_id = $3',
+                    [amount, paymentSourceId, req.session.userId]
+                );
             }
 
             await logActivity(

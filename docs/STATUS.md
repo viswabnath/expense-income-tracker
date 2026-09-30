@@ -4,7 +4,7 @@ _Last reviewed: 2026-09-30_
 
 ## Summary
 
-The core features work: auth, accounts, transactions, the activity log and monthly summaries. The full test suite passes (332 passed, 2 skipped, 23 suites). The security gaps found on 2026-09-30 are fixed; the remaining [known issues](#known-issues) are low severity.
+The core features work: auth, accounts, transactions, the activity log and monthly summaries. The full test suite passes (334 passed, 2 skipped, 23 suites). The security gaps found on 2026-09-30 are fixed; the remaining [known issues](#known-issues) are low severity.
 
 ## Features
 
@@ -62,7 +62,6 @@ The core features work: auth, accounts, transactions, the activity log and month
 | Severity | Issue | Where |
 |---|---|---|
 | High | Account recovery discloses usernames and names by email, and reveals whether accounts exist; security answers are guessable (see `docs/v2-audit.md`) | `server.js` recovery routes |
-| Medium | Editing or deleting an expense for an expenses-only user changes balances that adding it never changed | `PUT`/`DELETE /api/expenses/:id` |
 | Medium | CSV export does not escape quotes or neutralize formula-like values | `GET /api/activity?export=true` |
 | Low | Logout clears a cookie named `connect.sid` instead of `sessionId` | `server.js`, logout route |
 | Low | `tests/setup.js` never runs: `setupFilesAfterEnv` is set at the top level, which Jest ignores when `projects` is used | `package.json` |
@@ -72,6 +71,7 @@ The core features work: auth, accounts, transactions, the activity log and month
 ### Fixed on 2026-09-30
 - Income and expense edit/delete ran `pool.query('BEGIN')`, so their writes were not atomic and the open transaction leaked to other requests. All writes that change balances now run in one transaction via `lib/transaction.js`, with the activity log entry inside it (`tests/atomic-writes.test.js`).
 - The server refuses to start in production without `SESSION_SECRET`.
+- Expenses-only users: adding an expense now changes balances like editing and deleting already did (decision: balances always change). They still skip the overspend check, so their balances can go negative.
 - SQL injection in `GET /api/activity?type=` (the value was concatenated into the query, which let one user read other users' activity). Now parameterized, with a regression test in `tests/integration.test.js`.
 - Footer links used inline `onclick`, which a CSP blocks. They now use `data-action`.
 - Edge-case, bank-deletion and cash-balance tests were fixed; the latter two now clean up their test users.

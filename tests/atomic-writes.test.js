@@ -239,6 +239,54 @@ describe('edit and delete restore balances exactly', () => {
     });
 });
 
+describe('expenses-only users', () => {
+    const EXPENSES_USER = 'atomic_expenses_only';
+    let expensesAgent;
+    let expensesUserId;
+    let expensesBank;
+
+    beforeAll(async () => {
+        await deleteTestUser(EXPENSES_USER);
+        const user = await createTestUser({
+            username: EXPENSES_USER, password: PASSWORD, email: 'expenses-only@example.com', trackingOption: 'expenses'
+        });
+        expensesUserId = user.id;
+        expensesBank = await createTestBank(expensesUserId, { name: 'EXPENSES ONLY BANK', balance: 100 });
+
+        expensesAgent = request.agent(app);
+        const login = await expensesAgent.post('/api/login').send({ username: EXPENSES_USER, password: PASSWORD });
+        expect(login.status).toBe(200);
+    });
+
+    afterAll(async () => {
+        await deleteTestUser(EXPENSES_USER);
+    });
+
+    async function bankBalance() {
+        const result = await query('SELECT current_balance FROM banks WHERE id = $1', [expensesBank.id]);
+        return Number(result.rows[0].current_balance);
+    }
+
+    test('adding, editing and deleting an expense always changes the balance, even past zero', async () => {
+        // No overspend check for expenses-only users, but the balance still moves
+        const created = await expensesAgent.post('/api/expenses').send({
+            title: 'Rent', amount: 150, paymentMethod: 'bank', paymentSourceId: expensesBank.id, date: '2026-09-01'
+        });
+        expect(created.status).toBe(200);
+        expect(await bankBalance()).toBe(-50);
+
+        const edited = await expensesAgent.put(`/api/expenses/${created.body.id}`).send({
+            title: 'Rent', amount: 80, paymentMethod: 'bank', paymentSourceId: expensesBank.id, date: '2026-09-01'
+        });
+        expect(edited.status).toBe(200);
+        expect(await bankBalance()).toBe(20);
+
+        const deleted = await expensesAgent.delete(`/api/expenses/${created.body.id}`);
+        expect(deleted.status).toBe(200);
+        expect(await bankBalance()).toBe(100);
+    });
+});
+
 describe('guards', () => {
     test('server.js never starts a transaction on the pool', () => {
         const source = fs.readFileSync(path.join(__dirname, '../server.js'), 'utf8');

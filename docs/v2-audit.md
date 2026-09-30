@@ -210,5 +210,5 @@ Tests:
 Verified: the new atomicity tests fail on the previous `server.js` (4 partial-write failures plus the guard) and pass on the new one.
 
 Unchanged by design, still open:
-- **Expenses-only users:** adding an expense does not change balances, but editing or deleting one still reverses and reapplies balance changes (`PUT`/`DELETE /api/expenses/:id` ignore the tracking option). Kept as-is because Phase 0 promised no behaviour change. Needs a decision on the intended behaviour.
+- **Expenses-only users:** adding an expense did not change balances, but editing or deleting one did. Decided 2026-09-30: balances always change. Fixed in `POST /api/expenses`, with a test in `tests/atomic-writes.test.js`. No production user had tracking option `expenses`, so no data correction was needed.
 - Bank edit/delete and card delete already used a correct single-connection transaction and write no activity log entries. They should log activity under the brief's rule 8.

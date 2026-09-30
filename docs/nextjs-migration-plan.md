@@ -157,6 +157,6 @@ The existing protections stay: the test schema guard, the no-emoji test and the 
 
 ## Open questions
 
-1. **Expenses-only users** (carried over from Phase 0): should editing or deleting an expense change balances? The migration keeps today's inconsistent behaviour until you decide.
-2. **Public pages:** should `/about`, `/security`, `/privacy` and `/terms` be viewable without logging in (today they are only reachable from the logged-in footer)? The brief's public EMI calculator suggests yes.
-3. **Order relative to v2 Phase 1:** this plan finishes the migration (N0–N4) before starting v2 Phase 1, so new features are only built once, in Next.js. The alternative is to start Phase 1 after N3's accounts group, but new screens would then be written against a half-migrated app.
+1. **Expenses-only users:** decided, balances always change. Fixed before N0.
+2. **Public pages:** decided, `/about`, `/security`, `/privacy` and `/terms` become public (no login) when they move to Next.js in N2.
+3. **Order relative to v2 Phase 1:** decided, the migration (N0–N4) finishes before v2 Phase 1 starts.
