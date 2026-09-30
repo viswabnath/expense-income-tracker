@@ -22,7 +22,7 @@ const children = [
     }),
     spawn('npx', ['next', 'dev', '--port', '3000'], {
         cwd: ROOT,
-        env: { ...process.env, LEGACY_DEV_URL: `http://localhost:${LEGACY_PORT}` },
+        env: { ...process.env, LEGACY_URL: `http://localhost:${LEGACY_PORT}` },
         stdio: 'inherit',
     }),
 ];

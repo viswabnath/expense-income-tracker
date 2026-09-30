@@ -108,6 +108,15 @@ Note: a Git deployment created through the API for a brand-new project was targe
 - **Exit:** with only the catch-all rewrite to the legacy service, the deployed site behaves exactly as before, and all tests pass. The Next.js app is deployed but receives no traffic yet.
 
 ### N2. Screens to React (Express API unchanged)
+Progress:
+- **Public pages (done):** `/about`, `/security`, `/privacy`, `/terms` are Next.js pages in `app/(public)`, public without login.
+  - They reuse the legacy CSS and markup classes, with Inter self-hosted through `next/font` and icons from `lucide-react`.
+  - `proxy.ts` gives them a per-request nonce CSP (`lib/csp.ts`).
+  - The legacy footer links to them as real URLs, and their sections were removed from `legacy/public/index.html`.
+  - Playwright now runs a production build of Next.js that forwards to Express.
+  - Found while porting: `fintech-theme.css` had stray declarations that made browsers drop the `#transactions-history` rule. Both were removed, so the look is unchanged and the file is valid CSS.
+- **Next:** auth screens (`/login`, `/register`, `/forgot-username`, `/forgot-password`), then `/welcome`, `/setup`, `/transactions`, `/summary`, `/activity`.
+
 Port one screen per step, each behind its Playwright test. The first ones use the existing `fintech-theme.css` so nothing changes visually. The redesign is a separate later pass, as the brief requires.
 
 | Old section | New route | Old module(s) |

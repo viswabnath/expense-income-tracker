@@ -723,13 +723,11 @@ td:nth-child(3), td:nth-child(4), td:nth-child(5) {
   border-bottom: 2px solid var(--color-primary-light);
   display: inline-block;
 }
-  margin-bottom: 0.875rem;
-  padding-bottom: 0.625rem;
-  border-bottom: 1px solid var(--color-border);
-  letter-spacing: -0.01em;
-}
 
-#transactions-history { display:grid; gap:1.5rem; }
+/* Removed: stray declarations left outside any rule, plus the "#transactions-history
+   { display:grid; gap:1.5rem; }" rule after them. Browsers parsed the stray text as part of
+   that rule's selector and dropped the rule, so it never applied; removing both keeps the
+   current look and makes the file valid CSS (Next.js rejects the invalid version). */
 
 /* ===== SUMMARY ===== */
 .summary-controls {

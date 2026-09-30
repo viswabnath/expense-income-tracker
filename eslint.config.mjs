@@ -115,7 +115,8 @@ export default [
     files: ["**/*.ts", "**/*.tsx"],
     rules: {
       "semi": ["error", "always"],
-      "quotes": ["warn", "single"],
+      // Double quotes allowed when they avoid escaping, e.g. "'self'" in CSP directives
+      "quotes": ["warn", "single", { "avoidEscape": true }],
       "indent": ["warn", 4],
       "no-trailing-spaces": "warn",
       "eol-last": "warn"

@@ -61,7 +61,8 @@ describe('Security middleware in production', () => {
     test('vercel.json static-file headers should match the headers helmet sends', async () => {
         // Vercel serves public/ from its CDN without running Express, so vercel.json repeats helmet's headers
         const vercelConfig = require('../vercel.json');
-        const staticHeaders = vercelConfig.headers.find(rule => rule.source === '/(.*)').headers;
+        // Every header rule that applies to legacy paths such as "/" (the CSP rule excludes Next.js pages)
+        const staticHeaders = vercelConfig.headers.flatMap(rule => rule.headers);
         const response = await request(app).get('/').set('X-Forwarded-Proto', 'https');
 
         for (const { key, value } of staticHeaders) {
