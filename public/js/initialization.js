@@ -74,6 +74,17 @@ class InitializationManager {
                 inputElement.addEventListener('blur', () => {
                     helpElement.classList.add('hidden');
                 });
+
+                // Blur fires on mousedown. Hiding the help then moves the form's buttons up
+                // before mouseup, so the click lands on the form instead of the button (the
+                // first click on "Continue" did nothing). Keeping focus on the input while a
+                // button is pressed keeps the layout still until the click completes.
+                const form = inputElement.closest('.auth-form');
+                if (form) {
+                    form.querySelectorAll('button').forEach(button => {
+                        button.addEventListener('mousedown', (event) => event.preventDefault());
+                    });
+                }
             }
         });
     }
