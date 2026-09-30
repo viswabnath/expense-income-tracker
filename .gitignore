@@ -225,3 +225,8 @@ playwright-report/
 .next/
 next-env.d.ts
 *.tsbuildinfo
+
+# Vercel CLI link
+.vercel/
+.vercel
+.env*
