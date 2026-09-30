@@ -15,7 +15,7 @@ const pool = new Pool({
 // Database schema setup
 const createTables = async () => {
     try {
-        // Users table
+    // Users table
         await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,

@@ -48,7 +48,7 @@ class SummaryManager {
         }
 
         let html = `<h2 style="text-align: center; color: #495057; margin-bottom: 30px;">
-            📊 ${monthName} ${year} Financial Summary
+            <i data-lucide="bar-chart-3" style="vertical-align: middle; margin-right: 8px;"></i> ${monthName} ${year} Financial Summary
         </h2>`;
 
         // Check for no data message
@@ -72,15 +72,18 @@ class SummaryManager {
                 ${data.message.includes('No transactions found') ? `
                     <div style="text-align: center;">
                         <button class="primary-button setup-accounts-btn" style="margin-right: 10px;">
-                            Setup Accounts
+                            <i data-lucide="settings"></i> Setup Accounts
                         </button>
                         <button class="primary-button add-transactions-btn">
-                            Add Transactions
+                            <i data-lucide="plus-circle"></i> Add Transactions
                         </button>
                     </div>
                 ` : ''}
             </div>`;
             document.getElementById('summary-display').innerHTML = html;
+
+            // Refresh icons
+            if (window.refreshIcons) window.refreshIcons();
 
             // Add event listeners for the action buttons (CSP-compliant)
             if (data.message.includes('No transactions found')) {
@@ -96,14 +99,14 @@ class SummaryManager {
         if (data.monthlyIncome !== undefined && data.monthlyIncome !== null) {
             html += `
                 <div class="summary-card income">
-                    <h3>💰 Monthly Income</h3>
+                    <h3><i data-lucide="trending-up"></i> Monthly Income</h3>
                     <div class="summary-amount">₹${parseFloat(data.monthlyIncome).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                     <div class="summary-subtitle">Money earned this month</div>
                 </div>`;
         } else {
             html += `
                 <div class="summary-card income" style="opacity: 0.6;">
-                    <h3>💰 Monthly Income</h3>
+                    <h3><i data-lucide="trending-up"></i> Monthly Income</h3>
                     <div class="summary-amount">₹0.00</div>
                     <div class="summary-subtitle">No income data available</div>
                 </div>`;
@@ -113,14 +116,14 @@ class SummaryManager {
         if (data.totalExpenses !== undefined && data.totalExpenses !== null) {
             html += `
                 <div class="summary-card expense">
-                    <h3>💸 Monthly Expenses</h3>
+                    <h3><i data-lucide="trending-down"></i> Monthly Expenses</h3>
                     <div class="summary-amount">₹${parseFloat(data.totalExpenses).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                     <div class="summary-subtitle">Money spent this month</div>
                 </div>`;
         } else {
             html += `
                 <div class="summary-card expense" style="opacity: 0.6;">
-                    <h3>💸 Monthly Expenses</h3>
+                    <h3><i data-lucide="trending-down"></i> Monthly Expenses</h3>
                     <div class="summary-amount">₹0.00</div>
                     <div class="summary-subtitle">No expense data available</div>
                 </div>`;
@@ -130,14 +133,14 @@ class SummaryManager {
         if (data.totalCurrentWealth !== undefined && data.totalCurrentWealth !== null) {
             html += `
                 <div class="summary-card wealth">
-                    <h3>💎 Total Wealth</h3>
+                    <h3><i data-lucide="gem"></i> Total Wealth</h3>
                     <div class="summary-amount">₹${parseFloat(data.totalCurrentWealth).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                     <div class="summary-subtitle">Banks + Cash ${timeReference}</div>
                 </div>`;
         } else {
             html += `
                 <div class="summary-card wealth" style="opacity: 0.6;">
-                    <h3>💎 Total Wealth</h3>
+                    <h3><i data-lucide="gem"></i> Total Wealth</h3>
                     <div class="summary-amount">₹0.00</div>
                     <div class="summary-subtitle">Unable to calculate wealth</div>
                 </div>`;
@@ -145,17 +148,17 @@ class SummaryManager {
 
         // Net Savings Card
         if (data.netSavings !== undefined && data.netSavings !== null) {
-            const savingsIcon = parseFloat(data.netSavings) >= 0 ? '📈' : '📉';
+            const savingsIcon = parseFloat(data.netSavings) >= 0 ? 'trending-up' : 'trending-down';
             html += `
                 <div class="summary-card savings">
-                    <h3>${savingsIcon} Net Savings</h3>
+                    <h3><i data-lucide="${savingsIcon}"></i> Net Savings</h3>
                     <div class="summary-amount">₹${parseFloat(data.netSavings).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                     <div class="summary-subtitle">Income - Expenses + Initial</div>
                 </div>`;
         } else {
             html += `
                 <div class="summary-card savings" style="opacity: 0.6;">
-                    <h3>📊 Net Savings</h3>
+                    <h3><i data-lucide="bar-chart-3"></i> Net Savings</h3>
                     <div class="summary-amount">₹0.00</div>
                     <div class="summary-subtitle">Unable to calculate savings</div>
                 </div>`;
@@ -165,7 +168,7 @@ class SummaryManager {
 
         // Account Balances Section
         html += '<div class="accounts-section">';
-        html += `<h3 style="color: #495057; margin-bottom: 20px;">💳 Account Balances ${timeReference}</h3>`;
+        html += `<h3 style="color: #495057; margin-bottom: 20px;"><i data-lucide="credit-card" style="vertical-align: middle; margin-right: 8px;"></i> Account Balances ${timeReference}</h3>`;
         html += '<div class="accounts-grid">';
 
         // Cash Balance
@@ -174,13 +177,13 @@ class SummaryManager {
             if (cashBalance !== undefined && cashBalance !== null && !isNaN(cashBalance)) {
                 html += `
                     <div class="account-card cash">
-                        <h4>💵 Cash Balance</h4>
+                        <h4><i data-lucide="banknote"></i> Cash Balance</h4>
                         <div class="account-balance">₹${parseFloat(cashBalance).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                     </div>`;
             } else {
                 html += `
                     <div class="account-card cash" style="opacity: 0.6;">
-                        <h4>💵 Cash Balance</h4>
+                        <h4><i data-lucide="banknote"></i> Cash Balance</h4>
                         <div class="account-balance" style="color: #6c757d;">Unavailable</div>
                     </div>`;
             }
@@ -194,13 +197,13 @@ class SummaryManager {
                 if (balance !== undefined && balance !== null) {
                     html += `
                         <div class="account-card bank">
-                            <h4>🏦 ${bankName}</h4>
+                            <h4><i data-lucide="landmark"></i> ${bankName}</h4>
                             <div class="account-balance">₹${parseFloat(balance).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
                         </div>`;
                 } else {
                     html += `
                         <div class="account-card bank" style="opacity: 0.6;">
-                            <h4>🏦 ${bankName}</h4>
+                            <h4><i data-lucide="landmark"></i> ${bankName}</h4>
                             <div class="account-balance" style="color: #6c757d;">Unavailable</div>
                         </div>`;
                 }
@@ -218,7 +221,7 @@ class SummaryManager {
 
                     html += `
                         <div class="account-card credit">
-                            <h4>💳 ${cardName}</h4>
+                            <h4><i data-lucide="credit-card"></i> ${cardName}</h4>
                             <div class="account-balance" style="color: #dc3545;">₹${parseFloat(usedLimit).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} used</div>
                             <div style="font-size: 12px; color: #6c757d; margin-top: 5px;">
                                 ₹${availableCredit.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} available of ₹${parseFloat(creditLimit).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
@@ -237,7 +240,7 @@ class SummaryManager {
             data.totalExpenses !== undefined) {
             html += `
                 <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #007bff;">
-                    <h4 style="color: #495057; margin-bottom: 10px;">📋 Calculation Breakdown</h4>
+                    <h4 style="color: #495057; margin-bottom: 10px;"><i data-lucide="list" style="vertical-align: middle; margin-right: 8px;"></i> Calculation Breakdown</h4>
                     <div style="font-size: 14px; color: #6c757d; line-height: 1.6;">
                         <strong>Net Savings Formula</strong><br>
                         Initial Balance (₹${parseFloat(data.totalInitialBalance || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}) + 
@@ -249,6 +252,9 @@ class SummaryManager {
         }
 
         document.getElementById('summary-display').innerHTML = html;
+
+        // Refresh icons
+        if (window.refreshIcons) window.refreshIcons();
     }
 
     attachActionButtonListeners() {

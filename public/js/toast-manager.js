@@ -37,6 +37,11 @@ class ToastManager {
 
         this.toastContainer.appendChild(toast);
 
+        // Refresh icons for the newly added toast
+        if (window.refreshIcons) {
+            window.refreshIcons();
+        }
+
         // Trigger animation
         setTimeout(() => {
             toast.classList.add('toast-show');
@@ -81,10 +86,10 @@ class ToastManager {
 
     getIcon(type) {
         const icons = {
-            success: '✅',
-            error: '❌',
-            info: 'ℹ️',
-            warning: '⚠️'
+            success: '<i data-lucide="check-circle" class="icon-success"></i>',
+            error: '<i data-lucide="alert-circle" class="icon-error"></i>',
+            info: '<i data-lucide="info" class="icon-info"></i>',
+            warning: '<i data-lucide="alert-triangle" class="icon-warning"></i>'
         };
         return icons[type] || icons.info;
     }

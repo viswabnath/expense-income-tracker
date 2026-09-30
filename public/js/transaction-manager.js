@@ -285,6 +285,11 @@ class TransactionManager {
             this.displayExpenseHistory(expenseData);
             this.updateTransactionFormVisibility();
 
+            // Refresh icons in tables
+            if (window.refreshIcons) {
+                window.refreshIcons();
+            }
+
         } catch (error) {
             console.error('Error loading transactions:', error);
             // Check if it's an authentication error
@@ -324,10 +329,10 @@ class TransactionManager {
                     <td>
                         <div class="action-buttons">
                             <button class="action-btn edit-btn" data-action="edit-income" data-id="${income.id}">
-                                ✏️ Edit
+                                <i data-lucide="pencil"></i> Edit
                             </button>
                             <button class="action-btn delete-btn" data-action="delete-income" data-id="${income.id}">
-                                🗑️ Delete
+                                <i data-lucide="trash-2"></i> Delete
                             </button>
                         </div>
                     </td>
@@ -363,10 +368,10 @@ class TransactionManager {
                     <td>
                         <div class="action-buttons">
                             <button class="action-btn edit-btn" data-action="edit-expense" data-id="${expense.id}">
-                                ✏️ Edit
+                                <i data-lucide="pencil"></i> Edit
                             </button>
                             <button class="action-btn delete-btn" data-action="delete-expense" data-id="${expense.id}">
-                                🗑️ Delete
+                                <i data-lucide="trash-2"></i> Delete
                             </button>
                         </div>
                     </td>

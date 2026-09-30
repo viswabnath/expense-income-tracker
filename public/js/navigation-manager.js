@@ -9,12 +9,39 @@ class NavigationManager {
     }
 
     showSection(section) {
+        // Prevent event from bubbling up if it's from a link
+        if (window.event) window.event.preventDefault();
+
+        const resourceSections = ['security', 'privacy', 'terms', 'about'];
+        const isResource = resourceSections.includes(section);
+        const mainApp = document.getElementById('main-app');
+        const welcomeSection = document.getElementById('welcome-section');
+
         // Hide all sections
-        const sections = ['setup-section', 'transactions-section', 'summary-section', 'activity-section'];
+        const sections = [
+            'setup-section',
+            'transactions-section',
+            'summary-section',
+            'activity-section',
+            'security-section',
+            'privacy-section',
+            'terms-section',
+            'about-section'
+        ];
         sections.forEach(sectionId => {
             const element = document.getElementById(sectionId);
             if (element) element.classList.add('hidden');
         });
+
+        // Toggle visibility of main functional containers
+        if (isResource) {
+            if (mainApp) mainApp.classList.add('hidden');
+            if (welcomeSection) welcomeSection.classList.add('hidden');
+            // Ensure we scroll to top of the NEW page
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+            if (mainApp) mainApp.classList.remove('hidden');
+        }
 
         // Show the requested section
         const targetSection = document.getElementById(section + '-section');
@@ -35,6 +62,8 @@ class NavigationManager {
                 window.activityManager.onSectionShow();
             }
         }
+
+        return false; // For older onclick handlers
     }
 
     async setTrackingOption(option) {

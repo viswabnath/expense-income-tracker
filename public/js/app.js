@@ -18,6 +18,18 @@ class ExpenseTracker {
         this.setCurrentMonth();
         this.setupGlobalFunctions();
 
+        // Initialize Lucide icons
+        if (window.lucide) {
+            window.lucide.createIcons();
+        }
+
+        // Global helper to refresh icons when content is added dynamically
+        window.refreshIcons = () => {
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        };
+
         // Check authentication status
         await this.checkAuthenticationStatus();
     }

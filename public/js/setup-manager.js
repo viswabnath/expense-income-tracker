@@ -194,12 +194,23 @@ class SetupManager {
                         <td>₹${parseFloat(bank.initial_balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         <td>₹${parseFloat(bank.current_balance).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         <td>
-                            <button class="edit-btn" data-action="edit-bank" data-id="${bank.id}">Edit</button>
-                            <button class="delete-btn" data-action="delete-bank" data-id="${bank.id}">Delete</button>
+                            <div class="action-buttons">
+                                <button class="action-btn edit-btn" data-action="edit-bank" data-id="${bank.id}">
+                                    <i data-lucide="pencil"></i> Edit
+                                </button>
+                                <button class="action-btn delete-btn" data-action="delete-bank" data-id="${bank.id}">
+                                    <i data-lucide="trash-2"></i> Delete
+                                </button>
+                            </div>
                         </td>
                     `;
                 });
                 banksDiv.appendChild(table);
+
+                // Refresh icons
+                if (window.refreshIcons) {
+                    window.refreshIcons();
+                }
             }
         } catch (error) {
             console.error('Error loading banks:', error);
@@ -282,13 +293,24 @@ class SetupManager {
                         <td>₹${parseFloat(card.used_limit).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         <td>₹${available.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         <td>
-                            <button class="edit-btn" data-action="edit-credit-card" data-id="${card.id}">Edit</button>
-                            <button class="delete-btn" data-action="delete-credit-card" data-id="${card.id}">Delete</button>
+                            <div class="action-buttons">
+                                <button class="action-btn edit-btn" data-action="edit-credit-card" data-id="${card.id}">
+                                    <i data-lucide="pencil"></i> Edit
+                                </button>
+                                <button class="action-btn delete-btn" data-action="delete-credit-card" data-id="${card.id}">
+                                    <i data-lucide="trash-2"></i> Delete
+                                </button>
+                            </div>
                         </td>
                     `;
                 });
 
                 cardsDiv.appendChild(table);
+
+                // Refresh icons
+                if (window.refreshIcons) {
+                    window.refreshIcons();
+                }
             }
         } catch (error) {
             console.error('Error loading credit cards:', error);
@@ -347,9 +369,16 @@ class SetupManager {
                 <h4>Cash Balance</h4>
                 <div class="cash-balance-display">
                     <span class="cash-amount">₹${initialBalance.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    <button class="edit-btn" data-action="edit-cash-balance" ${isZeroBalance ? 'disabled' : ''}>Edit</button>
+                    <button class="action-btn edit-btn" data-action="edit-cash-balance" ${isZeroBalance ? 'disabled' : ''}>
+                        <i data-lucide="pencil"></i> Edit
+                    </button>
                 </div>
             `;
+
+            // Refresh icons
+            if (window.refreshIcons) {
+                window.refreshIcons();
+            }
         } catch (error) {
             console.error('Error loading cash balance', error);
             // Fallback display in case of error

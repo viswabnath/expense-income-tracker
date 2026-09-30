@@ -15,7 +15,8 @@ export default [
       "dist/",
       "build/",
       "check-schema.js",
-      "reset-db.js"
+      "reset-db.js",
+      "reset-test-db.js"
     ]
   },
   {
@@ -31,7 +32,11 @@ export default [
     },
     rules: {
       ...js.configs.recommended.rules,
-      "no-unused-vars": "warn",
+      "no-unused-vars": ["warn", { 
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_",
+        "caughtErrorsIgnorePattern": "^_"
+      }],
       "no-undef": "error",
       "prefer-const": "warn",
       "no-var": "warn",

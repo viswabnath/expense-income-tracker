@@ -109,6 +109,12 @@ tmp/
 temp/
 
 # Project-specific files to ignore
+scratch/
+.claude/
+.code-review-graph/
+.gemini/
+.antigravity/
+
 # Backup files
 *.backup
 *.bak
@@ -194,17 +200,11 @@ bower_components/
 # DynamoDB Local files
 .dynamodb/
 
-# Temporary documentation files (remove when project is finalized)
-GIT-PUSH-GUIDE.md
-LINTING.md
-refactoring-report.md
-SECURITY-ANALYSIS.md
-API-Documentation.md
-PROJECT-COMPLETENESS-ANALYSIS.md
-refactoring-report.md
-# Development utility scripts
-check-schema.js
-reset-db.js
+# Finalized Documentation (Remove from here to track in Git)
+# GIT-PUSH-GUIDE.md
+# LINTING.md
+# refactoring-report.md
+# SECURITY-ANALYSIS.md
 
 # Development utility scripts
 check-schema.js
@@ -215,3 +215,4 @@ deploy.sh
 docker-compose.yml
 Dockerfile
 ci-cd.yml
+.db-backups/

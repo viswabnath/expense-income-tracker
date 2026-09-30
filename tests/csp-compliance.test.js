@@ -45,9 +45,10 @@ describe('CSP Compliance Tests', () => {
                 const fileContent = fs.readFileSync(filePath, 'utf8');
 
                 // If the file has interactive elements, it should use addEventListener
-                // Exception: activity-manager.js and auth.js use global functions
+                // Exception: activity-manager.js and auth.js use global functions;
+                // api.js only toggles the loader element and binds no events
                 if ((fileContent.includes('getElementById') || fileContent.includes('querySelector')) &&
-                    fileName !== 'activity-manager.js' && fileName !== 'auth.js') {
+                    !['activity-manager.js', 'auth.js', 'api.js'].includes(fileName)) {
                     expect(fileContent).toContain('addEventListener');
                 }
             });

@@ -38,34 +38,35 @@ const pool = new Pool({
         : false,
 });
 
-// Test database connection
-pool.connect()
-    .then(client => {
-        console.log('✅ Database connected successfully!');
-        client.release();
-    })
-    .catch(err => {
-        console.error('❌ Database connection failed:');
-        console.error('Error code:', err.code);
-        console.error('Error message:', err.message);
-        console.error('Error details:', err);
-        console.error('Check your database environment variables!');
-    });
+// Test database connection (skip in test environment)
+if (process.env.NODE_ENV !== 'test') {
+    pool.connect()
+        .then(client => {
+            console.log('✅ Database connected successfully!');
+            client.release();
+        })
+        .catch(err => {
+            console.error('❌ Database connection failed:');
+            console.error('Error code:', err.code);
+            console.error('Error message:', err.message);
+            console.error('Error details:', err);
+            console.error('Check your database environment variables!');
+        });
+}
 
-// Rate limiting for authentication endpoints
-// DEVELOPMENT: Rate limiting disabled for easier development
-// const authLimiter = rateLimit({
-//     windowMs: 15 * 60 * 1000, // 15 minutes
-//     max: 5, // 5 attempts per window per IP
-//     message: {
-//         error: 'Too many authentication attempts. Please try again in 15 minutes.',
-//     },
-//     standardHeaders: true,
-//     legacyHeaders: false,
-// });
-
-// Development bypass - no rate limiting
-const authLimiter = (req, res, next) => next();
+// Rate limiting for authentication endpoints (skipped in development and test)
+const skipAuthLimit = ['development', 'test'].includes(process.env.NODE_ENV);
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 failed attempts per window per IP
+    skipSuccessfulRequests: true,
+    message: {
+        error: 'Too many authentication attempts. Please try again in 15 minutes.',
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: () => skipAuthLimit,
+});
 
 // General rate limiting
 const generalLimiter = rateLimit({
@@ -74,19 +75,30 @@ const generalLimiter = rateLimit({
     message: { error: 'Too many requests. Please slow down.' },
 });
 
+// Redirect HTTP to HTTPS in production (must run before static files and routes).
+// Only redirect when the proxy reports plain HTTP, so internal health checks still work.
+if (process.env.NODE_ENV === 'production') {
+    app.use((req, res, next) => {
+        if (req.headers['x-forwarded-proto'] === 'http') {
+            return res.redirect(301, 'https://' + req.headers.host + req.url);
+        }
+        next();
+    });
+}
+
 // Middleware
 app.use(helmet({
     contentSecurityPolicy: {
+        useDefaults: true,
         directives: {
-            defaultSrc: ['\'self\''],
-            scriptSrc: ['\'self\''],
+            scriptSrc: ['\'self\'', 'https://unpkg.com'],
+            // style attributes are used in index.html and in rendered summary/transaction markup
             styleSrc: ['\'self\'', '\'unsafe-inline\'', 'https://fonts.googleapis.com'],
             fontSrc: ['\'self\'', 'https://fonts.gstatic.com'],
+            imgSrc: ['\'self\'', 'data:'],
             connectSrc: ['\'self\''],
-            imgSrc: ['\'self\'', 'data:', 'https:'],
-            objectSrc: ['\'none\''],
-            mediaSrc: ['\'self\''],
-            frameSrc: ['\'none\''],
+            // Safari applies upgrade-insecure-requests to http://localhost, which breaks local dev
+            upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null,
         },
     },
 }));
@@ -103,11 +115,12 @@ app.use(
         cookie: {
             secure: process.env.NODE_ENV === 'production', // HTTPS only in production
             httpOnly: true, // Prevent XSS attacks
-            maxAge: 24 * 60 * 60 * 1000, // 24 hours
+            maxAge: 2 * 60 * 60 * 1000, // 2 hours (Professional Standard)
             sameSite: 'strict', // CSRF protection
         },
     })
 );
+
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
@@ -189,6 +202,12 @@ app.post('/api/register', authLimiter, async (req, res) => {
         ) {
             return res.status(400).json({ error: 'All fields are required' });
         }
+
+        // Input length limits
+        if (username.length > 50)  return res.status(400).json({ error: 'Username too long (max 50 characters)' });
+        if (name.length > 100)     return res.status(400).json({ error: 'Name too long (max 100 characters)' });
+        if (email.length > 255)    return res.status(400).json({ error: 'Email too long (max 255 characters)' });
+        if (securityAnswer.length > 200) return res.status(400).json({ error: 'Security answer too long (max 200 characters)' });
 
         // Validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -294,15 +313,22 @@ app.post('/api/login', authLimiter, async (req, res) => {
             return res.status(400).json({ error: 'Invalid credentials' });
         }
 
-        req.session.userId = user.id;
-        res.json({
-            success: true,
-            userId: user.id,
-            name: user.name,
-            trackingOption: user.tracking_option,
+        // Regenerate session to prevent session fixation
+        const userData = { id: user.id, name: user.name, tracking_option: user.tracking_option };
+        req.session.regenerate((err) => {
+            if (err) {
+                return res.status(500).json({ error: 'Login failed. Please try again.' });
+            }
+            req.session.userId = userData.id;
+            res.json({
+                success: true,
+                userId: userData.id,
+                name: userData.name,
+                trackingOption: userData.tracking_option,
+            });
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'Login failed. Please try again.' });
     }
 });
 
@@ -310,13 +336,17 @@ app.post('/api/login', authLimiter, async (req, res) => {
 app.post('/api/set-tracking-option', requireAuth, async (req, res) => {
     try {
         const { trackingOption } = req.body;
+        const validOptions = ['income', 'expenses', 'both'];
+        if (!validOptions.includes(trackingOption)) {
+            return res.status(400).json({ error: 'Invalid tracking option' });
+        }
         await pool.query('UPDATE users SET tracking_option = $1 WHERE id = $2', [
             trackingOption,
             req.session.userId,
         ]);
         res.json({ success: true });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     }
 });
 
@@ -329,7 +359,7 @@ app.get('/api/user', requireAuth, async (req, res) => {
         );
         res.json(result.rows[0]);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     }
 });
 
@@ -490,12 +520,30 @@ app.post('/api/banks', requireAuth, async (req, res) => {
             [req.session.userId, upperName, initialBalance || 0]
         );
 
-        res.json(result.rows[0]);
+        const newBank = result.rows[0];
+
+        // Log activity
+        await logActivity(
+            req.session.userId,
+            'create',
+            'bank',
+            newBank.id,
+            `Added bank account: ${upperName}`,
+            initialBalance || 0,
+            null,
+            {
+                name: upperName,
+                initialBalance: initialBalance || 0,
+                currentBalance: initialBalance || 0
+            }
+        );
+
+        res.json(newBank);
     } catch (error) {
         if (error.code === '23505') {
             res.status(400).json({ error: 'Bank already exists' });
         } else {
-            res.status(500).json({ error: error.message });
+            res.status(500).json({ error: 'An error occurred. Please try again.' });
         }
     }
 });
@@ -508,7 +556,7 @@ app.get('/api/banks', requireAuth, async (req, res) => {
         );
         res.json(result.rows);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     }
 });
 
@@ -523,12 +571,31 @@ app.post('/api/credit-cards', requireAuth, async (req, res) => {
             [req.session.userId, upperName, creditLimit]
         );
 
-        res.json(result.rows[0]);
+        const newCard = result.rows[0];
+
+        // Log activity
+        await logActivity(
+            req.session.userId,
+            'create',
+            'credit_card',
+            newCard.id,
+            `Added credit card: ${upperName}`,
+            creditLimit,
+            null,
+            {
+                name: upperName,
+                creditLimit: creditLimit,
+                usedLimit: 0,
+                availableLimit: creditLimit
+            }
+        );
+
+        res.json(newCard);
     } catch (error) {
         if (error.code === '23505') {
             res.status(400).json({ error: 'Credit card already exists' });
         } else {
-            res.status(500).json({ error: error.message });
+            res.status(500).json({ error: 'An error occurred. Please try again.' });
         }
     }
 });
@@ -541,7 +608,7 @@ app.get('/api/credit-cards', requireAuth, async (req, res) => {
         );
         res.json(result.rows);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     }
 });
 
@@ -626,7 +693,7 @@ app.post('/api/cash-balance', requireAuth, async (req, res) => {
 
         res.json(result.rows[0]);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     }
 });
 
@@ -638,7 +705,7 @@ app.get('/api/cash-balance', requireAuth, async (req, res) => {
         );
         res.json(result.rows[0] || { balance: 0 });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     }
 });
 
@@ -684,7 +751,7 @@ app.put('/api/banks/:id', requireAuth, async (req, res) => {
         res.json(result.rows[0]);
     } catch (error) {
         await client.query('ROLLBACK');
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     } finally {
         client.release();
     }
@@ -698,12 +765,16 @@ app.delete('/api/banks/:id', requireAuth, async (req, res) => {
         const { id } = req.params;
 
         // Check if bank has transactions
-        const transactions = await client.query(
-            'SELECT COUNT(*) FROM income_entries WHERE user_id = $1 AND credited_to_type = $2 AND credited_to_id = $3 UNION ALL SELECT COUNT(*) FROM expense_entries WHERE user_id = $1 AND debited_from_type = $2 AND debited_from_id = $3',
+        const incomeCount = await client.query(
+            'SELECT COUNT(*) FROM income_entries WHERE user_id = $1 AND credited_to_type = $2 AND credited_to_id = $3',
+            [req.session.userId, 'bank', id]
+        );
+        const expenseCount = await client.query(
+            'SELECT COUNT(*) FROM expenses WHERE user_id = $1 AND payment_method = $2 AND payment_source_id = $3',
             [req.session.userId, 'bank', id]
         );
 
-        const totalTransactions = transactions.rows.reduce((sum, row) => sum + parseInt(row.count), 0);
+        const totalTransactions = parseInt(incomeCount.rows[0].count) + parseInt(expenseCount.rows[0].count);
 
         if (totalTransactions > 0) {
             return res.status(400).json({
@@ -725,7 +796,7 @@ app.delete('/api/banks/:id', requireAuth, async (req, res) => {
         res.json({ success: true, message: 'Bank deleted successfully' });
     } catch (error) {
         await client.query('ROLLBACK');
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     } finally {
         client.release();
     }
@@ -774,7 +845,7 @@ app.put('/api/credit-cards/:id', requireAuth, async (req, res) => {
 
         res.json(result.rows[0]);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     }
 });
 
@@ -787,7 +858,7 @@ app.delete('/api/credit-cards/:id', requireAuth, async (req, res) => {
 
         // Check if credit card has transactions
         const transactions = await client.query(
-            'SELECT COUNT(*) FROM expense_entries WHERE user_id = $1 AND debited_from_type = $2 AND debited_from_id = $3',
+            'SELECT COUNT(*) FROM expenses WHERE user_id = $1 AND payment_method = $2 AND payment_source_id = $3',
             [req.session.userId, 'credit_card', id]
         );
 
@@ -811,7 +882,7 @@ app.delete('/api/credit-cards/:id', requireAuth, async (req, res) => {
         res.json({ success: true, message: 'Credit card deleted successfully' });
     } catch (error) {
         await client.query('ROLLBACK');
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     } finally {
         client.release();
     }
@@ -821,34 +892,34 @@ app.delete('/api/credit-cards/:id', requireAuth, async (req, res) => {
 app.post('/api/income', requireAuth, async (req, res) => {
     try {
         const { source, amount, creditedToType, creditedToId, date } = req.body;
-        
+
         // Validate date input
         if (!date) {
             return res.status(400).json({ error: 'Date is required' });
         }
-        
+
         // If only date is provided (YYYY-MM-DD), add current time to make it more realistic
         let finalDate = date;
         if (date && date.length === 10) { // YYYY-MM-DD format
             const now = new Date();
             const selectedDate = new Date(date);
-            
+
             // Check if the date is valid and hasn't been auto-corrected
             if (isNaN(selectedDate.getTime()) || selectedDate.toISOString().split('T')[0] !== date) {
                 return res.status(400).json({ error: 'Invalid date format' });
             }
-            
+
             selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
             finalDate = selectedDate.toISOString();
         }
-        
+
         const dateObj = new Date(finalDate);
-        
+
         // Validate the final date
         if (isNaN(dateObj.getTime())) {
             return res.status(400).json({ error: 'Invalid date format' });
         }
-        
+
         const month = dateObj.getMonth() + 1;
         const year = dateObj.getFullYear();
 
@@ -891,7 +962,7 @@ app.post('/api/income', requireAuth, async (req, res) => {
 
         res.json(result.rows[0]);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     }
 });
 
@@ -922,7 +993,7 @@ app.get('/api/income', requireAuth, async (req, res) => {
         const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     }
 });
 
@@ -930,34 +1001,34 @@ app.get('/api/income', requireAuth, async (req, res) => {
 app.post('/api/expenses', requireAuth, async (req, res) => {
     try {
         const { title, amount, paymentMethod, paymentSourceId, date } = req.body;
-        
+
         // Validate date input
         if (!date) {
             return res.status(400).json({ error: 'Date is required' });
         }
-        
+
         // If only date is provided (YYYY-MM-DD), add current time to make it more realistic
         let finalDate = date;
         if (date && date.length === 10) { // YYYY-MM-DD format
             const now = new Date();
             const selectedDate = new Date(date);
-            
+
             // Check if the date is valid and hasn't been auto-corrected
             if (isNaN(selectedDate.getTime()) || selectedDate.toISOString().split('T')[0] !== date) {
                 return res.status(400).json({ error: 'Invalid date format' });
             }
-            
+
             selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
             finalDate = selectedDate.toISOString();
         }
-        
+
         const dateObj = new Date(finalDate);
-        
+
         // Validate the final date
         if (isNaN(dateObj.getTime())) {
             return res.status(400).json({ error: 'Invalid date format' });
         }
-        
+
         const month = dateObj.getMonth() + 1;
         const year = dateObj.getFullYear();
 
@@ -1060,7 +1131,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
 
         res.json(result.rows[0]);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     }
 });
 
@@ -1091,7 +1162,7 @@ app.get('/api/expenses', requireAuth, async (req, res) => {
         const result = await pool.query(query, params);
         res.json(result.rows);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     }
 });
 
@@ -1112,7 +1183,7 @@ app.get('/api/income/:id', requireAuth, async (req, res) => {
 
         res.json(result.rows[0]);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     }
 });
 
@@ -1174,7 +1245,7 @@ app.put('/api/income/:id', requireAuth, async (req, res) => {
             }
 
             await pool.query('COMMIT');
-            
+
             // Log activity for update
             await logActivity(
                 req.session.userId,
@@ -1183,15 +1254,15 @@ app.put('/api/income/:id', requireAuth, async (req, res) => {
                 incomeId,
                 `Updated income: ${source}`,
                 amount,
-                { 
-                    source: currentIncome.source, 
-                    amount: currentIncome.amount, 
+                {
+                    source: currentIncome.source,
+                    amount: currentIncome.amount,
                     credited_to_type: currentIncome.credited_to_type,
-                    credited_to_id: currentIncome.credited_to_id 
+                    credited_to_id: currentIncome.credited_to_id
                 },
                 { source, amount, creditedToType, creditedToId }
             );
-            
+
             res.json({ success: true, message: 'Income transaction updated successfully' });
 
         } catch (error) {
@@ -1200,7 +1271,7 @@ app.put('/api/income/:id', requireAuth, async (req, res) => {
         }
 
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     }
 });
 
@@ -1245,7 +1316,7 @@ app.delete('/api/income/:id', requireAuth, async (req, res) => {
             );
 
             await pool.query('COMMIT');
-            
+
             // Log activity for deletion
             await logActivity(
                 req.session.userId,
@@ -1255,7 +1326,7 @@ app.delete('/api/income/:id', requireAuth, async (req, res) => {
                 `Deleted income: ${currentIncome.source}`,
                 currentIncome.amount
             );
-            
+
             res.json({ success: true, message: 'Income transaction deleted successfully' });
 
         } catch (error) {
@@ -1264,7 +1335,7 @@ app.delete('/api/income/:id', requireAuth, async (req, res) => {
         }
 
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     }
 });
 
@@ -1285,7 +1356,7 @@ app.get('/api/expenses/:id', requireAuth, async (req, res) => {
 
         res.json(result.rows[0]);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     }
 });
 
@@ -1357,7 +1428,7 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
             }
 
             await pool.query('COMMIT');
-            
+
             // Log activity for update
             await logActivity(
                 req.session.userId,
@@ -1366,15 +1437,15 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
                 expenseId,
                 `Updated expense: ${title}`,
                 amount,
-                { 
-                    title: currentExpense.title, 
-                    amount: currentExpense.amount, 
+                {
+                    title: currentExpense.title,
+                    amount: currentExpense.amount,
                     payment_method: currentExpense.payment_method,
-                    payment_source_id: currentExpense.payment_source_id 
+                    payment_source_id: currentExpense.payment_source_id
                 },
                 { title, amount, paymentMethod, paymentSourceId }
             );
-            
+
             res.json({ success: true, message: 'Expense transaction updated successfully' });
 
         } catch (error) {
@@ -1383,7 +1454,7 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
         }
 
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     }
 });
 
@@ -1433,7 +1504,7 @@ app.delete('/api/expenses/:id', requireAuth, async (req, res) => {
             );
 
             await pool.query('COMMIT');
-            
+
             // Log activity for deletion
             await logActivity(
                 req.session.userId,
@@ -1443,7 +1514,7 @@ app.delete('/api/expenses/:id', requireAuth, async (req, res) => {
                 `Deleted expense: ${currentExpense.title}`,
                 currentExpense.amount
             );
-            
+
             res.json({ success: true, message: 'Expense transaction deleted successfully' });
 
         } catch (error) {
@@ -1452,7 +1523,7 @@ app.delete('/api/expenses/:id', requireAuth, async (req, res) => {
         }
 
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     }
 });
 
@@ -1773,7 +1844,7 @@ app.get('/api/activity', requireAuth, async (req, res) => {
             const startDate = `${year}-${month.padStart(2, '0')}-01`;
             whereConditions.push(`created_at >= $${paramCount}`);
             params.push(startDate);
-            
+
             paramCount++;
             const nextMonth = parseInt(month) === 12 ? 1 : parseInt(month) + 1;
             const nextYear = parseInt(month) === 12 ? parseInt(year) + 1 : parseInt(year);
@@ -1784,7 +1855,7 @@ app.get('/api/activity', requireAuth, async (req, res) => {
             paramCount++;
             whereConditions.push(`created_at >= $${paramCount}`);
             params.push(`${year}-01-01`);
-            
+
             paramCount++;
             whereConditions.push(`created_at < $${paramCount}`);
             params.push(`${parseInt(year) + 1}-01-01`);
@@ -1849,7 +1920,9 @@ app.get('/api/activity', requireAuth, async (req, res) => {
 
         // Apply type filtering if specified
         if (type && type !== '') {
-            activitiesQuery += ` AND entity_type = '${type}'`;
+            paramCount++;
+            activitiesQuery += ` AND entity_type = $${paramCount}`;
+            params.push(type);
         }
 
         activitiesQuery += ' ORDER BY created_at DESC';
@@ -1914,7 +1987,7 @@ app.get('/api/activity', requireAuth, async (req, res) => {
 
     } catch (error) {
         console.error('Error fetching user activity:', error);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: 'An error occurred. Please try again.' });
     }
 });
 
@@ -1923,25 +1996,46 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-if (process.env.NODE_ENV === 'production') {
-    app.use((req, res, next) => {
-        if (req.headers['x-forwarded-proto'] !== 'https') {
-            return res.redirect('https://' + req.headers.host + req.url);
-        }
-        next();
-    });
-}
-
 // Export the app and pool for testing
 module.exports = { app, pool };
+
+// Cleanup function for tests
+function cleanup() {
+    return pool.end();
+}
 
 // Only start server if this file is run directly (not imported for testing)
 if (require.main === module) {
     console.log('🚀 Starting Express server...');
-    app.listen(PORT, '0.0.0.0', () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
         console.log(`✅ Server running on port ${PORT}`);
         console.log(`🌐 Environment: ${process.env.NODE_ENV}`);
         console.log(`🔗 Database: ${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`);
         console.log('🎉 BalanceTrack is ready!');
     });
+
+    // Graceful shutdown
+    process.on('SIGTERM', async () => {
+        console.log('🛑 SIGTERM received, shutting down gracefully...');
+        server.close(() => {
+            console.log('✅ HTTP server closed');
+            cleanup().then(() => {
+                console.log('✅ Database connections closed');
+                process.exit(0);
+            });
+        });
+    });
+
+    process.on('SIGINT', async () => {
+        console.log('🛑 SIGINT received, shutting down gracefully...');
+        server.close(() => {
+            console.log('✅ HTTP server closed');
+            cleanup().then(() => {
+                console.log('✅ Database connections closed');
+                process.exit(0);
+            });
+        });
+    });
 }
+
+module.exports.cleanup = cleanup;

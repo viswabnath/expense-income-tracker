@@ -5,7 +5,6 @@
  */
 
 const request = require('supertest');
-const { Pool } = require('pg');
 
 // Mock rate limiter to prevent 429 errors in tests
 jest.mock('express-rate-limit', () => {
@@ -14,16 +13,6 @@ jest.mock('express-rate-limit', () => {
 
 // Import the actual server app AFTER mocking rate limiter
 const { app, pool: serverPool } = require('../server');
-
-// Test database configuration
-const testPool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'expense_tracker_test',
-    password: process.env.DB_PASSWORD || 'expense-tracker-2025',
-    port: process.env.DB_PORT || 5432,
-    ssl: false
-});
 
 describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
     let testUserId;
@@ -78,21 +67,21 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
             .post('/api/cash-balance')
             .set('Cookie', sessionCookie)
             .send({ balance: 500 });
-    });
+    }, 30000);
 
     afterAll(async () => {
         // Clean up
         try {
-            await testPool.query('DELETE FROM expenses WHERE user_id = $1', [testUserId]);
-            await testPool.query('DELETE FROM income_entries WHERE user_id = $1', [testUserId]);
-            await testPool.query('DELETE FROM credit_cards WHERE user_id = $1', [testUserId]);
-            await testPool.query('DELETE FROM banks WHERE user_id = $1', [testUserId]);
-            await testPool.query('DELETE FROM cash_balance WHERE user_id = $1', [testUserId]);
-            await testPool.query('DELETE FROM users WHERE id = $1', [testUserId]);
+            await serverPool.query('DELETE FROM activity_log WHERE user_id = $1', [testUserId]);
+            await serverPool.query('DELETE FROM expenses WHERE user_id = $1', [testUserId]);
+            await serverPool.query('DELETE FROM income_entries WHERE user_id = $1', [testUserId]);
+            await serverPool.query('DELETE FROM credit_cards WHERE user_id = $1', [testUserId]);
+            await serverPool.query('DELETE FROM banks WHERE user_id = $1', [testUserId]);
+            await serverPool.query('DELETE FROM cash_balance WHERE user_id = $1', [testUserId]);
+            await serverPool.query('DELETE FROM users WHERE id = $1', [testUserId]);
         } catch {
             // intentionally empty: cleanup failure is non-fatal
         }
-        await testPool.end();
         await serverPool.end();
     });
 

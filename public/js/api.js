@@ -4,7 +4,33 @@
  */
 
 class ApiClient {
+    static activeRequests = 0;
+
+    static showLoader() {
+        const loader = document.getElementById('global-loader');
+        if (loader) {
+            this.activeRequests++;
+            loader.classList.remove('hidden');
+        }
+    }
+
+    static hideLoader() {
+        const loader = document.getElementById('global-loader');
+        if (loader) {
+            this.activeRequests = Math.max(0, this.activeRequests - 1);
+            if (this.activeRequests === 0) {
+                // Small delay to prevent flickering on very fast requests
+                setTimeout(() => {
+                    if (this.activeRequests === 0) {
+                        loader.classList.add('hidden');
+                    }
+                }, 300);
+            }
+        }
+    }
+
     static async request(endpoint, options = {}) {
+        this.showLoader();
         try {
             const defaultOptions = {
                 headers: {
@@ -38,6 +64,8 @@ class ApiClient {
             }
             // If it's something else (like network error), wrap it
             throw new Error(`Request failed: ${error.message || error}`);
+        } finally {
+            this.hideLoader();
         }
     }
 

@@ -52,7 +52,7 @@ describe('Activity Endpoint Coverage Tests', () => {
         test('should handle authenticated activity request and cover endpoint code', async () => {
             // Mock the requireAuth middleware by setting up the session first
             const agent = request.agent(app);
-            
+
             // Mock login process
             mockQuery.mockResolvedValueOnce({
                 rows: [{ id: 1, password_hash: 'hashedpassword', name: 'Test User', tracking_option: 'both' }],
@@ -81,8 +81,8 @@ describe('Activity Endpoint Coverage Tests', () => {
                 })
                 .mockResolvedValueOnce({
                     rows: [
-                        { 
-                            id: 1, type: 'income', description: 'Salary', amount: 3000, 
+                        {
+                            id: 1, type: 'income', description: 'Salary', amount: 3000,
                             date: '2025-07-15', bank_name: 'Bank1', account_name: 'Checking',
                             created_at: '2025-07-15T10:00:00Z'
                         }
@@ -134,8 +134,8 @@ describe('Activity Endpoint Coverage Tests', () => {
                 })
                 .mockResolvedValueOnce({
                     rows: [
-                        { 
-                            id: 1, type: 'income', description: 'Salary', amount: 3000, 
+                        {
+                            id: 1, type: 'income', description: 'Salary', amount: 3000,
                             date: '2025-07-15', bank_name: 'Bank1', account_name: 'Checking'
                         }
                     ],
@@ -161,8 +161,8 @@ describe('Activity Endpoint Coverage Tests', () => {
                 })
                 .mockResolvedValueOnce({
                     rows: [
-                        { 
-                            id: 1, type: 'expense', description: 'Food', amount: 100, 
+                        {
+                            id: 1, type: 'expense', description: 'Food', amount: 100,
                             date: '2025-07-15', bank_name: 'Bank1', account_name: 'Checking'
                         }
                     ],
@@ -188,13 +188,13 @@ describe('Activity Endpoint Coverage Tests', () => {
                 })
                 .mockResolvedValueOnce({
                     rows: [
-                        { 
-                            id: 1, type: 'income', description: 'Salary', amount: 3000, 
+                        {
+                            id: 1, type: 'income', description: 'Salary', amount: 3000,
                             date: '2025-07-15', bank_name: 'Bank1', account_name: 'Checking'
                         },
-                        { 
-                            id: 2, type: 'expense', description: 'Food', amount: 100, 
-                            date: '2025-07-15', bank_name: 'Bank2', account_name: 'Credit' 
+                        {
+                            id: 2, type: 'expense', description: 'Food', amount: 100,
+                            date: '2025-07-15', bank_name: 'Bank2', account_name: 'Credit'
                         }
                     ],
                     rowCount: 2
@@ -270,9 +270,10 @@ describe('Activity Endpoint Coverage Tests', () => {
                 });
 
             const response = await request(app)
-                .get('/api/debug-monthly');
+                .get('/api/activity')
+                .set('Cookie', 'sessionId=test-session-id');
 
-            expect([200, 500].includes(response.status)).toBe(true);
+            expect([200, 401].includes(response.status)).toBe(true);
         });
 
         test('should cover POST /api/forgot-username endpoint', async () => {
@@ -312,10 +313,10 @@ describe('Activity Endpoint Coverage Tests', () => {
 
             const response = await request(app)
                 .post('/api/reset-password')
-                .send({ 
-                    username: 'testuser', 
+                .send({
+                    username: 'testuser',
                     securityAnswer: 'testanswer',
-                    newPassword: 'NewPass123&' 
+                    newPassword: 'NewPass123&'
                 });
 
             expect([200, 400, 404, 500].includes(response.status)).toBe(true);
@@ -352,8 +353,8 @@ describe('Activity Endpoint Coverage Tests', () => {
         test('should cover invalid username format in forgot-password', async () => {
             const response = await request(app)
                 .post('/api/forgot-password')
-                .send({ 
-                    username: 'invalid-username!', 
+                .send({
+                    username: 'invalid-username!',
                     securityAnswer: 'answer'
                 });
 
@@ -371,7 +372,7 @@ describe('Activity Endpoint Coverage Tests', () => {
         test('should cover password validation in reset-password', async () => {
             const response = await request(app)
                 .post('/api/reset-password')
-                .send({ 
+                .send({
                     username: 'testuser',
                     securityAnswer: 'answer',
                     newPassword: 'weak' // Invalid password

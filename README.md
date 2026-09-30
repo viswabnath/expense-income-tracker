@@ -45,10 +45,12 @@ BalanceTrack is a full-stack web application that allows users to:
 - ✅ Password strength validation
 - ✅ Security question-based password reset
 - ✅ Session management with secure cookies
-- ✅ Rate limiting on authentication endpoints
-- ✅ XSS and SQL injection protection
-- ✅ **Content Security Policy (CSP) compliance**
-- ✅ **Helmet.js security headers**
+- ✅ General rate limiting (100 requests/minute per IP)
+- ✅ Auth-endpoint rate limiting (5 failed attempts per 15 minutes; off in development/test)
+- ✅ Parameterized SQL queries
+- ✅ **CSP-compliant frontend** (no inline scripts or handlers)
+- ✅ **Helmet.js security headers and Content-Security-Policy**
+- ✅ HTTP → HTTPS redirect in production
 - ✅ **CSRF protection with SameSite cookies**
 
 ### Financial Management
@@ -58,6 +60,10 @@ BalanceTrack is a full-stack web application that allows users to:
 - ✅ Income tracking from various sources
 - ✅ Expense categorization and tracking
 - ✅ Real-time balance calculations
+- ✅ **Professional 2-hour session timeout policy**
+- ✅ **Dedicated Resource Pages (About, Security, Privacy, Terms)**
+- ✅ **Structured Ledger Tables with row borders and hover effects**
+
 
 ### Advanced Features
 - ✅ Monthly financial summaries
@@ -83,7 +89,7 @@ BalanceTrack is a full-stack web application that allows users to:
 ## 🛠️ Installation & Setup
 
 ### Prerequisites
-- Node.js (v14 or higher)
+- Node.js (v18 or higher)
 - PostgreSQL (v12 or higher)
 - npm or yarn
 
@@ -137,32 +143,29 @@ BalanceTrack is a full-stack web application that allows users to:
 
 ## 📚 API Documentation
 
+Full request/response reference: [API-DOCUMENTATION.md](API-DOCUMENTATION.md).
+
 ### Authentication Endpoints
-- `POST /api/register` - User registration
-- `POST /api/login` - User login
-- `POST /api/logout` - User logout
-- `POST /api/forgot-username` - Username recovery
-- `POST /api/reset-password` - Password reset
+- `POST /api/register`, `POST /api/login`, `POST /api/logout`
+- `GET /api/user`, `POST /api/set-tracking-option`
+- `POST /api/forgot-username`, `POST /api/forgot-password`, `POST /api/reset-password`
 
 ### Financial Account Endpoints
-- `GET /api/banks` - Get user's banks
-- `POST /api/banks` - Add new bank
-- `GET /api/credit-cards` - Get user's credit cards
-- `POST /api/credit-cards` - Add new credit card
-- `GET /api/cash-balance` - Get cash balance
-- `POST /api/cash-balance` - Set cash balance
+- `GET|POST /api/banks`, `PUT|DELETE /api/banks/:id`
+- `GET|POST /api/credit-cards`, `PUT|DELETE /api/credit-cards/:id`
+- `GET|POST /api/cash-balance`
 
 ### Transaction Endpoints
-- `GET /api/income` - Get income entries
-- `POST /api/income` - Add income entry
-- `GET /api/expenses` - Get expense entries
-- `POST /api/expenses` - Add expense entry
-- `GET /api/monthly-summary` - Get monthly financial summary
-- `GET /api/activity` - Get unified activity feed with filtering and change tracking
+- `GET|POST /api/income`, `GET|PUT|DELETE /api/income/:id`
+- `GET|POST /api/expenses`, `GET|PUT|DELETE /api/expenses/:id`
+- `GET /api/monthly-summary` - Monthly financial summary
+- `GET /api/activity` - Activity feed with filtering, pagination and CSV export
 
 ## 🧪 Testing
 
-The project includes comprehensive testing with 260+ test cases across 16 test suites:
+Jest runs two projects defined in `package.json`: **backend** (node environment, real database) and **frontend** (jsdom).
+
+> ⚠️ Backend tests run against the database configured in `.env` and **delete all rows** in the app tables (`npm run test:clean` resets it first). Point `.env` at a dedicated test database before running them.
 
 ### Test Coverage
 - **Backend API Testing**: Server endpoints and authentication
@@ -178,47 +181,37 @@ The project includes comprehensive testing with 260+ test cases across 16 test s
 # Run all tests
 npm test
 
-# Run specific test suite
+# Reset the test database, then run everything
+npm run test:clean
+
+# Run one project
 npm run test:backend
 npm run test:frontend
-npm run test:integration
+
+# Run a single file
+npx jest tests/server.test.js --detectOpenHandles --forceExit
 
 # Generate coverage report
 npm run test:coverage
 ```
 
 ### Test Suites
-1. `server.test.js` - Backend API endpoints
-2. `auth.test.js` - Authentication functionality
-3. `setup-db.test.js` - Database schema validation
-4. `frontend-*.test.js` - Frontend module testing
-5. `integration.test.js` - End-to-end testing
-6. `edge-cases.test.js` - Security and edge case testing
-7. `comprehensive-coverage.test.js` - Complete system validation
+- **Backend:** `server`, `api`, `integration`, `edge-cases`, `activity-endpoint`, `setup-db`, `setup-db-coverage`, `comprehensive-server-coverage`, `server-edge-coverage`, `bank-deletion-fix`, `cash-balance-activity`
+- **Frontend:** `auth`, `frontend-integration`, `frontend-coverage`, `modular-architecture`, `activity-table-coverage`, `smart-cash-button`, `enhanced-summary-messages`, `csp-compliance`
 
 ## 🔧 NPM Scripts
 
-```json
-{
-  "start": "node server.js",
-  "dev": "nodemon server.js",
-  "setup-db": "node setup-db.js",
-  "migrate-db": "node migrate-db.js",
-  "check-schema": "node check-schema.js",
-  "reset-db": "node reset-db.js",
-  "test": "jest",
-  "test:backend": "jest tests/server.test.js tests/auth.test.js",
-  "test:frontend": "jest tests/frontend-*.test.js",
-  "test:integration": "jest tests/integration.test.js",
-  "test:coverage": "jest --coverage",
-  "test:watch": "jest --watch",
-  "lint": "eslint .",
-  "lint:fix": "eslint . --fix",
-  "deploy:local": "./deploy.sh local",
-  "deploy:docker": "./deploy.sh docker",
-  "deploy:production": "./deploy.sh production"
-}
-```
+| Script | What it does |
+|---|---|
+| `npm start` / `npm run dev` | Start the server (dev uses nodemon) |
+| `npm run setup-db` | Create/migrate all tables |
+| `npm run reset-test-db` | Delete all rows from the app tables (`--with-user` also seeds `testuser`) |
+| `npm test` | Run all tests |
+| `npm run test:clean` | Reset the test DB, then run all tests |
+| `npm run test:backend` / `test:frontend` | Run one Jest project |
+| `npm run test:coverage` / `test:watch` | Coverage report / watch mode |
+| `npm run lint` / `lint:fix` | ESLint |
+| `npm run deploy:*`, `npm run docker:*` | Use `deploy.sh`, `Dockerfile` and `docker-compose.yml`, which are gitignored and only exist locally |
 
 ## 🏢 Production Deployment
 
@@ -259,13 +252,6 @@ npm run docker:stop
 npm run docker:logs
 ```
 
-### Production Features
-- 🔒 **Enterprise Security**: Content Security Policy, CSRF protection
-- 📱 **Mobile Optimized**: Touch-friendly interface with sliding sidebar
-- ⚡ **High Performance**: Optimized queries and connection pooling
-- 🚀 **Scalable**: Ready for cloud deployment
-- 💾 **Data Persistence**: PostgreSQL with backup support
-- 🔍 **Monitoring**: Error tracking and performance monitoring ready
 
 ### Deployment Options
 1. **Cloud Platforms**: Render (config included), Heroku, Vercel, DigitalOcean, AWS
@@ -274,10 +260,7 @@ npm run docker:logs
 4. **Database**: PostgreSQL on AWS RDS, Google Cloud SQL, or self-hosted
 
 ### Render Deployment
-The application includes a `render.yaml` configuration file for easy deployment on Render:
-- Automatic PostgreSQL database setup
-- Environment variables configured
-- Free tier compatible
+`render.yaml` defines a free-tier web service plus a Render PostgreSQL database (`balancetrack-db`). The `DB_*` variables are wired from that database, `SESSION_SECRET` is generated, and `DB_SSL=true` is set. The Supabase database in the local `.env` is used for development and tests only.
 
 ## 📈 Performance & Scalability
 
@@ -292,26 +275,13 @@ The application includes a `render.yaml` configuration file for easy deployment 
 - ✅ **Production deployment ready with Docker and cloud platform support**
 
 ### Scalability Features
-- ✅ Horizontal scaling ready
-- ✅ Database migration support
+- ✅ Sessions stored in PostgreSQL (`connect-pg-simple`), so multiple app instances can share them
 - ✅ Environment-based configuration
-- ✅ Stateless session management
-- ✅ CDN-ready static assets
 
 ## 🐛 Debugging & Monitoring
 
-### Debug Features
-- ✅ Comprehensive error logging
-- ✅ Debug module included (`public/js/debug.js`)
-- ✅ Development vs production error handling
-- ✅ Database query logging
-- ✅ Frontend console debugging
-
-### Monitoring Ready
-- Request logging middleware ready
-- Error tracking integration points
-- Performance monitoring hooks
-- Health check endpoints available
+- Server errors are logged to the console with `console.error`.
+- `public/js/module-validator.js` checks that the frontend modules loaded (used by the tests; not loaded by `index.html`).
 
 ## 🤝 Contributing
 
@@ -331,15 +301,14 @@ The application includes a `render.yaml` configuration file for easy deployment 
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+`package.json` declares the ISC license. There is no LICENSE file in the repository yet.
 
 ## 🆘 Support
 
 ### Documentation
-- API documentation in code comments
-- Security analysis in `SECURITY-ANALYSIS.md`
-- Linting guidelines in `LINTING.md`
-- Git workflow in `GIT-PUSH-GUIDE.md`
+- [API-DOCUMENTATION.md](API-DOCUMENTATION.md) - endpoint reference
+- [PROJECT-COMPLETENESS-ANALYSIS.md](PROJECT-COMPLETENESS-ANALYSIS.md) - current status and known issues
+- [CLAUDE.md](CLAUDE.md) - codebase guide for Claude Code
 
 ### Troubleshooting
 1. **Database Connection Issues**: Check PostgreSQL service and credentials

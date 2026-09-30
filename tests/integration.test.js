@@ -5,7 +5,6 @@
  */
 
 const request = require('supertest');
-const { Pool } = require('pg');
 
 // Mock rate limiter to prevent 429 errors in tests
 jest.mock('express-rate-limit', () => {
@@ -13,48 +12,34 @@ jest.mock('express-rate-limit', () => {
 });
 
 // Import the actual server app AFTER mocking rate limiter
-const { app, pool: serverPool } = require('../server');
+const { app, pool } = require('../server');
 
-// Test database configuration
-const testPool = new Pool({
-    user: process.env.DB_USER || 'postgres',
-    host: process.env.DB_HOST || 'localhost',
-    database: process.env.DB_NAME || 'expense_tracker_test', // Use test database
-    password: process.env.DB_PASSWORD || 'expense-tracker-2025',
-    port: process.env.DB_PORT || 5432,
-    ssl: false
-});
+// Test helpers for database operations
+const { setupTestEnvironment, createTestUser, deleteTestUser } = require('../test-helpers');
 
 describe('Integration Tests - Server Endpoints', () => {
     let testUserId;
     let sessionCookie;
+    let testEnvironment;
+
+    // Setup test environment before all tests
+    beforeAll(async () => {
+        testEnvironment = await setupTestEnvironment();
+        testUserId = testEnvironment.user.id;
+    });
+
+    // Clean up after all tests - only if explicitly needed
+    afterAll(async () => {
+        // Note: Database pool cleanup is handled in the global Jest setup
+        // Data is preserved for local development
+    });
 
     // Helper function to ensure authentication
     const ensureAuthentication = async () => {
         if (!sessionCookie) {
-            // First register a user if not exists
-            if (!testUserId) {
-                const userData = {
-                    username: 'testuser123',
-                    password: 'TestPass123&',
-                    name: 'Test User',
-                    email: 'test@example.com',
-                    securityQuestion: 'What is your pet name?',
-                    securityAnswer: 'Fluffy'
-                };
-
-                const registerResponse = await request(app)
-                    .post('/api/register')
-                    .send(userData);
-
-                if (registerResponse.status === 200) {
-                    testUserId = registerResponse.body.userId;
-                }
-            }
-
-            // Login to get session cookie
+            // Login using the test user that was already created
             const loginData = {
-                username: 'testuser123',
+                username: 'testuser',
                 password: 'TestPass123&'
             };
 
@@ -68,67 +53,6 @@ describe('Integration Tests - Server Endpoints', () => {
         }
     };
 
-    // Setup and cleanup
-    beforeAll(async () => {
-        // Create test tables if they don't exist (simplified version)
-        try {
-            await testPool.query(`
-                CREATE TABLE IF NOT EXISTS users (
-                    id SERIAL PRIMARY KEY,
-                    username VARCHAR(50) UNIQUE NOT NULL,
-                    password_hash VARCHAR(255) NOT NULL,
-                    name VARCHAR(100) NOT NULL,
-                    email VARCHAR(100) UNIQUE NOT NULL,
-                    security_question VARCHAR(255) NOT NULL,
-                    security_answer_hash VARCHAR(255) NOT NULL,
-                    tracking_option VARCHAR(20) DEFAULT 'both',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            `);
-
-            await testPool.query(`
-                CREATE TABLE IF NOT EXISTS banks (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                    name VARCHAR(100) NOT NULL,
-                    initial_balance DECIMAL(15,2) DEFAULT 0,
-                    current_balance DECIMAL(15,2) DEFAULT 0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE(user_id, name)
-                )
-            `);
-
-            // Drop and recreate cash_balance table to ensure correct schema
-            await testPool.query('DROP TABLE IF EXISTS cash_balance CASCADE');
-            await testPool.query(`
-                CREATE TABLE cash_balance (
-                    id SERIAL PRIMARY KEY,
-                    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE UNIQUE,
-                    balance DECIMAL(15,2) DEFAULT 0,
-                    initial_balance DECIMAL(15,2) DEFAULT 0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            `);
-        } catch (error) {
-            console.warn('Test database setup warning:', error.message);
-        }
-    });
-
-    afterAll(async () => {
-        // Cleanup test data
-        try {
-            await testPool.query('DELETE FROM banks WHERE user_id = $1', [testUserId]);
-            await testPool.query('DELETE FROM cash_balance WHERE user_id = $1', [testUserId]);
-            await testPool.query('DELETE FROM users WHERE id = $1', [testUserId]);
-        } catch (error) {
-            console.warn('Test cleanup warning:', error.message);
-        }
-        await testPool.end();
-        await serverPool.end();
-    });
-
     describe('Authentication Endpoints', () => {
         test('GET / should serve the main HTML file', async () => {
             const response = await request(app).get('/');
@@ -139,10 +63,10 @@ describe('Integration Tests - Server Endpoints', () => {
 
         test('POST /api/register should create a new user', async () => {
             const userData = {
-                username: 'testuser123',
+                username: 'newtestuser' + Date.now(), // Make username unique
                 password: 'TestPass123&',
-                name: 'Test User',
-                email: 'test@example.com',
+                name: 'New Test User',
+                email: `newtest${Date.now()}@example.com`, // Make email unique
                 securityQuestion: 'What is your pet name?',
                 securityAnswer: 'Fluffy'
             };
@@ -154,8 +78,6 @@ describe('Integration Tests - Server Endpoints', () => {
             expect(response.status).toBe(200);
             expect(response.body.success).toBe(true);
             expect(response.body.userId).toBeDefined();
-
-            testUserId = response.body.userId;
         });
 
         test('POST /api/register should reject invalid password', async () => {
@@ -176,9 +98,9 @@ describe('Integration Tests - Server Endpoints', () => {
             expect(response.body.error).toContain('Password must');
         });
 
-        test('POST /api/login should authenticate valid user', async () => {
+        test('POST /api/login should authenticate with valid credentials', async () => {
             const loginData = {
-                username: 'testuser123',
+                username: 'testuser',
                 password: 'TestPass123&'
             };
 
@@ -188,10 +110,8 @@ describe('Integration Tests - Server Endpoints', () => {
 
             expect(response.status).toBe(200);
             expect(response.body.success).toBe(true);
-            expect(response.body.name).toBe('Test User');
-            expect(response.body.trackingOption).toBeDefined();
+            expect(response.body.userId).toBe(testUserId);
 
-            // Store session cookie for authenticated requests
             sessionCookie = response.headers['set-cookie'];
         });
 
@@ -235,7 +155,7 @@ describe('Integration Tests - Server Endpoints', () => {
 
         test('POST /api/banks should create a bank account', async () => {
             const bankData = {
-                name: 'TEST BANK',
+                name: 'TEST BANK ' + Date.now(), // Make bank name unique
                 initialBalance: 1000
             };
 
@@ -245,7 +165,7 @@ describe('Integration Tests - Server Endpoints', () => {
                 .send(bankData);
 
             expect(response.status).toBe(200);
-            expect(response.body.name).toBe('TEST BANK');
+            expect(response.body.name).toBe(bankData.name);
             expect(parseFloat(response.body.initial_balance)).toBe(1000);
         });
 
@@ -257,7 +177,7 @@ describe('Integration Tests - Server Endpoints', () => {
             expect(response.status).toBe(200);
             expect(Array.isArray(response.body)).toBe(true);
             expect(response.body.length).toBeGreaterThan(0);
-            expect(response.body[0].name).toBe('TEST BANK');
+            expect(response.body[0].name).toBe('Test Bank');
         });
 
         test('POST /api/cash-balance should set cash balance', async () => {
@@ -347,14 +267,14 @@ describe('Integration Tests - Server Endpoints', () => {
 
             expect(response.status).toBe(200);
             expect(response.body.success).toBe(true);
-            expect(response.body.username).toBe('testuser123');
+            expect(response.body.username).toBe('testuser');
             expect(response.body.name).toBe('Test User');
         });
 
         test('POST /api/forgot-password should return security question', async () => {
             const response = await request(app)
                 .post('/api/forgot-password')
-                .send({ username: 'testuser123' });
+                .send({ username: 'testuser' });
 
             expect(response.status).toBe(200);
             expect(response.body.success).toBe(true);
@@ -366,7 +286,7 @@ describe('Integration Tests - Server Endpoints', () => {
     describe('Error Handling', () => {
         test('Should handle duplicate username registration', async () => {
             const userData = {
-                username: 'testuser123', // Duplicate username
+                username: 'testuser', // Use the existing test user's username
                 password: 'TestPass123&',
                 name: 'Another User',
                 email: 'another@example.com',
@@ -409,6 +329,35 @@ describe('Integration Tests - Server Endpoints', () => {
 
             expect(response.status).toBe(401);
             expect(response.body.error).toBe('Authentication required');
+        });
+    });
+
+    describe('Activity Type Filter', () => {
+        test('should treat type as a value, not SQL (no cross-user leak)', async () => {
+            await deleteTestUser('otheruser_sqli');
+            const otherUser = await createTestUser({ username: 'otheruser_sqli', email: 'sqli@example.com' });
+            await pool.query(
+                'INSERT INTO activity_log (user_id, action_type, entity_type, entity_id, description, amount) VALUES ($1, $2, $3, $4, $5, $6)',
+                [otherUser.id, 'created', 'bank', 1, 'OTHER USER SECRET', 1]
+            );
+
+            try {
+                // Fresh login: the shared sessionCookie is logged out by earlier tests
+                const loginResponse = await request(app)
+                    .post('/api/login')
+                    .send({ username: 'testuser', password: 'TestPass123&' });
+                expect(loginResponse.status).toBe(200);
+
+                const response = await request(app)
+                    .get('/api/activity')
+                    .query({ type: 'x\' OR \'1\'=\'1' })
+                    .set('Cookie', loginResponse.headers['set-cookie']);
+
+                expect(response.status).toBe(200);
+                expect(response.body.activities).toEqual([]);
+            } finally {
+                await deleteTestUser('otheruser_sqli');
+            }
         });
     });
 });

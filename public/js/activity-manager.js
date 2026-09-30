@@ -70,10 +70,9 @@ class ActivityManager {
         let feedHTML = `
             <div class="activity-feed">
                 <div class="activity-header">
-                    <h3>Activity Feed</h3>
+                    <h3><i data-lucide="history"></i> Activity Feed</h3>
                     <div class="activity-stats">
-                        <span class="stat-item">Total: ${sortedActivities.length} activities</span>
-                        <span class="stat-item">Page ${this.currentPage} of ${totalPages}</span>
+                        <span class="stat-item">${sortedActivities.length} Actions</span>
                     </div>
                 </div>
                 <div class="activity-items">
@@ -91,6 +90,11 @@ class ActivityManager {
 
         activityList.innerHTML = feedHTML;
         this.attachPaginationEvents();
+
+        // Refresh icons
+        if (window.refreshIcons) {
+            window.refreshIcons();
+        }
     }
 
     renderEtherscanStyleActivity(activity) {
@@ -112,91 +116,94 @@ class ActivityManager {
         if (activity.action_type) {
             // This is data from the activity_log table
             switch (activity.action_type) {
+            case 'create':
             case 'created':
                 if (activity.activity_type === 'cash_balance') {
-                    actionIcon = '💰';
+                    actionIcon = '<i data-lucide="banknote"></i>';
                     actionText = 'Cash Balance Set';
                     actionClass = 'action-cash-add';
                 } else if (activity.activity_type === 'bank') {
-                    actionIcon = '🏦';
+                    actionIcon = '<i data-lucide="landmark"></i>';
                     actionText = 'Bank Added';
                     actionClass = 'action-bank-add';
                 } else if (activity.activity_type === 'credit_card') {
-                    actionIcon = '💳';
+                    actionIcon = '<i data-lucide="credit-card"></i>';
                     actionText = 'Credit Card Added';
                     actionClass = 'action-card-add';
                 } else if (activity.activity_type === 'income') {
-                    actionIcon = '📈';
+                    actionIcon = '<i data-lucide="trending-up"></i>';
                     actionText = 'Income Added';
                     actionClass = 'action-income';
                 } else if (activity.activity_type === 'expense') {
-                    actionIcon = '📉';
+                    actionIcon = '<i data-lucide="trending-down"></i>';
                     actionText = 'Expense Added';
                     actionClass = 'action-expense';
                 } else {
-                    actionIcon = '➕';
+                    actionIcon = '<i data-lucide="plus"></i>';
                     actionText = 'Created';
                     actionClass = 'action-create';
                 }
                 break;
+            case 'update':
             case 'updated':
                 // Entity-specific update text
                 if (activity.activity_type === 'cash_balance') {
-                    actionIcon = '💰';
+                    actionIcon = '<i data-lucide="banknote"></i>';
                     actionText = 'Cash Balance Updated';
                     actionClass = 'action-cash-update';
                 } else if (activity.activity_type === 'bank') {
-                    actionIcon = '🏦';
+                    actionIcon = '<i data-lucide="landmark"></i>';
                     actionText = 'Bank Updated';
                     actionClass = 'action-bank-update';
                 } else if (activity.activity_type === 'credit_card') {
-                    actionIcon = '💳';
+                    actionIcon = '<i data-lucide="credit-card"></i>';
                     actionText = 'Credit Card Updated';
                     actionClass = 'action-card-update';
                 } else if (activity.activity_type === 'income') {
-                    actionIcon = '📈';
+                    actionIcon = '<i data-lucide="trending-up"></i>';
                     actionText = 'Income Updated';
                     actionClass = 'action-income-update';
                 } else if (activity.activity_type === 'expense') {
-                    actionIcon = '✏️';
+                    actionIcon = '<i data-lucide="pencil"></i>';
                     actionText = 'Expense Updated';
                     actionClass = 'action-expense-update';
                 } else {
-                    actionIcon = '✏️';
+                    actionIcon = '<i data-lucide="pencil"></i>';
                     actionText = 'Updated';
                     actionClass = 'action-update';
                 }
                 break;
+            case 'delete':
             case 'deleted':
                 // Entity-specific delete text
                 if (activity.activity_type === 'cash_balance') {
-                    actionIcon = '💰';
+                    actionIcon = '<i data-lucide="banknote"></i>';
                     actionText = 'Cash Balance Deleted';
                     actionClass = 'action-cash-delete';
                 } else if (activity.activity_type === 'bank') {
-                    actionIcon = '🏦';
+                    actionIcon = '<i data-lucide="landmark"></i>';
                     actionText = 'Bank Deleted';
                     actionClass = 'action-bank-delete';
                 } else if (activity.activity_type === 'credit_card') {
-                    actionIcon = '💳';
+                    actionIcon = '<i data-lucide="credit-card"></i>';
                     actionText = 'Credit Card Deleted';
                     actionClass = 'action-card-delete';
                 } else if (activity.activity_type === 'income') {
-                    actionIcon = '📈';
+                    actionIcon = '<i data-lucide="trending-up"></i>';
                     actionText = 'Income Deleted';
                     actionClass = 'action-income-delete';
                 } else if (activity.activity_type === 'expense') {
-                    actionIcon = '🗑️';
+                    actionIcon = '<i data-lucide="trash-2"></i>';
                     actionText = 'Expense Deleted';
                     actionClass = 'action-expense-delete';
                 } else {
-                    actionIcon = '🗑️';
+                    actionIcon = '<i data-lucide="trash-2"></i>';
                     actionText = 'Deleted';
                     actionClass = 'action-delete';
                 }
                 break;
             default:
-                actionIcon = '🔄';
+                actionIcon = '<i data-lucide="refresh-cw"></i>';
                 actionText = 'Modified';
                 actionClass = 'action-other';
             }
@@ -208,39 +215,39 @@ class ActivityManager {
             switch (activity.action_type) {
             case 'created':
                 if (activity.description.includes('cash balance')) {
-                    actionIcon = '💰';
+                    actionIcon = '<i data-lucide="banknote"></i>';
                     actionText = 'Cash Balance Set';
                     actionClass = 'action-cash-add';
                 } else if (activity.description.includes('bank')) {
-                    actionIcon = '🏦';
+                    actionIcon = '<i data-lucide="landmark"></i>';
                     actionText = 'Bank Added';
                     actionClass = 'action-bank-add';
                 } else if (activity.description.includes('income')) {
-                    actionIcon = '📈';
+                    actionIcon = '<i data-lucide="trending-up"></i>';
                     actionText = 'Income Added';
                     actionClass = 'action-income';
                 } else if (activity.description.includes('expense')) {
-                    actionIcon = '📉';
+                    actionIcon = '<i data-lucide="trending-down"></i>';
                     actionText = 'Expense Added';
                     actionClass = 'action-expense';
                 } else {
-                    actionIcon = '➕';
+                    actionIcon = '<i data-lucide="plus"></i>';
                     actionText = 'Created';
                     actionClass = 'action-create';
                 }
                 break;
             case 'updated':
-                actionIcon = '✏️';
+                actionIcon = '<i data-lucide="pencil"></i>';
                 actionText = 'Updated';
                 actionClass = 'action-update';
                 break;
             case 'deleted':
-                actionIcon = '🗑️';
+                actionIcon = '<i data-lucide="trash-2"></i>';
                 actionText = 'Deleted';
                 actionClass = 'action-delete';
                 break;
             default:
-                actionIcon = '🔄';
+                actionIcon = '<i data-lucide="refresh-cw"></i>';
                 actionText = 'Modified';
                 actionClass = 'action-other';
             }
@@ -251,22 +258,22 @@ class ActivityManager {
             // Handle legacy activity types
             switch (activity.activity_type) {
             case 'income':
-                actionIcon = '📈';
+                actionIcon = '<i data-lucide="trending-up"></i>';
                 actionText = 'Income Added';
                 actionClass = 'action-income';
                 break;
             case 'expense':
-                actionIcon = '📉';
+                actionIcon = '<i data-lucide="trending-down"></i>';
                 actionText = 'Expense Added';
                 actionClass = 'action-expense';
                 break;
             case 'setup':
-                actionIcon = '⚙️';
+                actionIcon = '<i data-lucide="settings"></i>';
                 actionText = 'Account Setup';
                 actionClass = 'action-setup';
                 break;
             default:
-                actionIcon = '🔄';
+                actionIcon = '<i data-lucide="refresh-cw"></i>';
                 actionText = 'Transaction';
                 actionClass = 'action-other';
             }
@@ -277,22 +284,20 @@ class ActivityManager {
 
         return `
             <div class="activity-item ${actionClass}">
-                <div class="activity-main">
-                    <div class="activity-icon">
-                        <span class="icon">${actionIcon}</span>
+                <div class="activity-icon">
+                    ${actionIcon}
+                </div>
+                <div class="activity-content">
+                    <div class="activity-header-row">
+                        <span class="activity-action">${actionText}</span>
+                        <span class="activity-amount">${amount}</span>
                     </div>
-                    <div class="activity-content">
-                        <div class="activity-header-row">
-                            <span class="activity-action">${actionText}</span>
-                            <span class="activity-amount">${amount}</span>
-                        </div>
-                        <div class="activity-description">
-                            ${description}
-                        </div>
-                        <div class="activity-meta">
-                            <span class="activity-account">📍 ${accountInfo}</span>
-                            <span class="activity-timestamp">🕒 ${formattedDate} at ${formattedTime}</span>
-                        </div>
+                    <div class="activity-description">
+                        ${description}
+                    </div>
+                    <div class="activity-meta">
+                        <span class="activity-account"><i data-lucide="map-pin"></i> ${accountInfo}</span>
+                        <span class="activity-timestamp"><i data-lucide="clock"></i> ${formattedDate} at ${formattedTime}</span>
                     </div>
                 </div>
             </div>
@@ -363,17 +368,18 @@ class ActivityManager {
             // Add loading state
             if (loadBtn) {
                 loadBtn.classList.add('loading');
-                loadBtn.querySelector('.btn-icon').textContent = '⏳';
+                loadBtn.querySelector('.btn-icon').innerHTML = '<i data-lucide="loader-2" class="spin"></i>';
+                if (window.refreshIcons) window.refreshIcons();
             }
 
             // Build query parameters for server-side filtering
             const params = new URLSearchParams();
             if (monthFilter) params.append('month', monthFilter);
             if (yearFilter) params.append('year', yearFilter);
-            
+
             const queryString = params.toString();
             const endpoint = queryString ? `/api/activity?${queryString}` : '/api/activity';
-            
+
             const response = await this.apiClient.get(endpoint);
 
             if (response && typeof response === 'object') {
@@ -390,13 +396,14 @@ class ActivityManager {
             // Reset to first page when filtering
             this.currentPage = 1;
             this.renderActivityFeed();
-        } catch (error) {
+        } catch {
             this.showError('Failed to load filtered activity data. Please try again.');
         } finally {
             // Remove loading state
             if (loadBtn) {
                 loadBtn.classList.remove('loading');
-                loadBtn.querySelector('.btn-icon').textContent = '🔍';
+                loadBtn.querySelector('.btn-icon').innerHTML = '<i data-lucide="search"></i>';
+                if (window.refreshIcons) window.refreshIcons();
             }
         }
     }
@@ -410,7 +417,8 @@ class ActivityManager {
         // Add loading state
         if (clearBtn) {
             clearBtn.classList.add('loading');
-            clearBtn.querySelector('.btn-icon').textContent = '⏳';
+            clearBtn.querySelector('.btn-icon').innerHTML = '<i data-lucide="loader-2" class="spin"></i>';
+            if (window.refreshIcons) window.refreshIcons();
         }
 
         if (monthFilter) monthFilter.value = '';
@@ -421,11 +429,12 @@ class ActivityManager {
             this.filteredActivities = [...this.activities];
             this.currentPage = 1; // Reset to first page
             this.renderActivityFeed();
-            
+
             // Remove loading state
             if (clearBtn) {
                 clearBtn.classList.remove('loading');
-                clearBtn.querySelector('.btn-icon').textContent = '🗑️';
+                clearBtn.querySelector('.btn-icon').innerHTML = '<i data-lucide="trash-2"></i>';
+                if (window.refreshIcons) window.refreshIcons();
             }
         }, 300); // Small delay for visual feedback
     }

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BalanceTrack - Track your expenses and income effortlessly</title>
-    <link rel="stylesheet" href="css/fintech-theme.css">
+    <link rel="stylesheet" type="text/css" href="/css/fintech-theme.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
@@ -16,10 +16,10 @@
     <div class="container">
         <!-- Login/Register Section -->
         <div id="auth-section">
-            <h2>🇮🇳 BalanceTrack</h2>
+            <h2>BalanceTrack</h2>
 
             <div id="login-form" class="auth-form">
-                <h3>🔐 Login to Your Account</h3>
+                <h3>Login to Your Account</h3>
                 <div class="form-group">
                     <input type="text" id="login-username" required placeholder="Enter your username (e.g., john_doe)">
                     <small id="login-username-help" class="field-help hidden">
@@ -33,21 +33,21 @@
                     </div>
                 </div>
                 <button data-action="login">
-                    <span class="icon-enhanced">🔐</span>Login
+                    <span class="icon-enhanced"><i data-lucide="lock"></i></span>Login
                 </button>
                 <button data-action="showRegister" class="secondary-button">
-                    <span class="icon-enhanced">📝</span>Register
+                    <span class="icon-enhanced"><i data-lucide="user-plus"></i></span>Register
                 </button>
                 <button data-action="showForgotUsername" class="info-button">
-                    <span class="icon-enhanced">🔍</span>Forgot Username?
+                    <span class="icon-enhanced"><i data-lucide="search"></i></span>Forgot Username?
                 </button>
                 <button data-action="showForgotPassword" class="warning-button">
-                    <span class="icon-enhanced">🔑</span>Forgot Password?
+                    <span class="icon-enhanced"><i data-lucide="key"></i></span>Forgot Password?
                 </button>
             </div>
 
             <div id="register-form" class="auth-form hidden">
-                <h3>📝 Create New Account</h3>
+                <h3>Create New Account</h3>
                 <div class="form-group">
                     <input type="text" id="register-name" required placeholder="Enter your full name">
                 </div>
@@ -94,16 +94,16 @@
                     <input type="text" id="register-security-answer" required placeholder="Enter your answer">
                 </div>
                 <button data-action="register">
-                    <span class="icon-enhanced">✨</span>Create Account
+                    <span class="icon-enhanced"><i data-lucide="sparkles"></i></span>Create Account
                 </button>
                 <button data-action="showLogin" class="secondary-button">
-                    <span class="icon-enhanced">🔙</span>Back to Login
+                    <span class="icon-enhanced"><i data-lucide="arrow-left"></i></span>Back to Login
                 </button>
             </div>
 
             <!-- Forgot Username Form -->
             <div id="forgot-username-form" class="auth-form hidden">
-                <h3>🔍 Find Your Username</h3>
+                <h3>Find Your Username</h3>
                 <p>Enter your email address to retrieve your username</p>
                 <div class="form-group">
 
@@ -115,7 +115,7 @@
             </div>
 
             <div id="forgot-password-form" class="auth-form hidden">
-                <h3>🔑 Reset Your Password</h3>
+                <h3>Reset Your Password</h3>
                 <p>Enter your username or email address to reset your password</p>
                 <div class="form-group">
 
@@ -130,7 +130,7 @@
             </div>
 
             <div id="reset-password-form" class="auth-form hidden">
-                <h3>🔐 Create New Password</h3>
+                <h3>Create New Password</h3>
                 <p>Hello, <span id="reset-user-name"></span>!</p>
                 <p><strong>Security Question</strong> <span id="reset-security-question"></span></p>
                 <div class="form-group">
@@ -164,8 +164,8 @@
         </div>
         <!-- Welcome Section -->
         <div id="welcome-section" class="hidden">
-            <h2>🙏 Welcome, <span id="user-name"></span>!</h2>
-            <p><em>"सर्वाणि परित्यज्य मामेकं शरणं व्रज" - Follow your financial goals with discipline!</em></p>
+            <h2>Welcome, <span id="user-name"></span>!</h2>
+            <p><em>"Follow your financial goals with discipline!"</em></p>
 
             <h3>Choose Your Tracking Option</h3>
             <button data-action="setTrackingOption" data-option="income">Income Only</button>
@@ -190,37 +190,37 @@
 
                 <!-- Brand -->
                 <div class="nav-brand">
-                    <h1 data-action="showSection" data-section="setup" style="cursor: pointer;">🇮🇳 BalanceTrack</h1>
+                    <h1 data-action="showSection" data-section="setup" style="cursor: pointer;">BalanceTrack</h1>
                 </div>
 
                 <!-- Desktop Links -->
                 <div class="nav-desktop">
-                    <a href="#" class="nav-link" data-action="showSection" data-section="setup"><span>⚙️</span>Setup</a>
-                    <a href="#" class="nav-link" data-action="showSection" data-section="transactions"><span>💳</span>Transactions</a>
-                    <a href="#" class="nav-link" data-action="showSection" data-section="summary"><span>📊</span>Summary</a>
-                    <a href="#" class="nav-link" data-action="showSection" data-section="activity"><span>📋</span>Activity</a>
-                    <a href="#" class="nav-link logout-link" data-action="logout"><span>🚪</span>Logout</a>
+                    <a href="#" class="nav-link" data-action="showSection" data-section="setup"><span><i data-lucide="settings"></i></span>Setup</a>
+                    <a href="#" class="nav-link" data-action="showSection" data-section="transactions"><span><i data-lucide="credit-card"></i></span>Transactions</a>
+                    <a href="#" class="nav-link" data-action="showSection" data-section="summary"><span><i data-lucide="bar-chart-3"></i></span>Summary</a>
+                    <a href="#" class="nav-link" data-action="showSection" data-section="activity"><span><i data-lucide="list-todo"></i></span>Activity</a>
+                    <a href="#" class="nav-link logout-link" data-action="logout"><span><i data-lucide="log-out"></i></span>Logout</a>
                 </div>
             </div>
 
             <div id="mobile-sidebar">
                 <div class="mobile-brand">
-                    <h1 data-action="showSection" data-section="setup" style="cursor: pointer;">🇮🇳 BalanceTrack</h1>
+                    <h1 data-action="showSection" data-section="setup" style="cursor: pointer;">BalanceTrack</h1>
                 </div>
                 <a href="#" data-action="showSection" data-section="setup" data-close-sidebar="true">
-                    <span class="icon-enhanced">⚙️</span>Setup
+                    <span class="icon-enhanced"><i data-lucide="settings"></i></span>Setup
                 </a>
                 <a href="#" data-action="showSection" data-section="transactions" data-close-sidebar="true">
-                    <span class="icon-enhanced">💳</span>Transactions
+                    <span class="icon-enhanced"><i data-lucide="credit-card"></i></span>Transactions
                 </a>
                 <a href="#" data-action="showSection" data-section="summary" data-close-sidebar="true">
-                    <span class="icon-enhanced">📊</span>Summary
+                    <span class="icon-enhanced"><i data-lucide="bar-chart-3"></i></span>Summary
                 </a>
                 <a href="#" data-action="showSection" data-section="activity" data-close-sidebar="true">
-                    <span class="icon-enhanced">📋</span>Activity
+                    <span class="icon-enhanced"><i data-lucide="list-todo"></i></span>Activity
                 </a>
                 <a href="#" class="logout-link" data-action="logout" data-close-sidebar="true">
-                    <span class="icon-enhanced">🚪</span>Logout
+                    <span class="icon-enhanced"><i data-lucide="log-out"></i></span>Logout
                 </a>
             </div>
             <div id="sidebar-overlay" data-action="closeSidebar"></div>
@@ -230,7 +230,7 @@
                 <h2>Account Setup</h2>
                 <!-- Bank Setup -->
                 <div id="bank-setup" class="setup-card">
-                    <h3>🏦 Bank Setup</h3>
+                    <h3>Bank Setup</h3>
                     <div class="setup-body">
                         <div class="setup-left">
                             <div class="form-field">
@@ -241,7 +241,7 @@
                                 <label>Initial Balance</label>
                                 <input type="number" id="bank-balance" placeholder="0.00" step="0.01">
                             </div>
-                            <button class="primary-btn" data-action="addBank">🏦 Add Bank</button>
+                            <button class="primary-btn" data-action="addBank"><i data-lucide="landmark"></i> Add Bank</button>
                         </div>
                         <div class="setup-right" id="banks-list"></div>
                     </div>
@@ -249,7 +249,7 @@
                 </div>
                 <!-- Credit Card Setup -->
                 <div id="credit-card-setup" class="setup-card">
-                    <h3>💳 Credit Card Setup</h3>
+                    <h3>Credit Card Setup</h3>
 
                     <div class="setup-body">
                         <div class="setup-left">
@@ -261,7 +261,7 @@
                                 <label>Credit Limit</label>
                                 <input type="number" id="cc-limit" placeholder="0.00" step="0.01">
                             </div>
-                            <button class="primary-btn" data-action="addCreditCard">💳 Add Credit Card</button>
+                            <button class="primary-btn" data-action="addCreditCard"><i data-lucide="credit-card"></i> Add Credit Card</button>
                         </div>
 
                         <div id="credit-cards-list" class="setup-right"></div>
@@ -271,7 +271,7 @@
                 </div>
                 <!-- Cash Balance Setup -->
                 <div id="cash-setup" class="setup-card">
-                    <h3>💵 Cash Balance</h3>
+                    <h3>Cash Balance</h3>
 
                     <div class="setup-body">
                         <div class="setup-left">
@@ -279,7 +279,7 @@
                                 <label>Cash Balance</label>
                                 <input type="number" id="cash-balance" placeholder="0.00" step="0.01">
                             </div>
-                            <button class="primary-btn" data-action="setCashBalance">💵 Set Cash Balance</button>
+                            <button class="primary-btn" data-action="setCashBalance"><i data-lucide="banknote"></i> Set Cash Balance</button>
                         </div>
                         <div id="cash-display" class="setup-right-cash-balance"></div>
                     </div>
@@ -318,7 +318,7 @@
                     </div>
                     <div class="form-group">
                         <button id="filter-transactions" data-action="filterTransactions">
-                            <span class="icon-enhanced">🔍</span>Filter Transactions
+                            <span class="icon-enhanced"><i data-lucide="search"></i></span>Filter Transactions
                         </button>
                     </div>
                 </div>
@@ -326,7 +326,7 @@
                 <div id="forms-wrapper">
                     <!-- Income Form -->
                     <div id="income-form">
-                        <h3>💰 Add Income</h3>
+                        <h3>Add Income</h3>
                         <div class="form-group">
                             <label>Source</label>
                             <input type="text" id="income-source" placeholder="Salary, Freelance, etc.">
@@ -339,13 +339,13 @@
                             <label>Date</label>
                             <input type="date" id="income-date">
                             <button data-action="addIncome">
-                                <span class="icon-enhanced">💰</span>Add Income
+                                <span class="icon-enhanced"><i data-lucide="trending-up"></i></span>Add Income
                             </button>
                         </div>
                     </div>
                     <!-- Expense Form -->
                     <div id="expense-form">
-                        <h3>💸 Add Expense</h3>
+                        <h3>Add Expense</h3>
                         <div class="form-group">
                             <label>Title</label>
                             <input type="text" id="expense-title" placeholder="Groceries, Rent, etc.">
@@ -358,7 +358,7 @@
                             <label>Date</label>
                             <input type="date" id="expense-date">
                             <button data-action="addExpense">
-                                <span class="icon-enhanced">💸</span>Add Expense
+                                <span class="icon-enhanced"><i data-lucide="trending-down"></i></span>Add Expense
                             </button>
                         </div>
                     </div>
@@ -405,7 +405,7 @@
 
             <!-- Monthly Summary Section -->
             <div id="summary-section" class="hidden">
-                <h2>📈 Monthly Summary</h2>
+                <h2>Monthly Summary</h2>
                 <div class="summary-controls">
                     <div class="form-group">
                         <label>Month</label>
@@ -430,7 +430,7 @@
                     </div>
                     <div class="form-group">
                         <button data-action="loadMonthlySummary">
-                            <span class="icon-enhanced">📊</span>Load Summary
+                            <span class="icon-enhanced"><i data-lucide="bar-chart-3"></i></span>Load Summary
                         </button>
                     </div>
                 </div>
@@ -474,11 +474,11 @@
                     </div>
                     <div class="form-group activity-button-group">
                         <button data-action="filterActivity" class="activity-filter-btn activity-load-btn">
-                            <span class="btn-icon">🔍</span>
+                            <span class="btn-icon"><i data-lucide="search"></i></span>
                             <span class="btn-text">Load</span>
                         </button>
                         <button data-action="clearActivityFilters" class="activity-filter-btn activity-clear-btn">
-                            <span class="btn-icon">🗑️</span>
+                            <span class="btn-icon"><i data-lucide="trash-2"></i></span>
                             <span class="btn-text">Clear</span>
                         </button>
                     </div>
@@ -497,31 +497,156 @@
             </div>
         </div>
 
-    <!-- Footer -->
+    <!-- Global Loader Overlay -->
+    <div id="global-loader" class="loader-overlay hidden">
+        <div class="loader-content">
+            <div class="loader-spinner-box">
+                <i data-lucide="loader-2"></i>
+            </div>
+            <div class="loader-text">Processing...</div>
+        </div>
+    </div>
+
+
+    <!-- Dedicated Resource Pages -->
+    <div class="container">
+        <!-- About Section -->
+        <div id="about-section" class="resource-page hidden">
+            <div class="resource-header">
+                <i data-lucide="info"></i>
+                <h1>About BalanceTrack</h1>
+                <p class="last-updated">Mission-driven financial transparency</p>
+            </div>
+            <div class="resource-body">
+                <h2>Our Vision</h2>
+                <p>BalanceTrack was built with a simple goal: to empower individuals with clear, actionable insights into their financial health. We believe that professional-grade financial tracking should be accessible, intuitive, and secure.</p>
+                <h2>Powered by OneMark</h2>
+                <p>As a product of Team OneMark, BalanceTrack inherits a legacy of precision engineering and user-centric design. Our team is dedicated to building tools that help you make better financial decisions every day.</p>
+                <h2>Commitment to Excellence</h2>
+                <p>We continuously iterate on our platform based on user feedback and industry standards. From real-time activity logging to detailed monthly summaries, every feature is crafted to provide you with the best experience possible.</p>
+            </div>
+        </div>
+
+        <!-- Security Policy Section -->
+        <div id="security-section" class="resource-page hidden">
+            <div class="resource-header">
+                <i data-lucide="shield-check"></i>
+                <h1>Security Policy</h1>
+                <p class="last-updated">Last Updated: April 2026</p>
+            </div>
+            <div class="resource-body">
+                <h2>Data Protection</h2>
+                <p>At BalanceTrack, security is our top priority. We implement industry-standard encryption protocols to ensure that your financial data remains private and protected at all times.</p>
+                <h2>Security Measures</h2>
+                <ul>
+                    <li><strong>End-to-End Encryption:</strong> All sensitive data is encrypted before being stored in our secure database.</li>
+                    <li><strong>Session Management:</strong> We use secure, HTTP-only cookies and automatic session timeouts to prevent unauthorized access.</li>
+                    <li><strong>Audit Logging:</strong> Every action taken in the app is logged in your personal Activity Feed, allowing for full transparency of account changes.</li>
+                </ul>
+                <h2>Vulnerability Management</h2>
+                <p>We regularly audit our codebase and dependencies to identify and patch potential security gaps. Our integration with Supabase provides enterprise-grade database security and row-level protection.</p>
+            </div>
+        </div>
+
+        <!-- Privacy Guide Section -->
+        <div id="privacy-section" class="resource-page hidden">
+            <div class="resource-header">
+                <i data-lucide="eye"></i>
+                <h1>Privacy Guide</h1>
+                <p class="last-updated">Your data, your control</p>
+            </div>
+            <div class="resource-body">
+                <h2>Privacy First</h2>
+                <p>We believe in total transparency regarding your data. BalanceTrack only collects the information necessary to provide you with accurate financial tracking services.</p>
+                <h2>Information We Collect</h2>
+                <ul>
+                    <li><strong>Account Credentials:</strong> Securely hashed usernames and passwords.</li>
+                    <li><strong>Financial Records:</strong> Transactions and account balances added by you.</li>
+                    <li><strong>System Logs:</strong> Basic interaction data to improve app performance.</li>
+                </ul>
+                <h2>Data Sharing</h2>
+                <p>We never sell your data to third parties. Your financial information is strictly for your personal use within the BalanceTrack ecosystem.</p>
+            </div>
+        </div>
+
+        <!-- Terms of Service Section -->
+        <div id="terms-section" class="resource-page hidden">
+            <div class="resource-header">
+                <i data-lucide="file-text"></i>
+                <h1>Terms of Service</h1>
+                <p class="last-updated">Standard Usage Agreement</p>
+            </div>
+            <div class="resource-body">
+                <h2>Acceptance of Terms</h2>
+                <p>By using BalanceTrack, you agree to comply with and be bound by the following terms and conditions of use. Please review these terms carefully.</p>
+                <h2>User Responsibility</h2>
+                <p>Users are responsible for maintaining the confidentiality of their account credentials and for all activities that occur under their account. BalanceTrack is a tracking tool and does not provide professional financial advice.</p>
+                <h2>Limitation of Liability</h2>
+                <p>While we strive for 100% accuracy, BalanceTrack and Team OneMark are not liable for any financial decisions made based on the data provided by the application. We recommend cross-verifying important data with your official bank statements.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Redesign -->
     <footer class="app-footer">
-        <div class="footer-content">
-            <div class="footer-top">
-                <div class="footer-left">
-                    <h4>🇮🇳 BalanceTrack</h4>
+        <div class="footer-container">
+            <div class="footer-grid">
+                <div class="footer-col footer-about">
+                    <div class="footer-brand">
+                        <i data-lucide="layout-dashboard"></i>
+                        <span>BalanceTrack</span>
+                    </div>
+                    <p>Professional financial tracking designed for simplicity and precision. Manage your wealth, track expenses, and monitor income with industry-standard security.</p>
                 </div>
-                <div class="footer-right">
-                    <p>&copy; 2025 BalanceTrack. All rights reserved.</p>
+                
+                <div class="footer-col">
+                    <h4>Quick Links</h4>
+                    <ul class="footer-links">
+                        <li><a href="#" data-action="showSection" data-section="setup">Account Setup</a></li>
+                        <li><a href="#" data-action="showSection" data-section="transactions">Transactions</a></li>
+                        <li><a href="#" data-action="showSection" data-section="summary">Monthly Summary</a></li>
+                        <li><a href="#" data-action="showSection" data-section="activity">Activity Log</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h4>Resources</h4>
+                    <ul class="footer-links">
+                        <li><a href="#" data-action="showSection" data-section="about">About OneMark</a></li>
+                        <li><a href="#" data-action="showSection" data-section="security">Security Policy</a></li>
+                        <li><a href="#" data-action="showSection" data-section="privacy">Privacy Guide</a></li>
+                        <li><a href="#" data-action="showSection" data-section="terms">Terms of Service</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-col">
+                    <h4>Contact Support</h4>
+                    <ul class="footer-links">
+                        <li><a href="mailto:support@onemark.co.in">support@onemark.co.in</a></li>
+                        <li><a href="https://onemark.co.in/contact" target="_blank">Contact Form</a></li>
+                        <li><a href="#">Help Center</a></li>
+                    </ul>
                 </div>
             </div>
-            <div class="footer-center">
-                <p>Crafted with <span class="love-symbol">❤️</span> by <a href="https://onemark.co.in" target="_blank"
-                        rel="noopener noreferrer"><strong>Team OneMark</strong></a> • 🤖 Built with help of <a
-                        href="https://github.com/copilot" target="_blank" rel="noopener noreferrer"><strong>GitHub
-                            Copilot</strong> </a> & Human creativity.</p>
+
+            <div class="footer-bottom">
+                <div class="copyright">
+                    &copy; 2025 BalanceTrack Premium. All rights reserved.
+                </div>
+                <div class="footer-credits">
+                    Crafted with <i data-lucide="heart" class="icon-danger"></i> by 
+                    <a href="https://onemark.co.in" target="_blank">Team OneMark</a>
+                </div>
             </div>
         </div>
     </footer>
+
 
     <!-- Edit Transaction Modals -->
     <div id="edit-income-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>✏️ Edit Income Transaction</h3>
+                <h3>Edit Income Transaction</h3>
                 <button class="modal-close" data-action="close-edit-income">&times;</button>
             </div>
             <div class="modal-body">
@@ -546,10 +671,10 @@
             </div>
             <div class="modal-footer">
                 <button data-action="save-income-edit" class="primary-button">
-                    <span class="icon-enhanced">💾</span>Save Changes
+                    <span class="icon-enhanced"><i data-lucide="save"></i></span>Save Changes
                 </button>
                 <button data-action="close-edit-income" class="secondary-button">
-                    <span class="icon-enhanced">❌</span>Cancel
+                    <span class="icon-enhanced"><i data-lucide="x"></i></span>Cancel
                 </button>
             </div>
         </div>
@@ -558,7 +683,7 @@
     <div id="edit-expense-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>✏️ Edit Expense Transaction</h3>
+                <h3>Edit Expense Transaction</h3>
                 <button class="modal-close" data-action="close-edit-expense">&times;</button>
             </div>
             <div class="modal-body">
@@ -583,10 +708,10 @@
             </div>
             <div class="modal-footer">
                 <button data-action="save-expense-edit" class="primary-button">
-                    <span class="icon-enhanced">💾</span>Save Changes
+                    <span class="icon-enhanced"><i data-lucide="save"></i></span>Save Changes
                 </button>
                 <button data-action="close-edit-expense" class="secondary-button">
-                    <span class="icon-enhanced">❌</span>Cancel
+                    <span class="icon-enhanced"><i data-lucide="x"></i></span>Cancel
                 </button>
             </div>
         </div>
@@ -596,7 +721,7 @@
     <div id="delete-confirmation-modal" class="modal-overlay hidden">
         <div class="modal-content modal-small">
             <div class="modal-header">
-                <h3>🗑️ Confirm Delete</h3>
+                <h3>Confirm Delete</h3>
                 <button class="modal-close" data-action="close-delete">&times;</button>
             </div>
             <div class="modal-body">
@@ -605,10 +730,10 @@
             </div>
             <div class="modal-footer">
                 <button data-action="confirm-delete" class="danger-button">
-                    <span class="icon-enhanced">🗑️</span>Delete
+                    <span class="icon-enhanced"><i data-lucide="trash-2"></i></span>Delete
                 </button>
                 <button data-action="close-delete" class="secondary-button">
-                    <span class="icon-enhanced">❌</span>Cancel
+                    <span class="icon-enhanced"><i data-lucide="x"></i></span>Cancel
                 </button>
             </div>
         </div>
@@ -618,7 +743,7 @@
     <div id="logout-confirmation-modal" class="modal-overlay hidden">
         <div class="modal-content modal-small">
             <div class="modal-header">
-                <h3>🚪 Confirm Logout</h3>
+                <h3>Confirm Logout</h3>
                 <button class="modal-close" data-action="close-logout-confirmation">&times;</button>
             </div>
             <div class="modal-body">
@@ -627,10 +752,10 @@
             </div>
             <div class="modal-footer">
                 <button data-action="confirm-logout" class="danger-button">
-                    <span class="icon-enhanced">🚪</span>Logout
+                    <span class="icon-enhanced"><i data-lucide="log-out"></i></span>Logout
                 </button>
                 <button data-action="close-logout-confirmation" class="secondary-button">
-                    <span class="icon-enhanced">❌</span>Cancel
+                    <span class="icon-enhanced"><i data-lucide="x"></i></span>Cancel
                 </button>
             </div>
         </div>
@@ -660,10 +785,10 @@
             </div>
             <div class="modal-footer">
                 <button data-action="save-bank" class="primary-button">
-                    <span class="icon-enhanced">💾</span>Save Changes
+                    <span class="icon-enhanced"><i data-lucide="save"></i></span>Save Changes
                 </button>
                 <button data-action="close-edit-bank" class="secondary-button">
-                    <span class="icon-enhanced">❌</span>Cancel
+                    <span class="icon-enhanced"><i data-lucide="x"></i></span>Cancel
                 </button>
             </div>
         </div>
@@ -693,10 +818,10 @@
             </div>
             <div class="modal-footer">
                 <button data-action="save-credit-card" class="primary-button">
-                    <span class="icon-enhanced">💾</span>Save Changes
+                    <span class="icon-enhanced"><i data-lucide="save"></i></span>Save Changes
                 </button>
                 <button data-action="close-edit-credit-card" class="secondary-button">
-                    <span class="icon-enhanced">❌</span>Cancel
+                    <span class="icon-enhanced"><i data-lucide="x"></i></span>Cancel
                 </button>
             </div>
         </div>
@@ -715,10 +840,10 @@
             </div>
             <div class="modal-footer">
                 <button data-action="confirm-delete-setup" class="danger-button">
-                    <span class="icon-enhanced">🗑️</span>Delete
+                    <span class="icon-enhanced"><i data-lucide="trash-2"></i></span>Delete
                 </button>
                 <button data-action="close-delete-setup" class="secondary-button">
-                    <span class="icon-enhanced">❌</span>Cancel
+                    <span class="icon-enhanced"><i data-lucide="x"></i></span>Cancel
                 </button>
             </div>
         </div>
@@ -744,15 +869,17 @@
             </div>
             <div class="modal-footer">
                 <button data-action="save-cash-balance" class="primary-button">
-                    <span class="icon-enhanced">💾</span>Save Changes
+                    <span class="icon-enhanced"><i data-lucide="save"></i></span>Save Changes
                 </button>
                 <button data-action="close-edit-cash" class="secondary-button">
-                    <span class="icon-enhanced">❌</span>Cancel
+                    <span class="icon-enhanced"><i data-lucide="x"></i></span>Cancel
                 </button>
             </div>
         </div>
-            </div>
     </div>
+
+    <!-- Include Lucide Icons -->
+    <script src="https://unpkg.com/lucide@1.49.0/dist/umd/lucide.min.js" integrity="sha384-7mWwAGEOOlxvEBR+Mpy0eVhGL+9abGHkZtVoTs+dvrWkI5g00lyMaAxRIK+rqXGt" crossorigin="anonymous"></script>
 
     <!-- Include all JavaScript modules -->
     <script src="js/api.js"></script>
