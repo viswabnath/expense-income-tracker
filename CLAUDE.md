@@ -41,7 +41,7 @@ SESSION_SECRET=your-secure-secret
 NODE_ENV=development
 ```
 
-Backend tests connect to the database in `.env` (no separate test DB) and delete all rows in the app tables. The local `.env` points at the development Supabase database; production uses the Render database from `render.yaml`. Confirm the target DB before running backend tests. Run `npm run test:clean` for a clean run. `testTimeout` is 30s because of the remote database round trips, and `maxWorkers` is 1 because suites share one database (parallel runs hang on the Supabase pooler and clobber each other's data).
+Backend tests connect to the database in `.env` (no separate test DB) and delete all rows in the app tables. The local `.env` points at the development Supabase database; production must be a separate Supabase project. Confirm the target DB before running backend tests. Run `npm run test:clean` for a clean run. `testTimeout` is 30s because of the remote database round trips, and `maxWorkers` is 1 because suites share one database (parallel runs hang on the Supabase pooler and clobber each other's data).
 
 ## Conventions
 
@@ -57,6 +57,7 @@ Single-file Express.js server. All routes live here. When you add or change a ro
 - `authLimiter` allows 5 failed auth attempts per 15 min and is skipped when `NODE_ENV` is `development` or `test`. `generalLimiter` allows 100 req/min.
 - Helmet sends a CSP (see the `helmet({...})` directives). Adding a new external script, font or API origin needs a matching directive. `upgrade-insecure-requests` is production-only because Safari applies it to http://localhost.
 - The production HTTP→HTTPS redirect is the first middleware; keep it above `express.static`.
+- Deployed on Vercel: `server.js` must keep `module.exports = app` (Vercel runs the exported app as a function; `app.listen` only runs locally). On Vercel `public/` is served by the CDN without Express, so the security headers are duplicated in `vercel.json`. Change both together; `tests/security-middleware.test.js` fails if they differ.
 - Middleware reads `NODE_ENV` once at load time. `tests/security-middleware.test.js` uses `jest.isolateModules` to load the server under other environments.
 - Build SQL with `$n` parameters only, never string interpolation (`/api/activity` had an injection bug from this)
 - SSL enabled automatically when `NODE_ENV=production` or `DB_SSL=true`

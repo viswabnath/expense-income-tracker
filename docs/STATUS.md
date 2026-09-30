@@ -4,7 +4,7 @@ _Last reviewed: 2026-09-30_
 
 ## Summary
 
-The core features work: auth, accounts, transactions, the activity log and monthly summaries. The full test suite passes (313 passed, 2 skipped, 21 suites). The security gaps found on 2026-09-30 are fixed; the remaining [known issues](#known-issues) are low severity.
+The core features work: auth, accounts, transactions, the activity log and monthly summaries. The full test suite passes (315 passed, 2 skipped, 21 suites). The security gaps found on 2026-09-30 are fixed; the remaining [known issues](#known-issues) are low severity.
 
 ## Features
 
@@ -48,19 +48,21 @@ The core features work: auth, accounts, transactions, the activity log and month
 | frontend | jsdom | 9 | `fetch` is mocked; includes the no-emoji check |
 
 - `npm run test:clean` resets the database and runs everything.
-- **Backend tests delete all rows in the app tables.** `.env` currently points at the development Supabase database. Production runs on Render's own database (`render.yaml`), so tests do not touch it.
+- **Backend tests delete all rows in the app tables.** `.env` points at the development Supabase database. Production must use a separate Supabase project so tests never touch it.
 - `testTimeout` is 30s because each request makes a round trip to the remote database. `maxWorkers` is 1: suites share one database, and parallel runs exhausted the Supabase pooler and wiped each other's data. A full run takes about 3 minutes.
 
 ## Deployment
 
-- **Render** (`render.yaml`): web service + Render PostgreSQL; SSL on; session secret generated.
-- **Docker / nginx**: `Dockerfile`, `docker-compose.yml` and `deploy.sh` are gitignored and only exist locally. `nginx.conf` is tracked.
+- **Vercel**: `server.js` exports the Express app, which Vercel runs as a function in `syd1` (next to Supabase `ap-southeast-2`); `public/` is served from the CDN. `vercel.json` repeats helmet's security headers for static files, and a test keeps the two in sync.
+- **Supabase**: Postgres for data and sessions, reached through the transaction pooler (port 6543) with SSL.
+- Setup steps are in the README under "Deployment (Vercel + Supabase)".
 
 ## Known issues
 
 | Severity | Issue | Where |
 |---|---|---|
 | Low | No separate test database; tests share the dev database | `.env`, `test-helpers.js` |
+| Low | Auth rate-limit counters are in memory, so on Vercel each function instance counts separately | `server.js`, `authLimiter` |
 | Low | 9 ESLint warnings, all in three obsolete test files that aren't run (`comprehensive-coverage`, `server-coverage`, `frontend-execution-coverage`) | `tests/` |
 
 ### Fixed on 2026-09-30

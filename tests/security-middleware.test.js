@@ -39,6 +39,25 @@ describe('Security middleware in production', () => {
         expect(csp).toContain('upgrade-insecure-requests');
     });
 
+    test('should export the Express app as the default export (required by Vercel)', () => {
+        const exported = loadServer('production');
+
+        expect(typeof exported).toBe('function');
+        expect(exported.app).toBe(exported);
+        return exported.pool.end();
+    });
+
+    test('vercel.json static-file headers should match the headers helmet sends', async () => {
+        // Vercel serves public/ from its CDN without running Express, so vercel.json repeats helmet's headers
+        const vercelConfig = require('../vercel.json');
+        const staticHeaders = vercelConfig.headers.find(rule => rule.source === '/(.*)').headers;
+        const response = await request(app).get('/').set('X-Forwarded-Proto', 'https');
+
+        for (const { key, value } of staticHeaders) {
+            expect({ key, value: response.headers[key.toLowerCase()] }).toEqual({ key, value });
+        }
+    });
+
     test('should redirect plain HTTP to HTTPS before serving static files', async () => {
         const response = await request(app)
             .get('/css/fintech-theme.css')

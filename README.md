@@ -30,7 +30,7 @@ BalanceTrack is a full-stack web application that allows users to:
 - **Database**: PostgreSQL with advanced schema
 - **Security**: bcryptjs encryption, session management, rate limiting, CSP headers
 - **API**: RESTful endpoints for all operations
-- **Deployment**: Production-ready with Docker support
+- **Deployment**: Vercel (serverless function + CDN), Supabase Postgres
 
 ### Database Schema
 - **Users**: Secure authentication with security questions
@@ -211,56 +211,56 @@ npm run test:coverage
 | `npm run test:backend` / `test:frontend` | Run one Jest project |
 | `npm run test:coverage` / `test:watch` | Coverage report / watch mode |
 | `npm run lint` / `lint:fix` | ESLint |
-| `npm run deploy:*`, `npm run docker:*` | Use `deploy.sh`, `Dockerfile` and `docker-compose.yml`, which are gitignored and only exist locally |
 
-## Production Deployment
+## Deployment (Vercel + Supabase)
 
-> **Note**: The application is ready for production deployment on any platform that supports Node.js and PostgreSQL.
+The Express app runs on Vercel as a serverless function and the database is Supabase Postgres. Vercel detects the Express app from `server.js` (it exports the app), serves `public/` from its CDN, and runs everything else through the function. `vercel.json` pins the function to `syd1`, next to the Supabase region (`ap-southeast-2`), and applies the security headers to static files.
 
-### Security Checklist
-- Environment variables configured
-- Session secrets generated securely
-- HTTPS enabled (for production)
-- Rate limiting configured
-- Error handling secured
-- Database connections secured
+### 1. Use a separate Supabase project for production
 
-### Environment Configuration
-```env
-NODE_ENV=production
-SESSION_SECRET=<generate-secure-64-byte-hex>
-DB_SSL=true
-PORT=443
-```
+The backend tests delete every row in the database that `.env` points at. Keep production in its own Supabase project and never put its credentials in your local `.env`.
 
-## Docker Deployment
+### 2. Create the schema
 
-### Docker Setup
-The application includes Docker configuration for easy deployment:
+Run once against the production database, and again whenever `setup-db.js` changes (it only adds missing tables and columns):
 
 ```bash
-# Build Docker image
-npm run docker:build
-
-# Run with Docker Compose
-npm run docker:run
-
-# Stop containers
-npm run docker:stop
-
-# View logs
-npm run docker:logs
+DB_HOST=<pooler-host> DB_PORT=6543 DB_NAME=postgres \
+DB_USER=<user> DB_PASSWORD=<password> DB_SSL=true \
+npm run setup-db
 ```
 
+### 3. Configure the Vercel project
 
-### Deployment Options
-1. **Cloud Platforms**: Render (config included), Heroku, Vercel, DigitalOcean, AWS
-2. **VPS/Server**: Ubuntu/CentOS with nginx reverse proxy
-3. **Container**: Docker deployment ready
-4. **Database**: PostgreSQL on AWS RDS, Google Cloud SQL, or self-hosted
+Import the repository in Vercel, then set these environment variables (Settings > Environment Variables):
 
-### Render Deployment
-`render.yaml` defines a free-tier web service plus a Render PostgreSQL database (`balancetrack-db`). The `DB_*` variables are wired from that database, `SESSION_SECRET` is generated, and `DB_SSL=true` is set. The Supabase database in the local `.env` is used for development and tests only.
+| Variable | Value |
+|---|---|
+| `DB_HOST` | Supabase transaction pooler host (Project Settings > Database) |
+| `DB_PORT` | `6543` (transaction pooler, suited to serverless) |
+| `DB_NAME` | `postgres` |
+| `DB_USER` | Pooler user, e.g. `postgres.<project-ref>` |
+| `DB_PASSWORD` | Database password |
+| `DB_SSL` | `true` |
+| `SESSION_SECRET` | Output of `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"` |
+
+Vercel sets `NODE_ENV=production` itself.
+
+### 4. Deploy
+
+Pushing to the production branch deploys automatically. From the CLI:
+
+```bash
+npm i -g vercel
+vercel link          # once
+vercel --prod
+```
+
+### Notes
+
+- The auth rate limiter keeps its counts in memory, so each function instance has its own counter. It still slows brute-force attempts, but the limit is per instance rather than global.
+- Sessions are stored in Postgres (`session` table), so they survive across function instances.
+- `.vercelignore` keeps `.env`, `.db-backups/` and the tests out of CLI uploads.
 
 ## Performance & Scalability
 
@@ -272,7 +272,6 @@ npm run docker:logs
 - Connection pooling for database
 - **CSP-compliant security (no inline JavaScript)**
 - **Mobile-optimized responsive design**
-- **Production deployment ready with Docker and cloud platform support**
 
 ### Scalability Features
 - Sessions stored in PostgreSQL (`connect-pg-simple`), so multiple app instances can share them

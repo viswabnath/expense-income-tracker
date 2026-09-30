@@ -15,14 +15,7 @@
     "test:coverage": "jest --coverage --detectOpenHandles --forceExit",
     "test:watch": "jest --watch --detectOpenHandles",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "deploy:local": "./deploy.sh local",
-    "deploy:docker": "./deploy.sh docker",
-    "deploy:production": "./deploy.sh production",
-    "docker:build": "docker build -t balancetrack .",
-    "docker:run": "docker-compose up -d",
-    "docker:stop": "docker-compose down",
-    "docker:logs": "docker-compose logs -f"
+    "lint:fix": "eslint . --fix"
   },
   "keywords": [],
   "author": "",

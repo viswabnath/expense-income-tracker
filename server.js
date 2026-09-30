@@ -1996,8 +1996,11 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Export the app and pool for testing
-module.exports = { app, pool };
+// Vercel runs the exported Express app as a function, so the app must be the default export.
+// `app` and `pool` are also attached so `const { app, pool } = require('./server')` keeps working in tests.
+module.exports = app;
+module.exports.app = app;
+module.exports.pool = pool;
 
 // Cleanup function for tests
 function cleanup() {
