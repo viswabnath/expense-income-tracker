@@ -48,20 +48,20 @@ The core features work: auth, accounts, transactions, the activity log and month
 | frontend | jsdom | 9 | `fetch` is mocked; includes the no-emoji check |
 
 - `npm run test:clean` resets the database and runs everything.
-- **Backend tests delete all rows in the app tables.** `.env` points at the development Supabase database. Production must use a separate Supabase project so tests never touch it.
+- Tests share the production Supabase database but run in the `balancetrack_test` schema. `tests/env.js` sets `DB_SCHEMA`, and `clearTestData`, `deleteTestUser` and `reset-test-db.js` refuse to delete outside a `*_test` schema.
 - `testTimeout` is 30s because each request makes a round trip to the remote database. `maxWorkers` is 1: suites share one database, and parallel runs exhausted the Supabase pooler and wiped each other's data. A full run takes about 3 minutes.
 
 ## Deployment
 
 - **Vercel**: `server.js` exports the Express app, which Vercel runs as a function in `syd1` (next to Supabase `ap-southeast-2`); `public/` is served from the CDN. `vercel.json` repeats helmet's security headers for static files, and a test keeps the two in sync.
-- **Supabase**: Postgres for data and sessions, reached through the transaction pooler (port 6543) with SSL.
+- **Supabase**: one project. Production data is in `public`, and tests use `balancetrack_test`. It is reached through the transaction pooler (port 6543) with SSL, and every table has RLS enabled to block the public Data API.
 - Setup steps are in the README under "Deployment (Vercel + Supabase)".
 
 ## Known issues
 
 | Severity | Issue | Where |
 |---|---|---|
-| Low | No separate test database; tests share the dev database | `.env`, `test-helpers.js` |
+| Low | `tests/setup.js` never runs: `setupFilesAfterEnv` is set at the top level, which Jest ignores when `projects` is used | `package.json` |
 | Low | Auth rate-limit counters are in memory, so on Vercel each function instance counts separately | `server.js`, `authLimiter` |
 | Low | 9 ESLint warnings, all in three obsolete test files that aren't run (`comprehensive-coverage`, `server-coverage`, `frontend-execution-coverage`) | `tests/` |
 

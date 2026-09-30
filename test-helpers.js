@@ -3,7 +3,7 @@
  * Provides common functions for test setup, teardown, and data management
  */
 
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 const bcrypt = require('bcryptjs');
 
 // Use the same pool instance as the main application to avoid conflicts
@@ -19,7 +19,8 @@ try {
         database: process.env.DB_NAME || 'expense_tracker',
         password: process.env.DB_PASSWORD || '',
         port: process.env.DB_PORT || 5432,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+        ssl: process.env.DB_SSL === 'true' || process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+        ...(process.env.DB_SCHEMA && { options: `-c search_path=${process.env.DB_SCHEMA}` })
     });
 }
 
@@ -31,6 +32,12 @@ async function clearTestData() {
 
     try {
         await client.query('BEGIN');
+
+        // Never delete outside a test schema (production data lives in public)
+        const { rows } = await client.query('SELECT current_schema() AS schema');
+        if (!/_test$/.test(rows[0].schema || '')) {
+            throw new Error(`Refusing to clear data: current schema is ${rows[0].schema}, expected a *_test schema`);
+        }
 
         // Delete in order to respect foreign key constraints
         await client.query('DELETE FROM activity_log');
@@ -229,6 +236,10 @@ function getPool() {
  * Delete a single test user and all of their data by username
  */
 async function deleteTestUser(username) {
+    const { rows } = await pool.query('SELECT current_schema() AS schema');
+    if (!/_test$/.test(rows[0].schema || '')) {
+        throw new Error(`Refusing to delete user: current schema is ${rows[0].schema}, expected a *_test schema`);
+    }
     const result = await pool.query('SELECT id FROM users WHERE username = $1', [username]);
     if (result.rows.length === 0) return;
     const userId = result.rows[0].id;

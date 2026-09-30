@@ -5,8 +5,15 @@
  * Clears all test data and resets database to clean state for testing
  */
 
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 const { Pool } = require('pg');
+
+// This script deletes data, so it only ever runs against a *_test schema (never public/production)
+process.env.DB_SCHEMA = process.env.DB_SCHEMA || 'balancetrack_test';
+if (!/^[a-z_][a-z0-9_]*_test$/.test(process.env.DB_SCHEMA)) {
+    console.error(`Refusing to reset: DB_SCHEMA must end with _test (got ${process.env.DB_SCHEMA})`);
+    process.exit(1);
+}
 
 // Database connection configuration
 const pool = new Pool({
@@ -15,7 +22,8 @@ const pool = new Pool({
     database: process.env.DB_NAME || 'expense_tracker',
     password: process.env.DB_PASSWORD || '',
     port: process.env.DB_PORT || 5432,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+    ssl: process.env.DB_SSL === 'true' || process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    options: `-c search_path=${process.env.DB_SCHEMA}`
 });
 
 async function resetTestDatabase() {

@@ -59,7 +59,7 @@ describe('Database Setup Tests', () => {
 
     describe('Code Structure Analysis', () => {
         test('should contain required environment variable configuration', () => {
-            expect(setupDbCode).toContain('require(\'dotenv\').config()');
+            expect(setupDbCode).toMatch(/require\('dotenv'\)\.config\(/);
             expect(setupDbCode).toContain('const { Pool } = require(\'pg\')');
         });
 

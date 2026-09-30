@@ -1,6 +1,6 @@
 // Add this to the top of both server.js and setup-db.js
 /* eslint-disable no-unused-vars */
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 const express = require('express');
 const session = require('express-session');
 const bcrypt = require('bcryptjs');
@@ -36,6 +36,8 @@ const pool = new Pool({
     ssl: process.env.DB_SSL === 'true' || process.env.NODE_ENV === 'production'
         ? { rejectUnauthorized: false }
         : false,
+    // Optional Postgres schema; tests use balancetrack_test, production uses public
+    ...(process.env.DB_SCHEMA && { options: `-c search_path=${process.env.DB_SCHEMA}` }),
 });
 
 // Test database connection (skip in test environment)

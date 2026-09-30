@@ -9,13 +9,14 @@
     "reset-test-db": "node reset-test-db.js",
     "reset-test-db-with-user": "node reset-test-db.js --with-user",
     "test": "jest --detectOpenHandles --forceExit",
-    "test:clean": "npm run reset-test-db-with-user -- --yes && jest --detectOpenHandles --forceExit",
+    "test:clean": "npm run setup-test-db && npm run reset-test-db-with-user -- --yes && jest --detectOpenHandles --forceExit",
     "test:backend": "jest --selectProjects backend --detectOpenHandles --forceExit",
     "test:frontend": "jest --selectProjects frontend --detectOpenHandles --forceExit",
     "test:coverage": "jest --coverage --detectOpenHandles --forceExit",
     "test:watch": "jest --watch --detectOpenHandles",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "setup-test-db": "DB_SCHEMA=balancetrack_test node setup-db.js"
   },
   "keywords": [],
   "author": "",
@@ -78,6 +79,9 @@
         "collectCoverageFrom": [
           "server.js",
           "setup-db.js"
+        ],
+        "setupFiles": [
+          "<rootDir>/tests/env.js"
         ]
       },
       {
@@ -97,6 +101,9 @@
         "collectCoverageFrom": [
           "public/js/**/*.js",
           "!public/js/lib/**"
+        ],
+        "setupFiles": [
+          "<rootDir>/tests/env.js"
         ]
       }
     ],

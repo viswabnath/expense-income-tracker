@@ -10,7 +10,8 @@ npm run dev          # Start server with nodemon (auto-reload)
 npm start            # Start server (production)
 
 # Database
-npm run setup-db     # Create/migrate all tables
+npm run setup-db     # Create/migrate all tables (public schema = production)
+npm run setup-test-db  # Same, in the balancetrack_test schema
 npm run reset-test-db  # Delete all rows from app tables in the .env database (destructive)
 
 # Testing
@@ -41,7 +42,7 @@ SESSION_SECRET=your-secure-secret
 NODE_ENV=development
 ```
 
-Backend tests connect to the database in `.env` (no separate test DB) and delete all rows in the app tables. The local `.env` points at the development Supabase database; production must be a separate Supabase project. Confirm the target DB before running backend tests. Run `npm run test:clean` for a clean run. `testTimeout` is 30s because of the remote database round trips, and `maxWorkers` is 1 because suites share one database (parallel runs hang on the Supabase pooler and clobber each other's data).
+The Supabase database in `.env` is also production. Production data is in the `public` schema; tests run in `balancetrack_test`. `tests/env.js` (Jest `setupFiles`) forces `DB_SCHEMA=balancetrack_test`, every pool passes it as `search_path`, and `clearTestData`/`deleteTestUser`/`reset-test-db.js` refuse to delete outside a `*_test` schema. Never weaken those guards. Running `server.js` locally without `DB_SCHEMA` reads and writes production data. Run `npm run test:clean` for a clean run. `testTimeout` is 30s because of the remote database round trips, and `maxWorkers` is 1 because suites share one database (parallel runs hang on the Supabase pooler and clobber each other's data).
 
 ## Conventions
 
@@ -63,7 +64,9 @@ Single-file Express.js server. All routes live here. When you add or change a ro
 - SSL enabled automatically when `NODE_ENV=production` or `DB_SSL=true`
 
 ### Database (`setup-db.js`)
-Tables: `users`, `banks`, `credit_cards`, `income_entries`, `expenses`, `cash_balance`, `activity_log`
+Tables: `users`, `banks`, `credit_cards`, `income_entries`, `expenses`, `cash_balance`, `activity_log`, `session`
+- Every table has row level security enabled with no policies, which blocks Supabase's public Data API. Enable RLS on any new table.
+- `DB_SCHEMA` (optional) selects the Postgres schema via `search_path`; unset means `public`
 - All monetary columns use `DECIMAL(20,2)`
 - `activity_log` stores `old_values`/`new_values` as JSONB for change tracking
 - `income_entries` references `credited_to_type` (`bank`|`cash`) and `credited_to_id`
@@ -92,6 +95,6 @@ Jest uses two projects configured in `package.json`:
 
 Each project lists its files explicitly in `testMatch`. **A new test file does not run until you add it there.**
 
-`tests/setup.js` runs before every test: sets `NODE_ENV=test`, mocks `fetch`, and tears down DB pools after all tests.
+`tests/env.js` runs before every test file (per-project `setupFiles`). `tests/setup.js` is **not** currently run: it is listed in the top-level `setupFilesAfterEnv`, which Jest ignores when `projects` is defined.
 
 `test-helpers.js` provides `clearTestData()`, `createTestUser()`, `deleteTestUser(username)` and other utilities that hit the real database. Use them rather than creating new pool connections, and have suites that register their own users call `deleteTestUser` in `beforeAll`/`afterAll` so reruns don't fail with "username exists". Test passwords must satisfy `validatePassword` (special chars: `_ - @ : &` only).

@@ -165,7 +165,7 @@ Full request/response reference: [docs/API.md](docs/API.md).
 
 Jest runs two projects defined in `package.json`: **backend** (node environment, real database) and **frontend** (jsdom).
 
-> **Warning:** Backend tests run against the database configured in `.env` and **delete all rows** in the app tables (`npm run test:clean` resets it first). Point `.env` at a dedicated test database before running them.
+> **Note:** Backend tests use the Supabase database from `.env` but only ever touch the `balancetrack_test` schema, never `public` where production data lives. `tests/env.js` forces `DB_SCHEMA=balancetrack_test`, and the cleanup helpers refuse to delete rows in any schema whose name doesn't end in `_test`.
 
 ### Test Coverage
 - **Backend API Testing**: Server endpoints and authentication
@@ -207,7 +207,8 @@ npm run test:coverage
 | `npm run setup-db` | Create/migrate all tables |
 | `npm run reset-test-db` | Delete all rows from the app tables (`--with-user` also seeds `testuser`) |
 | `npm test` | Run all tests |
-| `npm run test:clean` | Reset the test DB, then run all tests |
+| `npm run setup-test-db` | Create/migrate the tables in the `balancetrack_test` schema |
+| `npm run test:clean` | Set up and reset the test schema, then run all tests |
 | `npm run test:backend` / `test:frontend` | Run one Jest project |
 | `npm run test:coverage` / `test:watch` | Coverage report / watch mode |
 | `npm run lint` / `lint:fix` | ESLint |
@@ -216,18 +217,24 @@ npm run test:coverage
 
 The Express app runs on Vercel as a serverless function and the database is Supabase Postgres. Vercel detects the Express app from `server.js` (it exports the app), serves `public/` from its CDN, and runs everything else through the function. `vercel.json` pins the function to `syd1`, next to the Supabase region (`ap-southeast-2`), and applies the security headers to static files.
 
-### 1. Use a separate Supabase project for production
+### 1. How the Supabase database is laid out
 
-The backend tests delete every row in the database that `.env` points at. Keep production in its own Supabase project and never put its credentials in your local `.env`.
+One Supabase project holds everything:
+
+| Schema | Used by |
+|---|---|
+| `public` | Production (Vercel). `DB_SCHEMA` is left unset. |
+| `balancetrack_test` | The test suite only |
+
+Every table has row level security enabled with no policies, so Supabase's public Data API cannot read or change them. The app connects as the table owner, which RLS does not restrict.
 
 ### 2. Create the schema
 
-Run once against the production database, and again whenever `setup-db.js` changes (it only adds missing tables and columns):
+`setup-db.js` creates the tables, indexes and the session table, and enables RLS. It only adds what is missing, so it is safe to rerun whenever it changes:
 
 ```bash
-DB_HOST=<pooler-host> DB_PORT=6543 DB_NAME=postgres \
-DB_USER=<user> DB_PASSWORD=<password> DB_SSL=true \
-npm run setup-db
+npm run setup-db        # production tables in public (uses the credentials in .env)
+npm run setup-test-db   # test tables in balancetrack_test
 ```
 
 ### 3. Configure the Vercel project
