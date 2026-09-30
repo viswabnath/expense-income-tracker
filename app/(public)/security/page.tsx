@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: 'Security Policy - BalanceTrack' };
 
 export default function SecurityPage() {
     return (
-        <ResourcePage icon={ShieldCheck} title="Security Policy" subtitle="Last Updated: April 2026">
+        <ResourcePage icon={ShieldCheck} title="Security Policy" subtitle="Last Updated: September 2026">
             <h2>Data Protection</h2>
             <p>
                 At BalanceTrack, security is our top priority. We implement industry-standard encryption protocols to ensure that
@@ -14,7 +14,7 @@ export default function SecurityPage() {
             </p>
             <h2>Security Measures</h2>
             <ul>
-                <li><strong>End-to-End Encryption:</strong> All sensitive data is encrypted before being stored in our secure database.</li>
+                <li><strong>Encryption:</strong> Your data travels over HTTPS, passwords and security answers are stored as one-way hashes, and the database is encrypted at rest by our hosting provider.</li>
                 <li><strong>Session Management:</strong> We use secure, HTTP-only cookies and automatic session timeouts to prevent unauthorized access.</li>
                 <li><strong>Audit Logging:</strong> Every action taken in the app is logged in your personal Activity Feed, allowing for full transparency of account changes.</li>
             </ul>

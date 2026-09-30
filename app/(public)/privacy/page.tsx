@@ -14,7 +14,7 @@ export default function PrivacyPage() {
             </p>
             <h2>Information We Collect</h2>
             <ul>
-                <li><strong>Account Credentials:</strong> Securely hashed usernames and passwords.</li>
+                <li><strong>Account Credentials:</strong> Your username and email, and your password and security answer stored as one-way hashes.</li>
                 <li><strong>Financial Records:</strong> Transactions and account balances added by you.</li>
                 <li><strong>System Logs:</strong> Basic interaction data to improve app performance.</li>
             </ul>
