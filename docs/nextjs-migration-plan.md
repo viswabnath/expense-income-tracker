@@ -95,7 +95,11 @@ Verified locally:
 - All Jest suites (342 tests) pass, and the 5 contract suites pass against `legacy/server.js` over HTTP.
 - All 6 Playwright flows pass directly against Express and also **through** `next dev` forwarding to Express, which checks that session cookies survive the pass-through.
 
-Not yet verified: the Vercel Services deployment itself (see Risks). Deploy a preview and check `/next-health` (Next.js) and `/` (Express) before merging.
+Deployed on 2026-09-30 (Vercel project `balancetrack`, PR #8):
+- The preview passed every check: `/next-health` from Next.js; `/`, register, add bank and income, and logout from Express; writes went to `balancetrack_test`.
+- Production (`master`, `9e29ef5`) passed read-only checks: `/next-health`, `/`, `/api/*` requiring login, and the HTTP to HTTPS redirect.
+
+Note: a Git deployment created through the API for a brand-new project was targeted at production, even for a non-production branch. It was cancelled before going live. Use `vercel deploy` (preview by default) or a Git push for previews.
 
 - `git mv` `server.js`, `public/`, `setup-db.js`, `reset-test-db.js` and `test-helpers.js` into `legacy/`, and update require paths. No code changes.
 - Add Next.js 16 (App Router, TypeScript, strict mode) at the repo root. Add the Services config and rewrites above. Configure ESLint and `tsc --noEmit`.
