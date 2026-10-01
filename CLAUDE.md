@@ -57,7 +57,7 @@ The Supabase database in `.env` is also production. Production data is in the `p
 
 ### Migration layout (Next.js, in progress: see `docs/nextjs-migration-plan.md`)
 - `legacy/`: the current Express app (`server.js`, `public/`, `lib/transaction.js`, own `package.json`). It still serves every page and API route.
-- `app/`, `components/`, `lib/*.ts`: the Next.js 16 app (App Router, TypeScript strict). It serves the public pages `/about`, `/security`, `/privacy`, `/terms` (route group `app/(public)`) and `/next-health`; everything else is still Express.
+- `app/`, `components/`, `lib/*.ts`: the Next.js 16 app (App Router, TypeScript strict). It serves the public pages `/about`, `/security`, `/privacy`, `/terms`, the auth screens `/login`, `/register`, `/forgot-username`, `/forgot-password`, `/welcome` (all in route group `app/(public)`) and `/next-health`. Everything else, including the logged-in app at `/` and all `/api/*`, is still Express. Logged-out visits to `/` redirect to `/login`.
 - `vercel.json` defines two Vercel Services (`web` = Next.js at `./`, `legacy` = Express at `legacy/`), with rewrites deciding which one gets each path. To move a path to Next.js, add a rewrite above the catch-all.
 - Locally, `npm run dev` and Playwright mirror this: `next.config.ts` forwards unhandled paths to Express when `LEGACY_URL` is set (it must be set at build time too, since rewrites are fixed by `next build`).
 - **Adding a Next.js page takes three edits:** the page in `app/`, its path in the `web` rewrite in `vercel.json`, and its path in the `proxy.ts` matcher. Also exclude it from the legacy-only CSP header rule in `vercel.json`. `tests/unit/routing.test.ts` fails if they disagree.

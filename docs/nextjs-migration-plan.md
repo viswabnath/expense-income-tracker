@@ -115,7 +115,14 @@ Progress:
   - The legacy footer links to them as real URLs, and their sections were removed from `legacy/public/index.html`.
   - Playwright now runs a production build of Next.js that forwards to Express.
   - Found while porting: `fintech-theme.css` had stray declarations that made browsers drop the `#transactions-history` rule. Both were removed, so the look is unchanged and the file is valid CSS.
-- **Next:** auth screens (`/login`, `/register`, `/forgot-username`, `/forgot-password`), then `/welcome`, `/setup`, `/transactions`, `/summary`, `/activity`.
+- **Auth screens (done):** `/login`, `/register`, `/forgot-username`, `/forgot-password` (both steps) and `/welcome` (the tracking choice after sign-up) are Next.js pages calling the unchanged Express API.
+  - They keep the legacy element ids and `data-action` hooks, so the 6 existing Playwright flows pass unchanged through them.
+  - Validation rules and messages are shared in `lib/auth-validation.ts`, with unit tests.
+  - The focus-help behaviour is kept, and the first-click fix is built into `AuthButton`.
+  - The username is filled in after "forgot username", via sessionStorage rather than the URL.
+  - Logged-out visits to `/` now redirect to `/login`; the legacy auth forms are hidden and unused until N4.
+  - Deliberate differences: `/welcome` shows an error if saving the tracking option fails (legacy failed silently), and toasts render text, never HTML.
+- **Next:** `/setup`, `/transactions`, `/summary`, `/activity`. These are logged-in screens, so they need a session check in Next.js.
 
 Port one screen per step, each behind its Playwright test. The first ones use the existing `fintech-theme.css` so nothing changes visually. The redesign is a separate later pass, as the brief requires.
 
