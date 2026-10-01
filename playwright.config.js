@@ -2,13 +2,15 @@
 const { defineConfig, devices } = require('@playwright/test');
 
 const PORT = Number(process.env.E2E_PORT || 3100);
-const LEGACY_PORT = PORT + 1;
+const WEB_PORT = PORT + 1;
+const LEGACY_PORT = PORT + 2;
 
 /**
- * End-to-end tests of real user flows, run the way production routes traffic: a production
- * build of Next.js on PORT, forwarding every path it does not own to the legacy Express app
- * on LEGACY_PORT (see next.config.ts). Both use the isolated balancetrack_test schema, never
- * production data (public).
+ * End-to-end tests of real user flows, routed the way production is: scripts/services-router.js
+ * on PORT applies the vercel.json rewrites and sends each request to a production build of
+ * Next.js (WEB_PORT) or the legacy Express app (LEGACY_PORT). Next.js runs without a fallback
+ * proxy, as on Vercel. Express uses the isolated balancetrack_test schema, never production
+ * data (public).
  * Set E2E_BASE_URL to run them against an already running or deployed app instead.
  */
 module.exports = defineConfig({
@@ -42,12 +44,21 @@ module.exports = defineConfig({
             },
         },
         {
-            // Rewrites are fixed at build time, so LEGACY_URL is needed for the build too
-            command: `npx next build && npx next start --port ${PORT}`,
-            url: `http://localhost:${PORT}/next-health`,
+            // Built and run exactly as on Vercel: no LEGACY_URL, so no fallback proxy
+            command: `npx next build && npx next start --port ${WEB_PORT}`,
+            url: `http://localhost:${WEB_PORT}/next-health`,
             reuseExistingServer: false,
             timeout: 240_000,
+            env: { LEGACY_URL: '' },
+        },
+        {
+            command: 'node scripts/services-router.js',
+            url: `http://localhost:${PORT}/next-health`,
+            reuseExistingServer: false,
+            timeout: 30_000,
             env: {
+                ROUTER_PORT: String(PORT),
+                WEB_URL: `http://localhost:${WEB_PORT}`,
                 LEGACY_URL: `http://localhost:${LEGACY_PORT}`,
             },
         },

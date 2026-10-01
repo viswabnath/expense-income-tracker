@@ -12,11 +12,20 @@ class NavigationManager {
         // Prevent event from bubbling up if it's from a link
         if (window.event) window.event.preventDefault();
 
+        // Account Setup is a Next.js page now
+        if (section === 'setup') {
+            window.location.assign('/setup');
+            return false;
+        }
+        // Keep the open section in the URL so a reload or a link from Next.js opens it
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, '', `/?section=${section}`);
+        }
+
         const mainApp = document.getElementById('main-app');
 
         // Hide all sections (About, Security, Privacy and Terms are Next.js pages now)
         const sections = [
-            'setup-section',
             'transactions-section',
             'summary-section',
             'activity-section'

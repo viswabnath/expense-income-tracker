@@ -122,7 +122,14 @@ Progress:
   - The username is filled in after "forgot username", via sessionStorage rather than the URL.
   - Logged-out visits to `/` now redirect to `/login`; the legacy auth forms are hidden and unused until N4.
   - Deliberate differences: `/welcome` shows an error if saving the tracking option fails (legacy failed silently), and toasts render text, never HTML.
-- **Next:** `/setup`, `/transactions`, `/summary`, `/activity`. These are logged-in screens, so they need a session check in Next.js.
+- **Account Setup (done):** `/setup` is the first logged-in Next.js screen (`app/(app)`).
+  - `AppShell` reproduces the nav bar, mobile sidebar, logout confirmation and loading overlay. Nav links go to `/setup` or to the legacy app's `/?section=...`, which it now reads.
+  - `proxy.ts` sends visitors without a `sessionId` cookie to `/login`; an expired session is caught by the page's first 401.
+  - The legacy Setup section and its four dialogs are removed; `setupManager.loadSetupData()` is a no-op there.
+  - Login and the tracking choice now land on `/setup`.
+- **Test harness:** Playwright now runs Next.js exactly as on Vercel, without a fallback proxy, behind `scripts/services-router.js`, which applies the `vercel.json` rewrites. Next.js's built-in fallback proxy produced intermittent `ECONNRESET`s.
+- **Found while porting:** the connection-leak bug in three bank and card routes (see STATUS), and the pre-hydration click race on the auth screens.
+- **Next:** `/transactions`, `/summary`, `/activity`.
 
 Port one screen per step, each behind its Playwright test. The first ones use the existing `fintech-theme.css` so nothing changes visually. The redesign is a separate later pass, as the brief requires.
 

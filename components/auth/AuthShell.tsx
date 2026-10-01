@@ -2,6 +2,7 @@
 
 import { useState, type ComponentProps, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { HydrationGate } from '@/components/HydrationGate';
 
 export interface AuthMessage {
     kind: 'error' | 'success';
@@ -16,7 +17,7 @@ export function AuthShell({ message, children }: { message?: AuthMessage | null;
     return (
         <div id="auth-section">
             <h2>BalanceTrack</h2>
-            {children}
+            <HydrationGate>{children}</HydrationGate>
             <div id="auth-message" className={message?.kind ?? 'error'}>{message?.text ?? ''}</div>
         </div>
     );

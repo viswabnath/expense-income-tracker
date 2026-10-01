@@ -67,9 +67,10 @@ async function logout(page) {
 // Transactions rebuilds the account dropdowns, resetting any selection made before the
 // rebuild lands. (waitForLoadState('networkidle') does not help: this single-page app
 // never navigates, so that state was reached long ago and the wait returns at once.)
-// Setup loads its data only on first show; transaction changes refresh its lists directly.
+// Setup is a Next.js page (a full page load that fetches its data every time); the other
+// sections are still in the legacy app.
 const SECTION_REQUESTS = {
-    setup: [],
+    setup: ['/api/banks', '/api/credit-cards', '/api/cash-balance'],
     transactions: ['/api/banks', '/api/credit-cards', '/api/income', '/api/expenses'],
     summary: ['/api/monthly-summary'],
     activity: ['/api/activity'],

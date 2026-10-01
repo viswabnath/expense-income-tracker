@@ -34,8 +34,7 @@ export function LoginForm() {
             }
             const result = await apiPost<{ success?: boolean }>('/api/login', { username: name, password: secret });
             if (result.data.success) {
-                // The logged-in app is still the legacy app at "/"
-                window.location.assign('/');
+                window.location.assign('/setup');
             } else {
                 toast('error', apiError(result.data, 'Login failed'));
             }

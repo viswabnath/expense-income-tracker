@@ -732,10 +732,7 @@ app.get('/api/cash-balance', requireAuth, async (req, res) => {
 
 // Bank CRUD operations
 app.put('/api/banks/:id', requireAuth, async (req, res) => {
-    const client = await pool.connect();
     try {
-        await client.query('BEGIN');
-
         const { id } = req.params;
         const { name, initialBalance } = req.body;
 
@@ -748,78 +745,67 @@ app.put('/api/banks/:id', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'Valid initial balance is required' });
         }
 
-        // Get current bank data
-        const currentBank = await client.query(
-            'SELECT * FROM banks WHERE id = $1 AND user_id = $2',
-            [id, req.session.userId]
-        );
+        // Every early exit inside rolls back (an early return used to leave the transaction
+        // open on a pooled connection, leaking it to the next request)
+        const bank = await withTransaction(pool, async (client) => {
+            const currentBank = await client.query(
+                'SELECT * FROM banks WHERE id = $1 AND user_id = $2 FOR UPDATE',
+                [id, req.session.userId]
+            );
 
-        if (currentBank.rows.length === 0) {
-            return res.status(404).json({ error: 'Bank not found' });
-        }
+            if (currentBank.rows.length === 0) {
+                throw new RequestError(404, 'Bank not found');
+            }
 
-        const oldBalance = parseFloat(currentBank.rows[0].initial_balance);
-        const newBalance = parseFloat(initialBalance);
-        const balanceDifference = newBalance - oldBalance;
+            const oldBalance = parseFloat(currentBank.rows[0].initial_balance);
+            const newBalance = parseFloat(initialBalance);
+            const balanceDifference = newBalance - oldBalance;
 
-        // Update bank
-        const result = await client.query(
-            'UPDATE banks SET name = $1, initial_balance = $2, current_balance = current_balance + $3 WHERE id = $4 AND user_id = $5 RETURNING *',
-            [name.trim(), newBalance, balanceDifference, id, req.session.userId]
-        );
+            const result = await client.query(
+                'UPDATE banks SET name = $1, initial_balance = $2, current_balance = current_balance + $3 WHERE id = $4 AND user_id = $5 RETURNING *',
+                [name.trim(), newBalance, balanceDifference, id, req.session.userId]
+            );
+            return result.rows[0];
+        });
 
-        await client.query('COMMIT');
-        res.json(result.rows[0]);
+        res.json(bank);
     } catch (error) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: 'An error occurred. Please try again.' });
-    } finally {
-        client.release();
+        sendError(res, error);
     }
 });
 
 app.delete('/api/banks/:id', requireAuth, async (req, res) => {
-    const client = await pool.connect();
     try {
-        await client.query('BEGIN');
-
         const { id } = req.params;
 
-        // Check if bank has transactions
-        const incomeCount = await client.query(
-            'SELECT COUNT(*) FROM income_entries WHERE user_id = $1 AND credited_to_type = $2 AND credited_to_id = $3',
-            [req.session.userId, 'bank', id]
-        );
-        const expenseCount = await client.query(
-            'SELECT COUNT(*) FROM expenses WHERE user_id = $1 AND payment_method = $2 AND payment_source_id = $3',
-            [req.session.userId, 'bank', id]
-        );
+        // Every early exit inside rolls back (see PUT /api/banks/:id)
+        await withTransaction(pool, async (client) => {
+            const incomeCount = await client.query(
+                'SELECT COUNT(*) FROM income_entries WHERE user_id = $1 AND credited_to_type = $2 AND credited_to_id = $3',
+                [req.session.userId, 'bank', id]
+            );
+            const expenseCount = await client.query(
+                'SELECT COUNT(*) FROM expenses WHERE user_id = $1 AND payment_method = $2 AND payment_source_id = $3',
+                [req.session.userId, 'bank', id]
+            );
 
-        const totalTransactions = parseInt(incomeCount.rows[0].count) + parseInt(expenseCount.rows[0].count);
+            const totalTransactions = parseInt(incomeCount.rows[0].count) + parseInt(expenseCount.rows[0].count);
+            if (totalTransactions > 0) {
+                throw new RequestError(400, 'Cannot delete bank with existing transactions. Please delete all related transactions first.');
+            }
 
-        if (totalTransactions > 0) {
-            return res.status(400).json({
-                error: 'Cannot delete bank with existing transactions. Please delete all related transactions first.'
-            });
-        }
+            const result = await client.query(
+                'DELETE FROM banks WHERE id = $1 AND user_id = $2 RETURNING *',
+                [id, req.session.userId]
+            );
+            if (result.rows.length === 0) {
+                throw new RequestError(404, 'Bank not found');
+            }
+        });
 
-        // Delete bank
-        const result = await client.query(
-            'DELETE FROM banks WHERE id = $1 AND user_id = $2 RETURNING *',
-            [id, req.session.userId]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Bank not found' });
-        }
-
-        await client.query('COMMIT');
         res.json({ success: true, message: 'Bank deleted successfully' });
     } catch (error) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: 'An error occurred. Please try again.' });
-    } finally {
-        client.release();
+        sendError(res, error);
     }
 });
 
@@ -871,41 +857,32 @@ app.put('/api/credit-cards/:id', requireAuth, async (req, res) => {
 });
 
 app.delete('/api/credit-cards/:id', requireAuth, async (req, res) => {
-    const client = await pool.connect();
     try {
-        await client.query('BEGIN');
-
         const { id } = req.params;
 
-        // Check if credit card has transactions
-        const transactions = await client.query(
-            'SELECT COUNT(*) FROM expenses WHERE user_id = $1 AND payment_method = $2 AND payment_source_id = $3',
-            [req.session.userId, 'credit_card', id]
-        );
+        // Every early exit inside rolls back, and the delete now runs inside the transaction
+        // (it used to go through pool.query, outside it)
+        await withTransaction(pool, async (client) => {
+            const transactions = await client.query(
+                'SELECT COUNT(*) FROM expenses WHERE user_id = $1 AND payment_method = $2 AND payment_source_id = $3',
+                [req.session.userId, 'credit_card', id]
+            );
+            if (parseInt(transactions.rows[0].count) > 0) {
+                throw new RequestError(400, 'Cannot delete credit card with existing transactions. Please delete all related transactions first.');
+            }
 
-        if (parseInt(transactions.rows[0].count) > 0) {
-            return res.status(400).json({
-                error: 'Cannot delete credit card with existing transactions. Please delete all related transactions first.'
-            });
-        }
+            const result = await client.query(
+                'DELETE FROM credit_cards WHERE id = $1 AND user_id = $2 RETURNING *',
+                [id, req.session.userId]
+            );
+            if (result.rows.length === 0) {
+                throw new RequestError(404, 'Credit card not found');
+            }
+        });
 
-        // Delete credit card
-        const result = await pool.query(
-            'DELETE FROM credit_cards WHERE id = $1 AND user_id = $2 RETURNING *',
-            [id, req.session.userId]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Credit card not found' });
-        }
-
-        await client.query('COMMIT');
         res.json({ success: true, message: 'Credit card deleted successfully' });
     } catch (error) {
-        await client.query('ROLLBACK');
-        res.status(500).json({ error: 'An error occurred. Please try again.' });
-    } finally {
-        client.release();
+        sendError(res, error);
     }
 });
 

@@ -21,7 +21,7 @@
       }
     },
     {
-      "source": "/(about|security|privacy|terms|login|register|forgot-username|forgot-password|welcome|next-health)",
+      "source": "/(about|security|privacy|terms|login|register|forgot-username|forgot-password|welcome|setup|next-health)",
       "destination": {
         "service": "web"
       }
@@ -60,7 +60,7 @@
       ]
     },
     {
-      "source": "/((?!_next/|about$|security$|privacy$|terms$|login$|register$|forgot-username$|forgot-password$|welcome$|next-health$).*)",
+      "source": "/((?!_next/|about$|security$|privacy$|terms$|login$|register$|forgot-username$|forgot-password$|welcome$|setup$|next-health$).*)",
       "headers": [
         {
           "key": "Content-Security-Policy",

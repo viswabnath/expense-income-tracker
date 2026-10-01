@@ -211,4 +211,8 @@ Verified: the new atomicity tests fail on the previous `server.js` (4 partial-wr
 
 Unchanged by design, still open:
 - **Expenses-only users:** adding an expense did not change balances, but editing or deleting one did. Decided 2026-09-30: balances always change. Fixed in `POST /api/expenses`, with a test in `tests/atomic-writes.test.js`. No production user had tracking option `expenses`, so no data correction was needed.
-- Bank edit/delete and card delete already used a correct single-connection transaction and write no activity log entries. They should log activity under the brief's rule 8.
+- Bank edit/delete and card delete write no activity log entries; they should under the brief's rule 8.
+- **Correction (2026-10-01):** Phase 0 described bank edit/delete and card delete as "already using a correct single-connection transaction". That was wrong.
+  - They returned early (400/404) inside `BEGIN` without rolling back, so the connection went back to the pool with its transaction still open, and later requests ran inside it. This showed up as users intermittently being treated as logged out.
+  - Card delete also ran its `DELETE` through `pool.query`, outside the transaction.
+  - All three now use `withTransaction`. `tests/atomic-writes.test.js` checks for hand-written transactions and for open transactions left after refused deletes, and both checks fail on the old code.

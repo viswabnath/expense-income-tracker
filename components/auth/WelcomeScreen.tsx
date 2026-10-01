@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AuthButton } from './AuthShell';
+import { HydrationGate } from '@/components/HydrationGate';
 import { useToast } from '@/components/Toast';
 import { apiError, apiGet, apiPost } from '@/lib/api-client';
 
@@ -30,8 +31,7 @@ export function WelcomeScreen() {
     async function choose(option: string) {
         const result = await apiPost('/api/set-tracking-option', { trackingOption: option });
         if (result.ok) {
-            // The logged-in app is still the legacy app at "/"
-            window.location.assign('/');
+            window.location.assign('/setup');
         } else {
             toast('error', apiError(result.data, 'Could not save your tracking option. Please try again.'));
         }
@@ -42,11 +42,13 @@ export function WelcomeScreen() {
             <h2>Welcome, <span id="user-name">{name}</span>!</h2>
             <p><em>&quot;Follow your financial goals with discipline!&quot;</em></p>
             <h3>Choose Your Tracking Option</h3>
-            {OPTIONS.map(option => (
-                <AuthButton key={option.value} action="setTrackingOption" data-option={option.value} onClick={() => choose(option.value)}>
-                    {option.label}
-                </AuthButton>
-            ))}
+            <HydrationGate>
+                {OPTIONS.map(option => (
+                    <AuthButton key={option.value} action="setTrackingOption" data-option={option.value} onClick={() => choose(option.value)}>
+                        {option.label}
+                    </AuthButton>
+                ))}
+            </HydrationGate>
         </div>
     );
 }

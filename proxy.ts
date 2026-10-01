@@ -9,7 +9,17 @@ import { buildContentSecurityPolicy, createNonce } from './lib/csp';
  * them (this matters locally, where next dev forwards those paths to Express).
  * Keep this list in step with app/ and the "web" rewrites in vercel.json; a test checks all three.
  */
+/** Logged-in screens served by Next.js; visitors without a session cookie go to /login */
+const APP_PATHS = new Set(['/setup']);
+/** Session cookie set by the legacy Express app (express-session, name: 'sessionId') */
+const SESSION_COOKIE = 'sessionId';
+
 export function proxy(request: NextRequest) {
+    if (APP_PATHS.has(request.nextUrl.pathname) && !request.cookies.has(SESSION_COOKIE)) {
+        // Cheap check only: an expired or invalid session is caught by the page's first API call (401)
+        return NextResponse.redirect(new URL('/login', request.url));
+    }
+
     const nonce = createNonce();
     const csp = buildContentSecurityPolicy({
         nonce,
@@ -38,5 +48,6 @@ export const config = {
         '/forgot-username',
         '/forgot-password',
         '/welcome',
+        '/setup',
     ],
 };
