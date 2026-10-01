@@ -55,6 +55,11 @@ export function apiError(data: unknown, fallback: string): string {
     return fallback;
 }
 
+/** The API's error text, or the legacy fallback "HTTP error! status: N" */
+export function httpError(result: ApiResult<unknown>): string {
+    return apiError(result.data, `HTTP error! status: ${result.status}`);
+}
+
 /** A 401 means the session ended: go to the login page */
 export function redirectIfUnauthorized(result: ApiResult<unknown>): boolean {
     if (result.status === 401) {

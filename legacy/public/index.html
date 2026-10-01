@@ -196,7 +196,7 @@
                 <!-- Desktop Links -->
                 <div class="nav-desktop">
                     <a href="/setup" class="nav-link" data-action="showSection" data-section="setup"><span><i data-lucide="settings"></i></span>Setup</a>
-                    <a href="#" class="nav-link" data-action="showSection" data-section="transactions"><span><i data-lucide="credit-card"></i></span>Transactions</a>
+                    <a href="/transactions" class="nav-link" data-action="showSection" data-section="transactions"><span><i data-lucide="credit-card"></i></span>Transactions</a>
                     <a href="#" class="nav-link" data-action="showSection" data-section="summary"><span><i data-lucide="bar-chart-3"></i></span>Summary</a>
                     <a href="#" class="nav-link" data-action="showSection" data-section="activity"><span><i data-lucide="list-todo"></i></span>Activity</a>
                     <a href="#" class="nav-link logout-link" data-action="logout"><span><i data-lucide="log-out"></i></span>Logout</a>
@@ -210,7 +210,7 @@
                 <a href="/setup" data-action="showSection" data-section="setup" data-close-sidebar="true">
                     <span class="icon-enhanced"><i data-lucide="settings"></i></span>Setup
                 </a>
-                <a href="#" data-action="showSection" data-section="transactions" data-close-sidebar="true">
+                <a href="/transactions" data-action="showSection" data-section="transactions" data-close-sidebar="true">
                     <span class="icon-enhanced"><i data-lucide="credit-card"></i></span>Transactions
                 </a>
                 <a href="#" data-action="showSection" data-section="summary" data-close-sidebar="true">
@@ -224,122 +224,6 @@
                 </a>
             </div>
             <div id="sidebar-overlay" data-action="closeSidebar"></div>
-
-            <!-- Transactions Section -->
-            <div id="transactions-section" class="hidden">
-                <h2>Transactions</h2>
-                
-                <!-- Transaction Filters -->
-                <div class="transaction-filters">
-                    <div class="form-group">
-                        <label>Filter by Month</label>
-                        <select id="transaction-month">
-                            <option value="1">January</option>
-                            <option value="2">February</option>
-                            <option value="3">March</option>
-                            <option value="4">April</option>
-                            <option value="5">May</option>
-                            <option value="6">June</option>
-                            <option value="7">July</option>
-                            <option value="8">August</option>
-                            <option value="9">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Filter by Year</label>
-                        <select id="transaction-year">
-                            <!-- Will be populated by JavaScript -->
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <button id="filter-transactions" data-action="filterTransactions">
-                            <span class="icon-enhanced"><i data-lucide="search"></i></span>Filter Transactions
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="forms-wrapper">
-                    <!-- Income Form -->
-                    <div id="income-form">
-                        <h3>Add Income</h3>
-                        <div class="form-group">
-                            <label>Source</label>
-                            <input type="text" id="income-source" placeholder="Salary, Freelance, etc.">
-                            <label>Amount</label>
-                            <input type="number" id="income-amount" placeholder="0.00" step="0.01">
-                            <label>Credited To</label>
-                            <select id="income-credited-to">
-                                <option value="cash">Cash</option>
-                            </select>
-                            <label>Date</label>
-                            <input type="date" id="income-date">
-                            <button data-action="addIncome">
-                                <span class="icon-enhanced"><i data-lucide="trending-up"></i></span>Add Income
-                            </button>
-                        </div>
-                    </div>
-                    <!-- Expense Form -->
-                    <div id="expense-form">
-                        <h3>Add Expense</h3>
-                        <div class="form-group">
-                            <label>Title</label>
-                            <input type="text" id="expense-title" placeholder="Groceries, Rent, etc.">
-                            <label>Amount</label>
-                            <input type="number" id="expense-amount" placeholder="0.00" step="0.01">
-                            <label>Payment Method</label>
-                            <select id="expense-payment-method">
-                                <option value="cash">Cash</option>
-                            </select>
-                            <label>Date</label>
-                            <input type="date" id="expense-date">
-                            <button data-action="addExpense">
-                                <span class="icon-enhanced"><i data-lucide="trending-down"></i></span>Add Expense
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div id="transactions-message" class="error"></div>
-                <!-- Transactions History -->
-                <div id="transactions-history">
-                    <div id="income-history">
-                        <h3>Income History</h3>
-                        <div class="scrollable-table">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Source</th>
-                                        <th>Amount</th>
-                                        <th>Credited To</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="income-table-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div id="expense-history">
-                        <h3>Expense History</h3>
-                        <div class="scrollable-table">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Title</th>
-                                        <th>Amount</th>
-                                        <th>Payment Method</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="expense-table-body"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- Monthly Summary Section -->
             <div id="summary-section" class="hidden">
@@ -462,7 +346,7 @@
                     <h4>Quick Links</h4>
                     <ul class="footer-links">
                         <li><a href="/setup">Account Setup</a></li>
-                        <li><a href="#" data-action="showSection" data-section="transactions">Transactions</a></li>
+                        <li><a href="/transactions" data-action="showSection" data-section="transactions">Transactions</a></li>
                         <li><a href="#" data-action="showSection" data-section="summary">Monthly Summary</a></li>
                         <li><a href="#" data-action="showSection" data-section="activity">Activity Log</a></li>
                     </ul>
@@ -502,102 +386,6 @@
 
 
     <!-- Edit Transaction Modals -->
-    <div id="edit-income-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Edit Income Transaction</h3>
-                <button class="modal-close" data-action="close-edit-income">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="edit-income-source">Income Source</label>
-                    <input type="text" id="edit-income-source" required placeholder="Enter income source">
-                </div>
-                <div class="form-group">
-                    <label for="edit-income-amount">Amount (₹)</label>
-                    <input type="number" id="edit-income-amount" step="0.01" min="0" required placeholder="0.00">
-                </div>
-                <div class="form-group">
-                    <label for="edit-income-credited-to">Credited To</label>
-                    <select id="edit-income-credited-to" required>
-                        <option value="cash">Cash</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="edit-income-date">Date</label>
-                    <input type="date" id="edit-income-date" required>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button data-action="save-income-edit" class="primary-button">
-                    <span class="icon-enhanced"><i data-lucide="save"></i></span>Save Changes
-                </button>
-                <button data-action="close-edit-income" class="secondary-button">
-                    <span class="icon-enhanced"><i data-lucide="x"></i></span>Cancel
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div id="edit-expense-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Edit Expense Transaction</h3>
-                <button class="modal-close" data-action="close-edit-expense">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="edit-expense-title">Expense Title</label>
-                    <input type="text" id="edit-expense-title" required placeholder="Enter expense title">
-                </div>
-                <div class="form-group">
-                    <label for="edit-expense-amount">Amount (₹)</label>
-                    <input type="number" id="edit-expense-amount" step="0.01" min="0" required placeholder="0.00">
-                </div>
-                <div class="form-group">
-                    <label for="edit-expense-payment-method">Payment Method</label>
-                    <select id="edit-expense-payment-method" required>
-                        <option value="cash">Cash</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="edit-expense-date">Date</label>
-                    <input type="date" id="edit-expense-date" required>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button data-action="save-expense-edit" class="primary-button">
-                    <span class="icon-enhanced"><i data-lucide="save"></i></span>Save Changes
-                </button>
-                <button data-action="close-edit-expense" class="secondary-button">
-                    <span class="icon-enhanced"><i data-lucide="x"></i></span>Cancel
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Delete Confirmation Modal -->
-    <div id="delete-confirmation-modal" class="modal-overlay hidden">
-        <div class="modal-content modal-small">
-            <div class="modal-header">
-                <h3>Confirm Delete</h3>
-                <button class="modal-close" data-action="close-delete">&times;</button>
-            </div>
-            <div class="modal-body">
-                <p id="delete-confirmation-message">Are you sure you want to delete this transaction?</p>
-                <p class="warning-text">This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer">
-                <button data-action="confirm-delete" class="danger-button">
-                    <span class="icon-enhanced"><i data-lucide="trash-2"></i></span>Delete
-                </button>
-                <button data-action="close-delete" class="secondary-button">
-                    <span class="icon-enhanced"><i data-lucide="x"></i></span>Cancel
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Logout Confirmation Modal -->
     <div id="logout-confirmation-modal" class="modal-overlay hidden">
         <div class="modal-content modal-small">
