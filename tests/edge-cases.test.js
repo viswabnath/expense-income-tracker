@@ -176,6 +176,9 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
                     username: 'edgetest123',
                     password: 'EdgeTest123&'
                 });
+            // Later tests reuse this session; fail here, not with a puzzling 401 further down
+            expect(loginResponse.status).toBe(200);
+            expect(loginResponse.headers['set-cookie']).toBeDefined();
             sessionCookie = loginResponse.headers['set-cookie'];
         });
     });

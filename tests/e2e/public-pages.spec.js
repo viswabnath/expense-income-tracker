@@ -5,6 +5,7 @@
  * violations or console errors, and link to and from the legacy app.
  */
 const { test, expect } = require('@playwright/test');
+const { uniqueUser, register, chooseTracking } = require('./helpers');
 
 const PAGES = [
     { path: '/about', heading: 'About BalanceTrack', text: 'Powered by OneMark' },
@@ -50,15 +51,29 @@ for (const { path, heading, text } of PAGES) {
     });
 }
 
-test('the legacy app footer links to the public pages, and back', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.locator('#login-form')).toBeVisible();
+test('logged out: the footer links to the public pages, and back to login', async ({ page }) => {
+    await page.goto('/login');
 
     await page.locator('.footer-links a', { hasText: 'Security Policy' }).click();
     await expect(page).toHaveURL(/\/security$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Security Policy' })).toBeVisible();
 
+    // Quick links go to the app, which sends logged-out visitors to /login
+    await page.locator('.footer-links a', { hasText: 'Account Setup' }).click();
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.locator('#login-form')).toBeVisible();
+});
+
+test('logged in: the legacy app footer links to the public pages, and back to the app', async ({ page }) => {
+    const user = uniqueUser();
+    await register(page, user);
+    await chooseTracking(page, 'both');
+
+    await page.locator('.footer-links a', { hasText: 'Privacy Guide' }).click();
+    await expect(page).toHaveURL(/\/privacy$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Privacy Guide' })).toBeVisible();
+
     await page.locator('.footer-links a', { hasText: 'Account Setup' }).click();
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.locator('#login-form')).toBeVisible();
+    await expect(page.locator('#main-app')).toBeVisible();
 });

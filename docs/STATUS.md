@@ -64,6 +64,8 @@ The core features work: auth, accounts, transactions, the activity log and month
 | High | Account recovery discloses usernames and names by email, and reveals whether accounts exist; security answers are guessable (see `docs/v2-audit.md`) | `legacy/server.js` recovery routes |
 | Medium | CSV export does not escape quotes or neutralize formula-like values | `GET /api/activity?export=true` |
 | Low | Logout clears a cookie named `connect.sid` instead of `sessionId` | `legacy/server.js`, logout route |
+| Medium | Legacy toasts insert their message as HTML (`toast-manager.js` uses `innerHTML`); messages can include the user's free-text name. CSP blocks inline script handlers, which limits the impact, and the Next.js toasts render text only | `legacy/public/js/toast-manager.js` |
+| Low | `edge-cases` occasionally gets a 401 after its logout/re-login step against the remote database (seen once in a full run; passes on rerun). The re-login now asserts success so the cause shows where it happens | `tests/edge-cases.test.js` |
 | Low | `tests/setup.js` never runs: `setupFilesAfterEnv` is set at the top level, which Jest ignores when `projects` is used | `package.json` |
 | Low | Auth rate-limit counters are in memory, so on Vercel each function instance counts separately | `legacy/server.js`, `authLimiter` |
 | Low | 9 ESLint warnings, all in three obsolete test files that aren't run (`comprehensive-coverage`, `server-coverage`, `frontend-execution-coverage`) | `tests/` |

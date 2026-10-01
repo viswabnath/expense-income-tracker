@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { headers } from 'next/headers';
 import { Inter } from 'next/font/google';
 import { SiteFooter } from '@/components/SiteFooter';
+import { ToastProvider } from '@/components/Toast';
 // Shared with the legacy app until the redesign, so ported pages look the same
 import '../../legacy/public/css/fintech-theme.css';
 
@@ -16,8 +17,10 @@ export default async function PublicLayout({ children }: { children: ReactNode }
     await headers();
     return (
         <div className={inter.className}>
-            <div className="container">{children}</div>
-            <SiteFooter />
+            <ToastProvider>
+                <div className="container">{children}</div>
+                <SiteFooter />
+            </ToastProvider>
         </div>
     );
 }

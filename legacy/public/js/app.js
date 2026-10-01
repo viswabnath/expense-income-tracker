@@ -107,31 +107,8 @@ class ExpenseTracker {
     }
 
     showAuthenticationForms() {
-        // Hide main app sections
-        const welcomeSection = document.getElementById('welcome-section');
-        if (welcomeSection) {
-            welcomeSection.classList.add('hidden');
-        }
-
-        const mainApp = document.getElementById('main-app');
-        if (mainApp) {
-            mainApp.classList.add('hidden');
-        }
-
-        // Hide navigation
-        const navBar = document.getElementById('nav-bar');
-        if (navBar) {
-            navBar.style.display = 'none';
-        }
-
-        // Show auth section
-        const authSection = document.getElementById('auth-section');
-        if (authSection) {
-            authSection.classList.remove('hidden');
-        }
-
-        // Show login form
-        window.authManager.showLoginForm();
+        // Login, registration and account recovery are Next.js pages now
+        window.location.replace('/login');
     }
 
     setupDateInputs() {

@@ -13,7 +13,7 @@ BalanceTrack is being extended into a public personal-finance product. The plan 
 | Phase 0 | Atomic writes, activity log inside transactions, audit fixes | Done |
 | N0 | Safety net: Playwright user flows, API contract suites | Done |
 | N1 | Express moved to `legacy/`, Next.js scaffolded alongside it | Done, live on Vercel |
-| N2 | Screens move to React, one at a time | In progress: public pages done |
+| N2 | Screens move to React, one at a time | In progress: public pages and auth screens done |
 | N3 | API routes move to Next.js route handlers | |
 | N4 | Express removed | |
 
@@ -63,7 +63,7 @@ Principles that apply to every phase:
 ## Repository layout
 
 ```
-app/                  Next.js app: public pages (about, security, privacy, terms) and /next-health
+app/                  Next.js app: public pages, auth screens (login, register, recovery, welcome), /next-health
 components/           React components shared by Next.js pages
 proxy.ts              Per-request nonce CSP for Next.js pages
 lib/                  Framework-free server code for Next.js (TypeScript)
