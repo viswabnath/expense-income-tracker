@@ -13,12 +13,12 @@ interface NavItem {
 }
 
 /**
- * Setup lives in Next.js; the other screens are still in the legacy app, which opens the
+ * Setup and Transactions live in Next.js; the other screens are still in the legacy app, which opens the
  * requested one from ?section=. All links are full page loads so each screen fetches fresh data.
  */
 const NAV_ITEMS: NavItem[] = [
     { section: 'setup', label: 'Setup', icon: Settings, href: '/setup' },
-    { section: 'transactions', label: 'Transactions', icon: CreditCard, href: '/?section=transactions' },
+    { section: 'transactions', label: 'Transactions', icon: CreditCard, href: '/transactions' },
     { section: 'summary', label: 'Summary', icon: BarChart3, href: '/?section=summary' },
     { section: 'activity', label: 'Activity', icon: ListTodo, href: '/?section=activity' },
 ];

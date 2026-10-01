@@ -1,44 +1,27 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Banknote, CreditCard, Landmark, Pencil, Save, Trash2, X } from 'lucide-react';
 import { Modal } from '@/components/Modal';
 import { useToast } from '@/components/Toast';
-import { apiDelete, apiError, apiGet, apiPost, apiPut, redirectIfUnauthorized, type ApiResult } from '@/lib/api-client';
+import { apiDelete, apiGet, apiPost, apiPut, httpError, redirectIfUnauthorized } from '@/lib/api-client';
 import { formatRupees } from '@/lib/format';
+import { useFormMessage, type FormMessageState } from '@/components/useFormMessage';
 
 interface Bank { id: number; name: string; initial_balance: string; current_balance: string }
 interface Card { id: number; name: string; credit_limit: string; used_limit: string }
 interface Cash { initial_balance?: string | number }
-interface Message { kind: 'error' | 'success'; text: string }
-
-/** Legacy fallback text when an error response has no JSON "error" field */
-const httpError = (result: ApiResult<unknown>) => apiError(result.data, `HTTP error! status: ${result.status}`);
 
 /** The legacy number checks: empty is allowed where the legacy form allowed it */
 const isNegativeOrInvalid = (value: string) => value !== '' && (isNaN(Number(value)) || parseFloat(value) < 0);
 
 /** Inline form message (#bank-message etc.): hidden when empty, like the legacy setup screen */
-function FormMessage({ id, message }: { id: string; message: Message | null }) {
+function FormMessage({ id, message }: { id: string; message: FormMessageState | null }) {
     return (
         <div id={id} className={message ? message.kind : 'error-msg'} style={{ display: message ? 'block' : 'none' }}>
             {message?.text ?? ''}
         </div>
     );
-}
-
-/** Message state where success messages clear themselves after 3 seconds */
-function useFormMessage() {
-    const [message, setMessage] = useState<Message | null>(null);
-    const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-    const show = useCallback((kind: Message['kind'], text: string) => {
-        clearTimeout(timer.current);
-        setMessage({ kind, text });
-        if (kind === 'success') timer.current = setTimeout(() => setMessage(null), 3000);
-    }, []);
-    const clear = useCallback(() => { clearTimeout(timer.current); setMessage(null); }, []);
-    useEffect(() => () => clearTimeout(timer.current), []);
-    return { message, show, clear };
 }
 
 export function SetupScreen() {
@@ -54,9 +37,9 @@ export function SetupScreen() {
     const [cardName, setCardName] = useState('');
     const [cardLimit, setCardLimit] = useState('');
     const [cashInput, setCashInput] = useState('');
-    const bankMessage = useFormMessage();
-    const cardMessage = useFormMessage();
-    const cashMessage = useFormMessage();
+    const bankMessage = useFormMessage(3000);
+    const cardMessage = useFormMessage(3000);
+    const cashMessage = useFormMessage(3000);
 
     const [editBank, setEditBank] = useState<{ id: number; name: string; balance: string } | null>(null);
     const [editCard, setEditCard] = useState<{ id: number; name: string; limit: string; used: string } | null>(null);

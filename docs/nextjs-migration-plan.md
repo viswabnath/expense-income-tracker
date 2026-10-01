@@ -129,7 +129,12 @@ Progress:
   - Login and the tracking choice now land on `/setup`.
 - **Test harness:** Playwright now runs Next.js exactly as on Vercel, without a fallback proxy, behind `scripts/services-router.js`, which applies the `vercel.json` rewrites. Next.js's built-in fallback proxy produced intermittent `ECONNRESET`s.
 - **Found while porting:** the connection-leak bug in three bank and card routes (see STATUS), and the pre-hydration click race on the auth screens.
-- **Next:** `/transactions`, `/summary`, `/activity`.
+- **Transactions (done):** `/transactions` is a Next.js page with the same filters, forms, history tables, edit and delete dialogs and messages as before.
+  - Sources, titles and account names render as text; the legacy tables inserted them as HTML.
+  - Legacy quirks kept on purpose, to change in the redesign: the date inputs default to the UTC date, save failures in the edit dialogs show a generic message instead of the API's reason, and dates are shown in the browser's locale.
+  - The legacy Transactions section and its three dialogs are removed; the legacy nav links and `showSection('transactions')` load `/transactions`.
+  - `lib/dates.ts` holds the date helpers (unit tested); `components/useFormMessage.ts` is shared with Setup.
+- **Next:** `/summary`, `/activity`.
 
 Port one screen per step, each behind its Playwright test. The first ones use the existing `fintech-theme.css` so nothing changes visually. The redesign is a separate later pass, as the brief requires.
 

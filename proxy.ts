@@ -10,7 +10,7 @@ import { buildContentSecurityPolicy, createNonce } from './lib/csp';
  * Keep this list in step with app/ and the "web" rewrites in vercel.json; a test checks all three.
  */
 /** Logged-in screens served by Next.js; visitors without a session cookie go to /login */
-const APP_PATHS = new Set(['/setup']);
+const APP_PATHS = new Set(['/setup', '/transactions']);
 /** Session cookie set by the legacy Express app (express-session, name: 'sessionId') */
 const SESSION_COOKIE = 'sessionId';
 
@@ -49,5 +49,6 @@ export const config = {
         '/forgot-password',
         '/welcome',
         '/setup',
+        '/transactions',
     ],
 };
