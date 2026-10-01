@@ -89,8 +89,10 @@ class ExpenseTracker {
                 if (userName && this.currentUser) {
                     userName.textContent = this.currentUser.name || this.currentUser.username;
                 }
-                // Show setup section by default
-                window.navigationManager.showSection('setup');
+                // Open the section named in ?section= (links from the Next.js pages); default is Setup (Next.js)
+                const requested = new URLSearchParams(window.location.search).get('section');
+                const legacySections = ['transactions', 'summary', 'activity'];
+                window.navigationManager.showSection(legacySections.includes(requested) ? requested : 'setup');
             }
         } else {
             // New user or no tracking option set, show welcome section

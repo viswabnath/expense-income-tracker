@@ -13,7 +13,7 @@ BalanceTrack is being extended into a public personal-finance product. The plan 
 | Phase 0 | Atomic writes, activity log inside transactions, audit fixes | Done |
 | N0 | Safety net: Playwright user flows, API contract suites | Done |
 | N1 | Express moved to `legacy/`, Next.js scaffolded alongside it | Done, live on Vercel |
-| N2 | Screens move to React, one at a time | In progress: public pages and auth screens done |
+| N2 | Screens move to React, one at a time | In progress: public pages, auth screens and Account Setup done |
 | N3 | API routes move to Next.js route handlers | |
 | N4 | Express removed | |
 
@@ -63,7 +63,7 @@ Principles that apply to every phase:
 ## Repository layout
 
 ```
-app/                  Next.js app: public pages, auth screens (login, register, recovery, welcome), /next-health
+app/                  Next.js app: public pages, auth screens (login, register, recovery, welcome), Account Setup (/setup), /next-health
 components/           React components shared by Next.js pages
 proxy.ts              Per-request nonce CSP for Next.js pages
 lib/                  Framework-free server code for Next.js (TypeScript)
@@ -127,7 +127,7 @@ npm run lint            # ESLint (JavaScript and TypeScript)
 | Jest `backend` | API behaviour against the real test schema, including atomic writes and exact balance restoration on edit and delete |
 | Jest `frontend` | The legacy frontend modules (jsdom) |
 | Jest `unit` | Framework-free TypeScript in `lib/` |
-| Playwright | The main user flows end to end; used to check each migration step |
+| Playwright | The main user flows end to end, through a local router that applies the `vercel.json` rewrites; used to check each migration step |
 | Contract | The same API tests against any running server, so Express and Next.js can be compared |
 
 ## Deployment (Vercel + Supabase)
@@ -136,7 +136,7 @@ During the migration one Vercel project runs two services (`vercel.json`):
 - `web`: Next.js, at the repo root.
 - `legacy`: the Express app in `legacy/`, which serves `legacy/public/` from the CDN.
 
-Rewrites send each path to one of them. Today `/about`, `/security`, `/privacy`, `/terms`, `/next-health` and Next.js assets (`/_next/*`) go to `web`; everything else goes to `legacy`. Functions run in `syd1`, next to the Supabase region (`ap-southeast-2`).
+Rewrites send each path to one of them. Today the public pages, the auth screens, `/setup`, `/next-health` and Next.js assets (`/_next/*`) go to `web`; everything else goes to `legacy`. The exact list is the `web` rewrite in `vercel.json`. Functions run in `syd1`, next to the Supabase region (`ap-southeast-2`).
 
 ### Database layout
 
@@ -164,7 +164,7 @@ Every table has row level security enabled with no policies, so Supabase's publi
 
 After a deploy, check that:
 - `/next-health` returns `{"ok":true,"app":"next"}` (Next.js is routed);
-- `/` shows the BalanceTrack login (Express is routed);
+- `/` redirects to `/login` when logged out (Express is routed), and logging in lands on `/setup` (Next.js);
 - logging in and adding a transaction works.
 
 ### Notes

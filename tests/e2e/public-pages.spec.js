@@ -64,7 +64,7 @@ test('logged out: the footer links to the public pages, and back to login', asyn
     await expect(page.locator('#login-form')).toBeVisible();
 });
 
-test('logged in: the legacy app footer links to the public pages, and back to the app', async ({ page }) => {
+test('logged in: the footer links to the public pages, and back to Setup', async ({ page }) => {
     const user = uniqueUser();
     await register(page, user);
     await chooseTracking(page, 'both');
@@ -74,6 +74,6 @@ test('logged in: the legacy app footer links to the public pages, and back to th
     await expect(page.getByRole('heading', { level: 1, name: 'Privacy Guide' })).toBeVisible();
 
     await page.locator('.footer-links a', { hasText: 'Account Setup' }).click();
-    await expect(page).toHaveURL(/\/$/);
-    await expect(page.locator('#main-app')).toBeVisible();
+    await expect(page).toHaveURL(/\/setup$/);
+    await expect(page.locator('#setup-section')).toBeVisible();
 });

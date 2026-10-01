@@ -65,10 +65,16 @@ The core features work: auth, accounts, transactions, the activity log and month
 | Medium | CSV export does not escape quotes or neutralize formula-like values | `GET /api/activity?export=true` |
 | Low | Logout clears a cookie named `connect.sid` instead of `sessionId` | `legacy/server.js`, logout route |
 | Medium | Legacy toasts insert their message as HTML (`toast-manager.js` uses `innerHTML`); messages can include the user's free-text name. CSP blocks inline script handlers, which limits the impact, and the Next.js toasts render text only | `legacy/public/js/toast-manager.js` |
-| Low | `edge-cases` occasionally gets a 401 after its logout/re-login step against the remote database (seen once in a full run; passes on rerun). The re-login now asserts success so the cause shows where it happens | `tests/edge-cases.test.js` |
+| Low | The legacy database pool has no connection or statement timeout, so a stalled Supabase pooler connection hangs requests instead of failing them (one Playwright run hung for hours) | `legacy/server.js`, `new Pool` |
+| Low | `edge-cases` occasionally fails in the full Jest run: a 401 after its re-login (seen before the transaction fix) or its `beforeAll` exceeding 30s (seen once after it). It passes on its own and in most full runs, and a lock probe during a passing run found no stuck transactions. Likely remote-database latency, not confirmed | `tests/edge-cases.test.js` |
+| Low | The legacy income and expense tables insert the user's own source, title and account names as HTML. Only the user sees their own data and CSP blocks inline scripts; the Next.js port of Transactions will render text | `legacy/public/js/transaction-manager.js` |
 | Low | `tests/setup.js` never runs: `setupFilesAfterEnv` is set at the top level, which Jest ignores when `projects` is used | `package.json` |
 | Low | Auth rate-limit counters are in memory, so on Vercel each function instance counts separately | `legacy/server.js`, `authLimiter` |
 | Low | 9 ESLint warnings, all in three obsolete test files that aren't run (`comprehensive-coverage`, `server-coverage`, `frontend-execution-coverage`) | `tests/` |
+
+### Fixed on 2026-10-01
+- Bank edit/delete and card delete returned early inside an open transaction and released the connection mid-transaction, so later requests on that pooled connection ran inside it. Users were intermittently treated as logged out right after login or registration (the Setup end-to-end tests failed this way whenever they ran after a refused delete). Card delete also ran its DELETE outside the transaction. All three now use `withTransaction`.
+- Auth forms and the welcome step could ignore a click made before React hydrated. Their controls now stay disabled until the page is interactive (`components/HydrationGate.tsx`).
 
 ### Fixed on 2026-09-30
 - Income and expense edit/delete ran `pool.query('BEGIN')`, so their writes were not atomic and the open transaction leaked to other requests. All writes that change balances now run in one transaction via `legacy/lib/transaction.js`, with the activity log entry inside it (`tests/atomic-writes.test.js`).

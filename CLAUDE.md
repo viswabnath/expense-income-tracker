@@ -23,7 +23,7 @@ npm run test:backend            # Backend Jest project only
 npm run test:frontend           # Frontend Jest project only (jsdom)
 npm run test:coverage           # With coverage report
 npm run test:clean              # Reset test DB then run all tests
-npm run test:e2e                # Playwright user flows (starts the app on :3100 against balancetrack_test)
+npm run test:e2e                # Playwright: router :3100 (vercel.json rewrites) -> Next.js :3101 + Express :3102, test schema
 npm run test:contract           # API contract suites against a running server (API_BASE_URL, or starts one on :3200)
 
 # Run a single test file
@@ -57,9 +57,10 @@ The Supabase database in `.env` is also production. Production data is in the `p
 
 ### Migration layout (Next.js, in progress: see `docs/nextjs-migration-plan.md`)
 - `legacy/`: the current Express app (`server.js`, `public/`, `lib/transaction.js`, own `package.json`). It still serves every page and API route.
-- `app/`, `components/`, `lib/*.ts`: the Next.js 16 app (App Router, TypeScript strict). It serves the public pages `/about`, `/security`, `/privacy`, `/terms`, the auth screens `/login`, `/register`, `/forgot-username`, `/forgot-password`, `/welcome` (all in route group `app/(public)`) and `/next-health`. Everything else, including the logged-in app at `/` and all `/api/*`, is still Express. Logged-out visits to `/` redirect to `/login`.
+- `app/`, `components/`, `lib/*.ts`: the Next.js 16 app (App Router, TypeScript strict). It serves the public pages `/about`, `/security`, `/privacy`, `/terms`, the auth screens `/login`, `/register`, `/forgot-username`, `/forgot-password`, `/welcome` (all in route group `app/(public)`) and `/next-health`. It also serves `/setup` (route group `app/(app)`, the logged-in shell in `components/app/AppShell.tsx`). Everything else, including Transactions, Summary and Activity at `/?section=...` and all `/api/*`, is still Express. Logged-out visits to `/` redirect to `/login`.
 - `vercel.json` defines two Vercel Services (`web` = Next.js at `./`, `legacy` = Express at `legacy/`), with rewrites deciding which one gets each path. To move a path to Next.js, add a rewrite above the catch-all.
 - Locally, `npm run dev` and Playwright mirror this: `next.config.ts` forwards unhandled paths to Express when `LEGACY_URL` is set (it must be set at build time too, since rewrites are fixed by `next build`).
+- **Logged-in Next.js pages:** add the path to `APP_PATHS` in `proxy.ts` (it redirects requests with no `sessionId` cookie to `/login`), handle a 401 from the API with `redirectIfUnauthorized`, and render interactive content only after it is hydrated: either after the data loads, or inside `HydrationGate`. Server-rendered buttons do nothing before hydration.
 - **Adding a Next.js page takes three edits:** the page in `app/`, its path in the `web` rewrite in `vercel.json`, and its path in the `proxy.ts` matcher. Also exclude it from the legacy-only CSP header rule in `vercel.json`. `tests/unit/routing.test.ts` fails if they disagree.
 - **CSP for Next.js pages:** `proxy.ts` sets a per-request nonce policy built by `lib/csp.ts`, and pages read `headers()` so they render per request. Never add inline scripts; bundle third-party code from npm instead of loading it from a CDN.
 - Ported screens reuse `legacy/public/css/fintech-theme.css` (imported in `app/(public)/layout.tsx`) and keep the legacy class names, so they look the same until the redesign pass.
@@ -69,7 +70,7 @@ The Supabase database in `.env` is also production. Production data is in the `p
 ### Backend (`legacy/server.js`)
 Single-file Express.js server. All routes live here. When you add or change a route, update `docs/API.md` to match. Key patterns:
 - `requireAuth` middleware guards all `/api/*` routes except auth endpoints
-- **Transactions:** any write touching more than one row or table runs in `withTransaction(pool, async (client) => ...)` from `legacy/lib/transaction.js`, with every query on `client`. Never call `pool.query('BEGIN')`: the pool can use a different connection per query (`tests/atomic-writes.test.js` guards this). Throw `RequestError(status, message)` for expected failures inside a transaction and answer with `sendError(res, error)`.
+- **Transactions:** never write `client.query('BEGIN')` by hand. An early `return res...` inside it leaves the transaction open on a pooled connection (`tests/atomic-writes.test.js` guards this). Any write touching more than one row or table runs in `withTransaction(pool, async (client) => ...)` from `legacy/lib/transaction.js`, with every query on `client`. Never call `pool.query('BEGIN')`: the pool can use a different connection per query (`tests/atomic-writes.test.js` guards this). Throw `RequestError(status, message)` for expected failures inside a transaction and answer with `sendError(res, error)`.
 - `logActivity(client, userId, ...)` takes the transaction's client and throws on failure, so the log entry commits or rolls back with the change it describes. Call it inside the same `withTransaction`.
 - Lock rows you check or modify with `SELECT ... FOR UPDATE` inside the transaction.
 - Sessions stored in PostgreSQL via `connect-pg-simple`

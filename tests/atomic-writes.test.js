@@ -13,7 +13,7 @@ const request = require('supertest');
 
 jest.mock('express-rate-limit', () => () => (req, res, next) => next());
 
-const { target, closeTarget } = require('./api-target');
+const { target, closeTarget, isRemote } = require('./api-target');
 const {
     createTestUser,
     createTestBank,
@@ -292,5 +292,38 @@ describe('guards', () => {
         const source = fs.readFileSync(path.join(__dirname, '../legacy/server.js'), 'utf8');
 
         expect(source).not.toMatch(/pool\.query\(\s*['"`]BEGIN/);
+    });
+
+    test('server.js has no hand-written transactions (all go through withTransaction)', () => {
+        const source = fs.readFileSync(path.join(__dirname, '../legacy/server.js'), 'utf8');
+
+        // A manual BEGIN with an early "return res..." left transactions open on pooled connections
+        expect(source).not.toMatch(/client\.query\(\s*['"`]BEGIN/);
+    });
+
+    // Needs the server's own pool, so only in-process (not against API_BASE_URL)
+    (isRemote ? test.skip : test)('refused deletes leave no transaction open on the pool', async () => {
+        const { pool: serverPool } = require('../legacy/server');
+        const created = await agent.post('/api/income').send({
+            source: 'Keeps bank in use', amount: 1, creditedToType: 'bank', creditedToId: bankA.id, date: '2026-09-20'
+        });
+        expect(created.status).toBe(200);
+
+        // Each refused delete used to return early inside BEGIN and release the connection mid-transaction
+        for (let i = 0; i < 3; i++) {
+            const refused = await agent.delete(`/api/banks/${bankA.id}`);
+            expect(refused.status).toBe(400);
+            const missing = await agent.delete('/api/credit-cards/999999999');
+            expect(missing.status).toBe(404);
+        }
+        await agent.put('/api/banks/999999999').send({ name: 'Nothing', initialBalance: 1 });
+
+        // Inside a leaked transaction now() stays frozen at its start; a fresh statement sees a new time
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        const checks = await Promise.all(Array.from({ length: 10 }, () =>
+            serverPool.query("SELECT now() < statement_timestamp() - interval '1 second' AS stale")));
+        expect(checks.filter(result => result.rows[0].stale)).toHaveLength(0);
+
+        await agent.delete(`/api/income/${created.body.id}`);
     });
 });

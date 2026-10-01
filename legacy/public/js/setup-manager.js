@@ -74,6 +74,10 @@ class SetupManager {
     }
 
     async loadSetupData() {
+        // Account Setup moved to Next.js (/setup); nothing to refresh on this page
+        if (!document.getElementById('setup-section')) {
+            return;
+        }
         try {
             await Promise.all([
                 this.loadBanks(),
