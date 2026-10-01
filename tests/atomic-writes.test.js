@@ -321,7 +321,7 @@ describe('guards', () => {
         // Inside a leaked transaction now() stays frozen at its start; a fresh statement sees a new time
         await new Promise(resolve => setTimeout(resolve, 1500));
         const checks = await Promise.all(Array.from({ length: 10 }, () =>
-            serverPool.query("SELECT now() < statement_timestamp() - interval '1 second' AS stale")));
+            serverPool.query('SELECT now() < statement_timestamp() - interval \'1 second\' AS stale')));
         expect(checks.filter(result => result.rows[0].stale)).toHaveLength(0);
 
         await agent.delete(`/api/income/${created.body.id}`);

@@ -97,6 +97,7 @@
           "<rootDir>/tests/cash-balance-activity.test.js",
           "<rootDir>/tests/security-middleware.test.js",
           "<rootDir>/tests/atomic-writes.test.js",
+          "<rootDir>/tests/account-recovery.test.js",
           "<rootDir>/tests/transaction-helper.test.js"
         ],
         "collectCoverageFrom": [

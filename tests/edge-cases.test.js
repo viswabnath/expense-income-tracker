@@ -302,13 +302,14 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
     });
 
     describe('Password Reset Edge Cases', () => {
+        // Unknown accounts look like real ones: a question, then the generic failed-answer error
         test('should handle forgot password for non-existent user', async () => {
             const response = await request(target())
                 .post('/api/forgot-password')
                 .send({ username: 'nonexistentuser' });
 
-            expect(response.status).toBe(404);
-            expect(response.body.error).toBe('User not found');
+            expect(response.status).toBe(200);
+            expect(Object.keys(response.body).sort()).toEqual(['securityQuestion', 'success']);
         });
 
         test('should handle forgot password with non-existent email', async () => {
@@ -316,11 +317,11 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
                 .post('/api/forgot-password')
                 .send({ email: 'nonexistent@example.com' });
 
-            expect(response.status).toBe(404);
-            expect(response.body.error).toBe('User not found');
+            expect(response.status).toBe(200);
+            expect(Object.keys(response.body).sort()).toEqual(['securityQuestion', 'success']);
         });
 
-        test('should handle reset password for non-existent user ID', async () => {
+        test('should refuse reset password by user id alone', async () => {
             const response = await request(target())
                 .post('/api/reset-password')
                 .send({
@@ -329,20 +330,24 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
                     newPassword: 'NewPass123&'
                 });
 
-            expect(response.status).toBe(404);
-            expect(response.body.error).toBe('User not found');
+            expect(response.status).toBe(400);
+            expect(response.body.error).toBe('Username or email is required');
+        });
+
+        test('should give the generic error for a non-existent user', async () => {
+            const response = await request(target())
+                .post('/api/reset-password')
+                .send({ username: 'nonexistentuser', securityAnswer: 'test', newPassword: 'NewPass123&' });
+
+            expect(response.status).toBe(400);
+            expect(response.body.error).toMatch(/^Security answer could not be verified/);
         });
 
         test('should handle reset password with invalid new password', async () => {
-            // First get user for reset
-            const forgotResponse = await request(target())
-                .post('/api/forgot-password')
-                .send({ username: 'edgetest123' });
-
             const response = await request(target())
                 .post('/api/reset-password')
                 .send({
-                    userId: forgotResponse.body.userId,
+                    username: 'edgetest123',
                     securityAnswer: 'boundaries',
                     newPassword: 'weak' // Invalid password
                 });

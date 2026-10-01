@@ -261,15 +261,18 @@ describe('Integration Tests - Server Endpoints', () => {
     });
 
     describe('Password Reset Flow', () => {
-        test('POST /api/forgot-username should find username by email', async () => {
-            const response = await request(target())
+        test('POST /api/forgot-username returns the username only after the security answer', async () => {
+            const question = await request(target())
                 .post('/api/forgot-username')
                 .send({ email: 'test@example.com' });
+            expect(question.status).toBe(200);
+            expect(question.body).toEqual({ success: true, securityQuestion: 'What is your pet name?' });
 
+            const response = await request(target())
+                .post('/api/forgot-username')
+                .send({ email: 'test@example.com', securityAnswer: 'fluffy' });
             expect(response.status).toBe(200);
-            expect(response.body.success).toBe(true);
-            expect(response.body.username).toBe('testuser');
-            expect(response.body.name).toBe('Test User');
+            expect(response.body).toEqual({ success: true, username: 'testuser' });
         });
 
         test('POST /api/forgot-password should return security question', async () => {
@@ -280,7 +283,8 @@ describe('Integration Tests - Server Endpoints', () => {
             expect(response.status).toBe(200);
             expect(response.body.success).toBe(true);
             expect(response.body.securityQuestion).toBe('What is your pet name?');
-            expect(response.body.userId).toBeDefined();
+            // No user id or other account details: recovery must not reveal who has an account
+            expect(Object.keys(response.body).sort()).toEqual(['securityQuestion', 'success']);
         });
     });
 
