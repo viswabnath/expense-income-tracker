@@ -29,6 +29,7 @@ const CONTRACT_SUITES = [
     'tests/entry-dates.test.js',
     'tests/activity-api.test.js',
     'tests/account-ownership.test.js',
+    'tests/account-recovery.test.js',
 ];
 
 async function waitUntilUp(url, timeoutMs = 60_000) {

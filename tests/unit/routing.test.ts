@@ -51,8 +51,9 @@ describe('Next.js routing during the migration', () => {
         expect(proxyMatcher).toEqual(pageRoutes);
     });
 
-    test('the legacy app still owns everything else', () => {
-        for (const legacyPath of ['/api/login', '/api/register', '/api/user', '/css/fintech-theme.css', '/js/app.js', '/index.html']) {
+    test('the legacy app still owns its static files', () => {
+        // Only the legacy frontend's static files remain (unreachable from the app since N2; removed in N4)
+        for (const legacyPath of ['/css/fintech-theme.css', '/js/app.js', '/index.html']) {
             expect(routedToWeb(legacyPath)).toBe(false);
         }
     });

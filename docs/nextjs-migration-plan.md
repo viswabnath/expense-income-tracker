@@ -202,7 +202,16 @@ Route handlers use the Node.js runtime, never Edge, because `pg` and bcrypt need
   - **Security fix, in both apps:** the activity feed's account-name lookups are now limited to the user's own accounts (see STATUS).
   - **Also fixed:** the summary's error response no longer includes the raw database error.
   - **Parity:** the contract suites pass through the stack, now including `activity-api`. The contract runner keeps server logs and can run named suites.
-- **Next:** session and auth (last): register, login, logout, recovery, user, tracking option. Then N4.
+- **Session and auth (done, N3 complete):** register, login, logout, the three recovery routes, `/api/user` and `/api/set-tracking-option` are route handlers. The logic is in `lib/services/auth.ts` and the sessions in `lib/session.ts`.
+  - **Sessions:** login and register always start a new session (fixation protection). Rows and cookies use the `express-session` format, so either app accepts the other's sessions.
+  - **Behaviour changed:**
+    - Logout clears the right cookie.
+    - The session cookie is `Secure` when the request is HTTPS, rather than when `NODE_ENV` is production. On Vercel that is always.
+    - Unknown `/api` paths get a JSON 404.
+  - **Rate limits:** the 5-per-15-minutes auth limit moved too, counting failed answers only, as before.
+  - **Routing:** `vercel.json` sends all of `/api/*` to Next.js. Express now only serves the unreachable legacy frontend files.
+  - **Parity:** the contract suites, now including `account-recovery`, pass through the stack: 99 tests.
+- **Next:** N4, removing Express.
 
 ### N4. Remove Express
 - Delete `legacy/`, the Services config and rewrites (Next.js becomes a plain project again) and the mocked-`pg` tests.

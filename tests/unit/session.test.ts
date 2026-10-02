@@ -3,7 +3,7 @@
  * cookies signed here are accepted by it, so both apps share one login during the migration.
  */
 import type { Pool } from 'pg';
-import { sessionUserId, signSessionCookie, unsignSessionCookie } from '../../lib/session';
+import { clearSessionCookie, createSession, destroySession, SESSION_MAX_AGE_MS, sessionUserId, signSessionCookie, unsignSessionCookie } from '../../lib/session';
 
 // The signer express-session uses (a dependency of express-session)
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -66,5 +66,51 @@ describe('sessionUserId', () => {
         delete process.env.SESSION_SECRET;
         expect(await sessionUserId(pool, expressCookie(SID))).toBeNull();
         expect(query).not.toHaveBeenCalled();
+    });
+});
+
+describe('createSession and destroySession', () => {
+    const OLD_SECRET = process.env.SESSION_SECRET;
+    beforeEach(() => { process.env.SESSION_SECRET = SECRET; });
+    afterAll(() => { process.env.SESSION_SECRET = OLD_SECRET; });
+
+    test('stores the express-session row shape and sets a cookie express-session accepts', async () => {
+        const query = jest.fn().mockResolvedValue({ rows: [] });
+        const before = Date.now();
+        const header = await createSession({ query } as unknown as Pool, 42, true);
+
+        const [sql, params] = query.mock.calls[0] as [string, [string, string, number]];
+        expect(sql).toBe('INSERT INTO session (sid, sess, expire) VALUES ($1, $2, to_timestamp($3))');
+        const [sid, sessJson, expireSeconds] = params;
+        const sess = JSON.parse(sessJson);
+        expect(sess.userId).toBe(42);
+        expect(sess.cookie).toMatchObject({ originalMaxAge: SESSION_MAX_AGE_MS, httpOnly: true, path: '/', sameSite: 'strict', secure: true });
+        expect(expireSeconds * 1000).toBeGreaterThanOrEqual(before + SESSION_MAX_AGE_MS - 1000);
+
+        const cookieValue = header.split(';')[0]!.replace('sessionId=', '');
+        expect(expressSigner.unsign(decodeURIComponent(cookieValue).slice(2), SECRET)).toBe(sid);
+        expect(header).toMatch(/; Path=\/; Expires=.+; HttpOnly; SameSite=Strict; Secure$/);
+    });
+
+    test('a new random session id every time, and no Secure flag over plain HTTP', async () => {
+        const query = jest.fn().mockResolvedValue({ rows: [] });
+        const first = await createSession({ query } as unknown as Pool, 1, false);
+        const second = await createSession({ query } as unknown as Pool, 1, false);
+        expect(first).not.toBe(second);
+        expect(first).not.toMatch(/Secure/);
+    });
+
+    test('destroySession deletes the row behind a valid cookie and ignores bad ones', async () => {
+        const query = jest.fn().mockResolvedValue({ rows: [] });
+        await destroySession({ query } as unknown as Pool, expressCookie(SID));
+        expect(query).toHaveBeenCalledWith('DELETE FROM session WHERE sid = $1', [SID]);
+        query.mockClear();
+        await destroySession({ query } as unknown as Pool, expressCookie(SID, 'forged'));
+        await destroySession({ query } as unknown as Pool, undefined);
+        expect(query).not.toHaveBeenCalled();
+    });
+
+    test('clearSessionCookie expires the cookie', () => {
+        expect(clearSessionCookie(false)).toBe('sessionId=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Strict');
     });
 });

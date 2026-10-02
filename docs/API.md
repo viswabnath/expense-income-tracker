@@ -9,7 +9,7 @@ http://localhost:3000/api
 
 ## Authentication
 
-Session-cookie based (`sessionId` cookie, HTTP-only, `SameSite=strict`, 2-hour lifetime, `Secure` in production). Every endpoint except register, login, logout, forgot-username, forgot-password and reset-password requires a valid session; otherwise it returns `401 { "error": "Authentication required" }`.
+Session-cookie based (`sessionId` cookie, HTTP-only, `SameSite=strict`, 2-hour lifetime, `Secure` when the request is HTTPS). Login and registration always start a new session. Every endpoint except register, login, logout, forgot-username, forgot-password and reset-password requires a valid session; otherwise it returns `401 { "error": "Authentication required" }`.
 
 ### Register
 **POST** `/api/register`
@@ -35,7 +35,7 @@ All fields are required. Response: `{ "success": true, "userId": 1 }`. Duplicate
 Response: `{ "success": true, "userId": 1, "name": "string", "trackingOption": "income|expenses|both" }`
 
 ### Logout
-**POST** `/api/logout` → `{ "success": true }`
+**POST** `/api/logout` → `{ "success": true }`. Deletes the session and clears the `sessionId` cookie.
 
 ### Current user
 **GET** `/api/user` → the logged-in user's profile row.
@@ -223,12 +223,14 @@ Response:
 
 Errors return `{ "error": "message" }` with status `400` (validation), `401` (not logged in), `404` (record not found for this user), `429` (rate limit) or `500`.
 
-During the move to Next.js (N3), routes served by Next.js answer an unsupported method on an existing path with `405`; Express answers `404`. All routes except the auth routes (register, login, logout, recovery, user, tracking option) are served by Next.js; a missing `name` on an account returns `400` (Express returned `500`).
+During the move to Next.js (N3), routes served by Next.js answer an unsupported method on an existing path with `405`; Express answers `404`. All routes are served by Next.js; a missing `name` on an account returns `400` (Express returned `500`).
+
+Unknown API paths return `404 { "error": "Not found" }`.
 
 ## Rate limiting
 
 - All requests: 100 per minute per IP. Next.js counts its routes separately from Express; both count in memory per instance.
-- Auth endpoints (register, login, forgot-username, forgot-password, reset-password): 5 **failed** attempts per 15 minutes per IP, then `429`. Successful requests don't count. Skipped when `NODE_ENV` is `development` or `test`.
+- Auth endpoints (register, login, forgot-username, forgot-password, reset-password): 5 **failed** attempts per 15 minutes per IP, then `429`. Successful requests don't count. Skipped in development and when `DISABLE_RATE_LIMIT=true` (test servers).
 
 ## Security notes
 
