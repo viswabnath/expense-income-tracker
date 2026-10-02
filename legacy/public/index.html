@@ -198,7 +198,7 @@
                     <a href="/setup" class="nav-link" data-action="showSection" data-section="setup"><span><i data-lucide="settings"></i></span>Setup</a>
                     <a href="/transactions" class="nav-link" data-action="showSection" data-section="transactions"><span><i data-lucide="credit-card"></i></span>Transactions</a>
                     <a href="/summary" class="nav-link" data-action="showSection" data-section="summary"><span><i data-lucide="bar-chart-3"></i></span>Summary</a>
-                    <a href="#" class="nav-link" data-action="showSection" data-section="activity"><span><i data-lucide="list-todo"></i></span>Activity</a>
+                    <a href="/activity" class="nav-link" data-action="showSection" data-section="activity"><span><i data-lucide="list-todo"></i></span>Activity</a>
                     <a href="#" class="nav-link logout-link" data-action="logout"><span><i data-lucide="log-out"></i></span>Logout</a>
                 </div>
             </div>
@@ -216,7 +216,7 @@
                 <a href="/summary" data-action="showSection" data-section="summary" data-close-sidebar="true">
                     <span class="icon-enhanced"><i data-lucide="bar-chart-3"></i></span>Summary
                 </a>
-                <a href="#" data-action="showSection" data-section="activity" data-close-sidebar="true">
+                <a href="/activity" data-action="showSection" data-section="activity" data-close-sidebar="true">
                     <span class="icon-enhanced"><i data-lucide="list-todo"></i></span>Activity
                 </a>
                 <a href="#" class="logout-link" data-action="logout" data-close-sidebar="true">
@@ -225,62 +225,6 @@
             </div>
             <div id="sidebar-overlay" data-action="closeSidebar"></div>
 
-            <!-- Activity Section -->
-            <div id="activity-section" class="hidden">
-                <h2>Activity Log</h2>
-                
-                <!-- Activity Filters -->
-                <div class="activity-filters">
-                    <div class="form-group">
-                        <label for="activity-month">Month</label>
-                        <select id="activity-month">
-                            <option value="">All Months</option>
-                            <option value="1">January</option>
-                            <option value="2">February</option>
-                            <option value="3">March</option>
-                            <option value="4">April</option>
-                            <option value="5">May</option>
-                            <option value="6">June</option>
-                            <option value="7">July</option>
-                            <option value="8">August</option>
-                            <option value="9">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="activity-year">Year</label>
-                        <select id="activity-year">
-                            <option value="">All Years</option>
-                            <option value="2024">2024</option>
-                            <option value="2025">2025</option>
-                            <option value="2026">2026</option>
-                        </select>
-                    </div>
-                    <div class="form-group activity-button-group">
-                        <button data-action="filterActivity" class="activity-filter-btn activity-load-btn">
-                            <span class="btn-icon"><i data-lucide="search"></i></span>
-                            <span class="btn-text">Load</span>
-                        </button>
-                        <button data-action="clearActivityFilters" class="activity-filter-btn activity-clear-btn">
-                            <span class="btn-icon"><i data-lucide="trash-2"></i></span>
-                            <span class="btn-text">Clear</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Activity Feed -->
-                <div id="activity-feed">
-                    <div id="activity-loading" class="loading-spinner hidden">
-                        <div class="spinner"></div>
-                        <p>Loading activities...</p>
-                    </div>
-                    <div id="activity-list">
-                        <p class="no-data">No activities found. Start by adding some transactions!</p>
-                    </div>
-                </div>
-            </div>
         </div>
 
     <!-- Global Loader Overlay -->
@@ -312,7 +256,7 @@
                         <li><a href="/setup">Account Setup</a></li>
                         <li><a href="/transactions" data-action="showSection" data-section="transactions">Transactions</a></li>
                         <li><a href="/summary" data-action="showSection" data-section="summary">Monthly Summary</a></li>
-                        <li><a href="#" data-action="showSection" data-section="activity">Activity Log</a></li>
+                        <li><a href="/activity" data-action="showSection" data-section="activity">Activity Log</a></li>
                     </ul>
                 </div>
 

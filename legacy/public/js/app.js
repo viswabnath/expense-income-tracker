@@ -91,7 +91,7 @@ class ExpenseTracker {
                 }
                 // Open the section named in ?section= (links from the Next.js pages); default is Setup (Next.js)
                 const requested = new URLSearchParams(window.location.search).get('section');
-                const legacySections = ['activity'];
+                const legacySections = [];
                 window.navigationManager.showSection(legacySections.includes(requested) ? requested : 'setup');
             }
         } else {

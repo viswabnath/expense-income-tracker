@@ -3,9 +3,8 @@ import { Heart, LayoutDashboard } from 'lucide-react';
 
 /**
  * Same markup and classes as the legacy footer (legacy/public/index.html), so the shared
- * fintech-theme.css styles it identically. Quick links go to /setup (Next.js) or to the
- * legacy app's section at "/?section=" until those screens move too. Logged-out visitors
- * are sent to /login by either app.
+ * fintech-theme.css styles it identically. Quick links go to the app's screens; proxy.ts
+ * sends logged-out visitors to /login.
  */
 export function SiteFooter() {
     return (
@@ -29,7 +28,7 @@ export function SiteFooter() {
                             <li><a href="/setup">Account Setup</a></li>
                             <li><a href="/transactions">Transactions</a></li>
                             <li><a href="/summary">Monthly Summary</a></li>
-                            <li><a href="/?section=activity">Activity Log</a></li>
+                            <li><a href="/activity">Activity Log</a></li>
                         </ul>
                     </div>
 

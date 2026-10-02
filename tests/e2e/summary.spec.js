@@ -30,7 +30,7 @@ test('/summary without a session goes to /login', async ({ page }) => {
     await expect(page).toHaveURL(/\/login$/);
 });
 
-test('summary renders under the nonce CSP without console errors, and links to and from the legacy screen', async ({ page }) => {
+test('summary renders under the nonce CSP without console errors, and the nav links to and from Activity work', async ({ page }) => {
     await newUser(page);
     const problems = [];
     page.on('console', message => { if (message.type() === 'error') problems.push(message.text()); });
@@ -44,9 +44,8 @@ test('summary renders under the nonce CSP without console errors, and links to a
     expect(response?.headers()['content-security-policy'] || '').toMatch(/'nonce-[A-Za-z0-9+/=]+' 'strict-dynamic'/);
     await expect(page.locator('#summary-section')).toBeVisible();
 
-    // Activity is still a legacy screen; its nav link back to Summary must load the Next.js page
     await showSection(page, 'activity');
-    await expect(page).toHaveURL(/\/\?section=activity$/);
+    await expect(page).toHaveURL(/\/activity$/);
     await showSection(page, 'summary');
     await expect(page).toHaveURL(/\/summary$/);
 

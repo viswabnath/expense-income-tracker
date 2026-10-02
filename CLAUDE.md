@@ -57,7 +57,7 @@ The Supabase database in `.env` is also production. Production data is in the `p
 
 ### Migration layout (Next.js, in progress: see `docs/nextjs-migration-plan.md`)
 - `legacy/`: the current Express app (`server.js`, `public/`, `lib/transaction.js`, own `package.json`). It still serves every page and API route.
-- `app/`, `components/`, `lib/*.ts`: the Next.js 16 app (App Router, TypeScript strict). It serves the public pages `/about`, `/security`, `/privacy`, `/terms`, the auth screens `/login`, `/register`, `/forgot-username`, `/forgot-password`, `/welcome` (all in route group `app/(public)`) and `/next-health`. It also serves `/setup`, `/transactions` and `/summary` (route group `app/(app)`, the logged-in shell in `components/app/AppShell.tsx`). Everything else, including Activity at `/?section=activity` and all `/api/*`, is still Express. Logged-out visits to `/` redirect to `/login`.
+- `app/`, `components/`, `lib/*.ts`: the Next.js 16 app (App Router, TypeScript strict). It serves the public pages `/about`, `/security`, `/privacy`, `/terms`, the auth screens `/login`, `/register`, `/forgot-username`, `/forgot-password`, `/welcome` (all in route group `app/(public)`) and `/next-health`. It also serves `/` (redirects only, in `proxy.ts`) and every logged-in screen: `/setup`, `/transactions`, `/summary`, `/activity` (route group `app/(app)`, the logged-in shell in `components/app/AppShell.tsx`). Everything else, meaning all of `/api/*` (and the unreachable legacy frontend in `legacy/public/`), is still Express. Logged-out visits to `/` redirect to `/login`.
 - `vercel.json` defines two Vercel Services (`web` = Next.js at `./`, `legacy` = Express at `legacy/`), with rewrites deciding which one gets each path. To move a path to Next.js, add a rewrite above the catch-all.
 - Locally, `npm run dev` and Playwright mirror this: `next.config.ts` forwards unhandled paths to Express when `LEGACY_URL` is set (it must be set at build time too, since rewrites are fixed by `next build`).
 - **Logged-in Next.js pages:** add the path to `APP_PATHS` in `proxy.ts` (it redirects requests with no `sessionId` cookie to `/login`), handle a 401 from the API with `redirectIfUnauthorized`, and render interactive content only after it is hydrated: either after the data loads, or inside `HydrationGate`. Server-rendered buttons do nothing before hydration.
@@ -98,7 +98,7 @@ Vanilla JS with a class-based modular architecture. Modules are loaded as global
 - `setup-manager.js` — `SetupManager`; bank/credit card/cash balance CRUD (the screen is Next.js `/setup` now; the module stays for its Jest tests until N4)
 - `transaction-manager.js` — `TransactionManager`; income/expense CRUD and filtering (the screen is Next.js `/transactions` now; the module stays for its Jest tests until N4)
 - `summary-manager.js` — `SummaryManager`; monthly summary calculations (the screen is Next.js `/summary` now; the module stays for its Jest tests until N4)
-- `activity-manager.js` — `ActivityManager`; unified activity feed with change tracking
+- `activity-manager.js` — `ActivityManager`; unified activity feed with change tracking (the screen is Next.js `/activity` now; the module stays for its Jest tests until N4)
 - `navigation-manager.js` — `NavigationManager`; section transitions and sidebar
 - `api.js` — `ApiClient` (static methods); centralized `fetch` wrapper and global loader
 - `toast-manager.js` — `ToastManager`; `showSuccess()`, `showError()`, `showInfo()`, `showWarning()` globals
