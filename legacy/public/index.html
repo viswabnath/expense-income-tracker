@@ -197,7 +197,7 @@
                 <div class="nav-desktop">
                     <a href="/setup" class="nav-link" data-action="showSection" data-section="setup"><span><i data-lucide="settings"></i></span>Setup</a>
                     <a href="/transactions" class="nav-link" data-action="showSection" data-section="transactions"><span><i data-lucide="credit-card"></i></span>Transactions</a>
-                    <a href="#" class="nav-link" data-action="showSection" data-section="summary"><span><i data-lucide="bar-chart-3"></i></span>Summary</a>
+                    <a href="/summary" class="nav-link" data-action="showSection" data-section="summary"><span><i data-lucide="bar-chart-3"></i></span>Summary</a>
                     <a href="#" class="nav-link" data-action="showSection" data-section="activity"><span><i data-lucide="list-todo"></i></span>Activity</a>
                     <a href="#" class="nav-link logout-link" data-action="logout"><span><i data-lucide="log-out"></i></span>Logout</a>
                 </div>
@@ -213,7 +213,7 @@
                 <a href="/transactions" data-action="showSection" data-section="transactions" data-close-sidebar="true">
                     <span class="icon-enhanced"><i data-lucide="credit-card"></i></span>Transactions
                 </a>
-                <a href="#" data-action="showSection" data-section="summary" data-close-sidebar="true">
+                <a href="/summary" data-action="showSection" data-section="summary" data-close-sidebar="true">
                     <span class="icon-enhanced"><i data-lucide="bar-chart-3"></i></span>Summary
                 </a>
                 <a href="#" data-action="showSection" data-section="activity" data-close-sidebar="true">
@@ -224,42 +224,6 @@
                 </a>
             </div>
             <div id="sidebar-overlay" data-action="closeSidebar"></div>
-
-            <!-- Monthly Summary Section -->
-            <div id="summary-section" class="hidden">
-                <h2>Monthly Summary</h2>
-                <div class="summary-controls">
-                    <div class="form-group">
-                        <label>Month</label>
-                        <select id="summary-month">
-                            <option value="1">January</option>
-                            <option value="2">February</option>
-                            <option value="3">March</option>
-                            <option value="4">April</option>
-                            <option value="5">May</option>
-                            <option value="6">June</option>
-                            <option value="7">July</option>
-                            <option value="8">August</option>
-                            <option value="9">September</option>
-                            <option value="10">October</option>
-                            <option value="11">November</option>
-                            <option value="12">December</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Year</label>
-                        <select id="summary-year"></select>
-                    </div>
-                    <div class="form-group">
-                        <button data-action="loadMonthlySummary">
-                            <span class="icon-enhanced"><i data-lucide="bar-chart-3"></i></span>Load Summary
-                        </button>
-                    </div>
-                </div>
-                <div id="summary-display">
-                    <p style="color: #666; text-align: center;">Select month and year to view summary</p>
-                </div>
-            </div>
 
             <!-- Activity Section -->
             <div id="activity-section" class="hidden">
@@ -347,7 +311,7 @@
                     <ul class="footer-links">
                         <li><a href="/setup">Account Setup</a></li>
                         <li><a href="/transactions" data-action="showSection" data-section="transactions">Transactions</a></li>
-                        <li><a href="#" data-action="showSection" data-section="summary">Monthly Summary</a></li>
+                        <li><a href="/summary" data-action="showSection" data-section="summary">Monthly Summary</a></li>
                         <li><a href="#" data-action="showSection" data-section="activity">Activity Log</a></li>
                     </ul>
                 </div>

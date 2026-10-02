@@ -137,7 +137,7 @@ Creates the row on first call. On update, sending both fields changes the setup 
   "date": "YYYY-MM-DD"
 }
 ```
-`creditedToId` is the bank id when `creditedToType` is `bank`. Adding, editing, and deleting income updates the linked bank or cash balance.
+`date` is the calendar date, stored exactly as given; a date that does not exist (such as `2026-02-30`) returns `400 Invalid date format`. `creditedToId` is the bank id when `creditedToType` is `bank`. Adding, editing, and deleting income updates the linked bank or cash balance.
 
 ## Expenses
 

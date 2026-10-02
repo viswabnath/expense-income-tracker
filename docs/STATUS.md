@@ -68,10 +68,13 @@ The core features work: auth, accounts, transactions, the activity log and month
 | Medium | Legacy toasts insert their message as HTML (`toast-manager.js` uses `innerHTML`); messages can include the user's free-text name. CSP blocks inline script handlers, which limits the impact, and the Next.js toasts render text only | `legacy/public/js/toast-manager.js` |
 | Low | The legacy database pool has no connection or statement timeout, so a stalled Supabase pooler connection hangs requests instead of failing them (one Playwright run hung for hours) | `legacy/server.js`, `new Pool` |
 | Low | `edge-cases` occasionally fails in the full Jest run: a 401 after its re-login (seen before the transaction fix) or its `beforeAll` exceeding 30s (seen once after it). It passes on its own and in most full runs, and a lock probe during a passing run found no stuck transactions. Likely remote-database latency, not confirmed | `tests/edge-cases.test.js` |
-| Low | Transaction dates are stored as `DATE` but sent as timestamps at the server's midnight, and the add forms default to the UTC date. Around midnight, or for a browser far from the server's time zone, a date can show or default to the neighbouring day. Kept as is in the Next.js port; to fix with the v2 data model | `legacy/server.js`, `lib/dates.ts` |
+| Low | Transaction dates are sent to the browser as timestamps at the server's midnight, and the add forms default to the UTC date. In a browser far from the server's time zone, or just after midnight IST, a date can show or default to the neighbouring day. To fix with the v2 data model | `legacy/server.js`, `lib/dates.ts` |
 | Low | `tests/setup.js` never runs: `setupFilesAfterEnv` is set at the top level, which Jest ignores when `projects` is used | `package.json` |
 | Low | Auth rate-limit counters are in memory, so on Vercel each function instance counts separately | `legacy/server.js`, `authLimiter` |
 | Low | 9 ESLint warnings, all in three obsolete test files that aren't run (`comprehensive-coverage`, `server-coverage`, `frontend-execution-coverage`) | `tests/` |
+
+### Fixed on 2026-10-02
+- Adding income or an expense converted the chosen date through the server's local time. On a server east of UTC (any local run in India), an entry added between midnight and 05:30 was stored on the previous day, but under the new month. It then vanished from its month after an edit. Edits had the matching problem on servers west of UTC. Production runs in UTC and was not affected. Dates are now read straight from `YYYY-MM-DD`, and impossible dates such as 2026-02-30 are refused (`tests/entry-dates.test.js`).
 
 ### Fixed on 2026-10-01
 - Account recovery revealed the username and name for any email and confirmed whether an account existed. Password reset accepted a bare user id, so answers could be guessed account by account without knowing anyone's details. Now:

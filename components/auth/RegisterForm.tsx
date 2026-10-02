@@ -26,8 +26,10 @@ export function RegisterForm() {
             const data = validateRegistration(form);
             const result = await apiPost<{ success?: boolean }>('/api/register', data);
             if (result.data.success) {
-                // Registration also logs the user in; next they choose what to track
-                router.push('/welcome');
+                // Registration also logs the user in; next they choose what to track. A full page
+                // load, like after login: the session just changed, and a client-side push was
+                // occasionally lost here (seen in the end-to-end runs)
+                window.location.assign('/welcome');
             } else {
                 toast('error', apiError(result.data, 'Registration failed'));
             }

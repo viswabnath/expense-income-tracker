@@ -33,8 +33,8 @@ test('setup renders under the nonce CSP without console errors, and links to the
     const response = await page.reload();
     expect(response?.headers()['content-security-policy'] || '').toMatch(/'nonce-[A-Za-z0-9+/=]+' 'strict-dynamic'/);
 
-    await showSection(page, 'summary');
-    await expect(page).toHaveURL(/\/\?section=summary$/);
+    await showSection(page, 'activity');
+    await expect(page).toHaveURL(/\/\?section=activity$/);
     await showSection(page, 'setup');
     await expect(page).toHaveURL(/\/setup$/);
 
