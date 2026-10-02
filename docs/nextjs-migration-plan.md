@@ -181,6 +181,22 @@ Route handlers use the Node.js runtime, never Edge, because `pg` and bcrypt need
 
 **Order:** accounts, then transactions, then reports, then auth last. Auth is last because while any Express route remains, both apps must read the same session, and moving auth last keeps session creation in Express until the end.
 
+**Progress**
+- **Accounts (done):** banks, credit cards and cash are route handlers in `app/api`, with the logic in `lib/services/accounts.ts`.
+  - **Shared pieces:**
+    - `lib/db.ts`: the pool, with the same settings as Express. `REQUIRE_TEST_SCHEMA` refuses any schema but a test one.
+    - `lib/session.ts`: reads the Express session. The cookie signature is checked against `cookie-signature` in unit tests.
+    - `lib/rate-limit.ts`: the same 100 requests per minute, in memory.
+    - `lib/api-route.ts`: `withUser`, which applies the limit, reads the session and returns the legacy errors.
+    - `lib/activity-log.ts`.
+  - **Behaviour kept:** the same responses and messages.
+  - **Behaviour changed:**
+    - A card edit now locks the row and checks the used limit inside a transaction.
+    - A missing name returns 400 instead of 500.
+    - An unsupported method returns 405 instead of 404.
+  - **Parity:** `npm run test:contract:stack` runs the API contract suites through the router, so Express logins reach the Next.js handlers. All 72 tests pass.
+- **Next:** transactions.
+
 ### N4. Remove Express
 - Delete `legacy/`, the Services config and rewrites (Next.js becomes a plain project again) and the mocked-`pg` tests.
 - Move security headers from `vercel.json` into `proxy.ts` and `next.config.ts` (below).

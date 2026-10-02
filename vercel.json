@@ -33,6 +33,18 @@
       }
     },
     {
+      "source": "/api/(banks|credit-cards|cash-balance)",
+      "destination": {
+        "service": "web"
+      }
+    },
+    {
+      "source": "/api/(banks|credit-cards)/([^/]+)",
+      "destination": {
+        "service": "web"
+      }
+    },
+    {
       "source": "/(.*)",
       "destination": {
         "service": "legacy"

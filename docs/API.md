@@ -221,11 +221,13 @@ Response:
 
 ## Errors
 
-Errors return `{ "error": "message" }` with status `400` (validation), `401` (not logged in), `404` (record not found for this user) or `500`.
+Errors return `{ "error": "message" }` with status `400` (validation), `401` (not logged in), `404` (record not found for this user), `429` (rate limit) or `500`.
+
+During the move to Next.js (N3), routes served by Next.js answer an unsupported method on an existing path with `405`; Express answers `404`. The account routes (banks, credit cards, cash) are served by Next.js; a missing `name` on them returns `400` (Express returned `500`).
 
 ## Rate limiting
 
-- All requests: 100 per minute per IP.
+- All requests: 100 per minute per IP. Next.js counts its routes separately from Express; both count in memory per instance.
 - Auth endpoints (register, login, forgot-username, forgot-password, reset-password): 5 **failed** attempts per 15 minutes per IP, then `429`. Successful requests don't count. Skipped when `NODE_ENV` is `development` or `test`.
 
 ## Security notes

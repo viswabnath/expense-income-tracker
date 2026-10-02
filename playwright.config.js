@@ -49,7 +49,14 @@ module.exports = defineConfig({
             url: `http://localhost:${WEB_PORT}/next-health`,
             reuseExistingServer: false,
             timeout: 240_000,
-            env: { LEGACY_URL: '' },
+            // Next.js now serves API routes too: same test schema as Express (never production),
+            // and no request limit, like the legacy app in its test environment
+            env: {
+                LEGACY_URL: '',
+                DB_SCHEMA: 'balancetrack_test',
+                REQUIRE_TEST_SCHEMA: 'true',
+                DISABLE_RATE_LIMIT: 'true',
+            },
         },
         {
             command: 'node scripts/services-router.js',

@@ -391,8 +391,8 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
                 .patch('/api/banks')
                 .set('Cookie', sessionCookie);
 
-            // Should return 404 for unsupported method
-            expect(response.status).toBe(404);
+            // Express answers 404 for an unsupported method; Next.js route handlers (N3) answer 405
+            expect([404, 405]).toContain(response.status);
         });
 
         test('should handle non-existent routes', async () => {
@@ -408,8 +408,9 @@ describe('Edge Cases & Error Scenarios - Complete Coverage', () => {
 
             for (const path of paths) {
                 const response = await request(target()).get(path);
-                // Should handle gracefully - either serve file or 404
-                expect([200, 404]).toContain(response.status);
+                // Should handle gracefully: serve the file, 404, or (Next.js "/") redirect a logged-out visitor
+                expect([200, 307, 404]).toContain(response.status);
+                if (response.status === 307) expect(response.headers.location).toMatch(/\/login$/);
             }
         });
     });
