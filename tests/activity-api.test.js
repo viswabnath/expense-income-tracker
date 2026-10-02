@@ -9,7 +9,7 @@ const request = require('supertest');
 jest.mock('express-rate-limit', () => () => (req, res, next) => next());
 
 const { target, closeTarget } = require('./api-target');
-const { createTestUser, deleteTestUser } = require('../test-helpers');
+const { createTestUser, deleteTestUser, query } = require('../test-helpers');
 
 const USERNAME = 'activity_api_user';
 const OTHER_USERNAME = 'activity_api_other';
@@ -89,13 +89,14 @@ test('the feed never shows another user\'s account name', async () => {
     const secretBank = await other.post('/api/banks').send({ name: 'Secret Bank Name', initialBalance: 100 });
     expect(secretBank.status).toBe(200);
 
-    // An edit records the account id in the entry's new values, which the feed looks up
-    const probe = await agent.post('/api/income')
-        .send({ source: 'Probe', amount: 1, creditedToType: 'cash', creditedToId: null, date: '2026-01-15' });
-    expect(probe.status).toBe(200);
-    const edited = await agent.put(`/api/income/${probe.body.id}`)
-        .send({ source: 'Probe', amount: 1, creditedToType: 'bank', creditedToId: secretBank.body.id, date: '2026-01-15' });
-    expect(edited.status).toBe(200);
+    // The API now refuses another user's account (tests/account-ownership.test.js), so write the
+    // kind of entry an edit used to record straight into the log: the feed must still not resolve it
+    const me = await query('SELECT id FROM users WHERE username = $1', [USERNAME]);
+    await query(
+        `INSERT INTO activity_log (user_id, action_type, entity_type, entity_id, description, amount, new_values)
+         VALUES ($1, 'updated', 'income', 0, 'Updated income: Probe', 1, $2)`,
+        [me.rows[0].id, JSON.stringify({ source: 'Probe', creditedToType: 'bank', creditedToId: secretBank.body.id })],
+    );
     const feed = await agent.get('/api/activity?limit=100');
     expect(feed.status).toBe(200);
     expect(JSON.stringify(feed.body)).not.toContain('SECRET BANK NAME');

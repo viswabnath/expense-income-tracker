@@ -137,7 +137,7 @@ Creates the row on first call. On update, sending both fields changes the setup 
   "date": "YYYY-MM-DD"
 }
 ```
-`date` is the calendar date, stored exactly as given; a date that does not exist (such as `2026-02-30`) returns `400 Invalid date format`. `creditedToId` is the bank id when `creditedToType` is `bank`. Adding, editing, and deleting income updates the linked bank or cash balance.
+`date` is the calendar date, stored exactly as given; a date that does not exist (such as `2026-02-30`) returns `400 Invalid date format`. `creditedToId` is the bank id when `creditedToType` is `bank`. The bank must be one of the user's own: another id returns `400 Bank not found`, and a type other than `bank` or `cash` returns `400 Invalid account type`. Adding, editing, and deleting income updates the linked bank or cash balance.
 
 ## Expenses
 
@@ -158,7 +158,7 @@ Creates the row on first call. On update, sending both fields changes the setup 
   "date": "YYYY-MM-DD"
 }
 ```
-`paymentSourceId` is the bank or credit card id (omit for cash). Expenses reduce the bank/cash balance or increase the card's `used_limit`.
+`paymentSourceId` is the bank or credit card id (omit for cash). It must be one of the user's own: another id returns `400 Bank not found` or `400 Credit card not found`, and an unknown `paymentMethod` returns `400 Invalid account type`. Expenses reduce the bank/cash balance or increase the card's `used_limit`.
 
 ## Monthly summary
 
