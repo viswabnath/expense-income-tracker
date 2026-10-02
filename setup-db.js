@@ -13,7 +13,10 @@ const pool = new Pool({
         ? { rejectUnauthorized: false }
         : false,
     // Optional Postgres schema (e.g. balancetrack_test for tests); defaults to public
-    ...(process.env.DB_SCHEMA && { options: `-c search_path=${process.env.DB_SCHEMA}` })
+    ...(process.env.DB_SCHEMA && { options: `-c search_path=${process.env.DB_SCHEMA}` }),
+    // Fail rather than hang if the database stalls (a reset once hung for hours)
+    connectionTimeoutMillis: 10000,
+    query_timeout: 60000
 });
 
 // Database schema setup

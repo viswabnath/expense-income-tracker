@@ -45,6 +45,12 @@ const pool = new Pool({
         : false,
     // Optional Postgres schema; tests use balancetrack_test, production uses public
     ...(process.env.DB_SCHEMA && { options: `-c search_path=${process.env.DB_SCHEMA}` }),
+    // Fail instead of hanging when the database or its pooler stalls: no time limit used to mean
+    // a stalled connection held its request open indefinitely. Client-side limits, so they work
+    // through the Supabase transaction pooler.
+    connectionTimeoutMillis: 10000,
+    query_timeout: 20000,
+    keepAlive: true,
 });
 
 // Test database connection (skip in test environment)

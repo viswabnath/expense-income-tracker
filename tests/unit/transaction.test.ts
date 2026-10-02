@@ -49,6 +49,8 @@ describe('withTransaction', () => {
 
         await expect(withTransaction(pool, async () => { throw failure; })).rejects.toBe(failure);
         expect(client.release).toHaveBeenCalledTimes(1);
+        // The connection's state is unknown, so it is closed rather than reused
+        expect(client.release.mock.calls[0][0]).toBeInstanceOf(Error);
     });
 
     test('rolls back when COMMIT fails', async () => {
