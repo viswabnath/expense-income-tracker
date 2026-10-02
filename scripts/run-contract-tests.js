@@ -3,8 +3,11 @@
  * Run the API contract suites against a running server instead of the in-process app.
  *
  *   node scripts/run-contract-tests.js                 start legacy/server.js on port 3200 and test it
+ *   node scripts/run-contract-tests.js --stack         start the production layout: Express, a Next.js
+ *                                                      build and the vercel.json router, and test through
+ *                                                      the router (moved routes reach Next.js, logins Express)
  *   API_BASE_URL=http://localhost:3000 node scripts/run-contract-tests.js
- *                                                      test an already running server (e.g. Next.js)
+ *                                                      test an already running server
  *
  * The server under test must use the balancetrack_test schema.
  */
@@ -42,17 +45,50 @@ function run(command, args, env) {
     });
 }
 
+const TEST_SERVER_ENV = { NODE_ENV: 'test', DB_SCHEMA: 'balancetrack_test' };
+
+/** Express, a production Next.js build and the router, wired like Vercel; returns the processes */
+async function startStack() {
+    const webPort = PORT + 1;
+    const legacyPort = PORT + 2;
+    const legacy = spawn('node', ['legacy/server.js'], {
+        cwd: ROOT, env: { ...process.env, ...TEST_SERVER_ENV, PORT: String(legacyPort) }, stdio: 'ignore',
+    });
+    console.log('Building Next.js...');
+    const built = await run('npx', ['next', 'build'], { LEGACY_URL: '' });
+    if (built !== 0) throw new Error('next build failed');
+    // Node directly (not npx), so kill() stops the server itself
+    const web = spawn('node', [path.join('node_modules', 'next', 'dist', 'bin', 'next'), 'start', '--port', String(webPort)], {
+        cwd: ROOT,
+        // Same safety settings as the Playwright web server: test schema only, no request limit
+        env: { ...process.env, LEGACY_URL: '', DB_SCHEMA: 'balancetrack_test', REQUIRE_TEST_SCHEMA: 'true', DISABLE_RATE_LIMIT: 'true' },
+        stdio: 'ignore',
+    });
+    const router = spawn('node', ['scripts/services-router.js'], {
+        cwd: ROOT,
+        env: { ...process.env, ROUTER_PORT: String(PORT), WEB_URL: `http://localhost:${webPort}`, LEGACY_URL: `http://localhost:${legacyPort}` },
+        stdio: 'ignore',
+    });
+    await waitUntilUp(`http://localhost:${legacyPort}`);
+    await waitUntilUp(`http://localhost:${webPort}/next-health`);
+    await waitUntilUp(`http://localhost:${PORT}/next-health`);
+    return [router, web, legacy];
+}
+
 async function main() {
-    let server = null;
+    let servers = [];
     let baseUrl = process.env.API_BASE_URL;
 
-    if (!baseUrl) {
+    if (!baseUrl && process.argv.includes('--stack')) {
         baseUrl = `http://localhost:${PORT}`;
-        server = spawn('node', ['legacy/server.js'], {
+        servers = await startStack();
+    } else if (!baseUrl) {
+        baseUrl = `http://localhost:${PORT}`;
+        servers = [spawn('node', ['legacy/server.js'], {
             cwd: ROOT,
-            env: { ...process.env, PORT: String(PORT), NODE_ENV: 'test', DB_SCHEMA: 'balancetrack_test' },
+            env: { ...process.env, ...TEST_SERVER_ENV, PORT: String(PORT) },
             stdio: 'ignore',
-        });
+        })];
         await waitUntilUp(baseUrl);
     }
 
@@ -60,7 +96,7 @@ async function main() {
     const code = await run('npx', ['jest', '--selectProjects', 'backend', '--runTestsByPath', ...CONTRACT_SUITES,
         '--detectOpenHandles', '--forceExit'], { API_BASE_URL: baseUrl });
 
-    if (server) server.kill();
+    servers.forEach(server => server.kill());
     process.exit(code);
 }
 

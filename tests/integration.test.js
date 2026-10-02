@@ -55,11 +55,15 @@ describe('Integration Tests - Server Endpoints', () => {
     };
 
     describe('Authentication Endpoints', () => {
-        test('GET / should serve the main HTML file', async () => {
+        test('GET / serves the legacy page (Express) or sends a logged-out visitor to /login (Next.js)', async () => {
             const response = await request(target()).get('/');
 
-            expect(response.status).toBe(200);
-            expect(response.type).toBe('text/html');
+            if (response.status === 307) {
+                expect(response.headers.location).toMatch(/\/login$/);
+            } else {
+                expect(response.status).toBe(200);
+                expect(response.type).toBe('text/html');
+            }
         });
 
         test('POST /api/register should create a new user', async () => {

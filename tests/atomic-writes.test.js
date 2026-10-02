@@ -325,5 +325,6 @@ describe('guards', () => {
         expect(checks.filter(result => result.rows[0].stale)).toHaveLength(0);
 
         await agent.delete(`/api/income/${created.body.id}`);
-    });
+    // About 15 sequential transactions against the remote database: allow more than the 30 s default
+    }, 90_000);
 });

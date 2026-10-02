@@ -24,7 +24,8 @@ npm run test:frontend           # Frontend Jest project only (jsdom)
 npm run test:coverage           # With coverage report
 npm run test:clean              # Reset test DB then run all tests
 npm run test:e2e                # Playwright: router :3100 (vercel.json rewrites) -> Next.js :3101 + Express :3102, test schema
-npm run test:contract           # API contract suites against a running server (API_BASE_URL, or starts one on :3200)
+npm run test:contract           # API contract suites against a running server (API_BASE_URL, or starts Express on :3200)
+npm run test:contract:stack     # The same suites through the router: Express + a Next.js build, as on Vercel
 
 # Run a single test file
 npx jest tests/server.test.js --detectOpenHandles --forceExit
@@ -57,7 +58,7 @@ The Supabase database in `.env` is also production. Production data is in the `p
 
 ### Migration layout (Next.js, in progress: see `docs/nextjs-migration-plan.md`)
 - `legacy/`: the current Express app (`server.js`, `public/`, `lib/transaction.js`, own `package.json`). It still serves every page and API route.
-- `app/`, `components/`, `lib/*.ts`: the Next.js 16 app (App Router, TypeScript strict). It serves the public pages `/about`, `/security`, `/privacy`, `/terms`, the auth screens `/login`, `/register`, `/forgot-username`, `/forgot-password`, `/welcome` (all in route group `app/(public)`) and `/next-health`. It also serves `/` (redirects only, in `proxy.ts`) and every logged-in screen: `/setup`, `/transactions`, `/summary`, `/activity` (route group `app/(app)`, the logged-in shell in `components/app/AppShell.tsx`). Everything else, meaning all of `/api/*` (and the unreachable legacy frontend in `legacy/public/`), is still Express. Logged-out visits to `/` redirect to `/login`.
+- `app/`, `components/`, `lib/*.ts`: the Next.js 16 app (App Router, TypeScript strict). It serves the public pages `/about`, `/security`, `/privacy`, `/terms`, the auth screens `/login`, `/register`, `/forgot-username`, `/forgot-password`, `/welcome` (all in route group `app/(public)`) and `/next-health`. It also serves `/` (redirects only, in `proxy.ts`) and every logged-in screen: `/setup`, `/transactions`, `/summary`, `/activity` (route group `app/(app)`, the logged-in shell in `components/app/AppShell.tsx`). API routes are moving over group by group (N3): the account routes (`/api/banks`, `/api/credit-cards`, `/api/cash-balance`) are Next.js route handlers in `app/api`. Every other `/api/*` route (and the unreachable legacy frontend in `legacy/public/`) is still Express. Logged-out visits to `/` redirect to `/login`.
 - `vercel.json` defines two Vercel Services (`web` = Next.js at `./`, `legacy` = Express at `legacy/`), with rewrites deciding which one gets each path. To move a path to Next.js, add a rewrite above the catch-all.
 - Locally, `npm run dev` and Playwright mirror this: `next.config.ts` forwards unhandled paths to Express when `LEGACY_URL` is set (it must be set at build time too, since rewrites are fixed by `next build`).
 - **Logged-in Next.js pages:** add the path to `APP_PATHS` in `proxy.ts` (it redirects requests with no `sessionId` cookie to `/login`), handle a 401 from the API with `redirectIfUnauthorized`, and render interactive content only after it is hydrated: either after the data loads, or inside `HydrationGate`. Server-rendered buttons do nothing before hydration.
@@ -66,6 +67,12 @@ The Supabase database in `.env` is also production. Production data is in the `p
 - Ported screens reuse `legacy/public/css/fintech-theme.css` (imported in `app/(public)/layout.tsx`) and keep the legacy class names, so they look the same until the redesign pass.
 - `lib/transaction.ts` (Next.js) and `legacy/lib/transaction.js` (Express) must behave identically until Express is removed.
 - New server code goes in `lib/` with no Next.js imports; financial logic goes in `src/core/`.
+- **Moving an API route (N3):**
+  - Put the logic in `lib/services/*.ts`, with the same queries, messages and activity entries as the Express route.
+  - Add a thin handler in `app/api/.../route.ts` wrapped in `withUser` (`lib/api-route.ts`). It applies the request limit, reads the Express session (`lib/session.ts`), and turns `RequestError` into the legacy JSON errors.
+  - Add the path to the `web` rewrites in `vercel.json`, above the catch-all. Express keeps its copy of the route until N4.
+  - Prove parity with `npm run test:contract:stack`, which runs the API contract suites through the router with Express and a Next.js build.
+- **Next.js and the database:** `lib/db.ts` is the pool. Any Next.js server started by tests must get `DB_SCHEMA=balancetrack_test` and `REQUIRE_TEST_SCHEMA=true` (the pool then refuses any other schema), plus `DISABLE_RATE_LIMIT=true`. `playwright.config.js` and `scripts/run-contract-tests.js` set them. Without `DB_SCHEMA`, a Next.js server reads and writes production data.
 
 ### Backend (`legacy/server.js`)
 Single-file Express.js server. All routes live here. When you add or change a route, update `docs/API.md` to match. Key patterns:

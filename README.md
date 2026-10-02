@@ -118,6 +118,7 @@ npm run test:clean      # set up and reset the test schema, then run all Jest pr
 npm run test:unit       # TypeScript unit tests (tests/unit)
 npm run test:e2e        # Playwright user flows; starts the app on :3100
 npm run test:contract   # API contract suites over HTTP; starts the app on :3200, or uses API_BASE_URL
+npm run test:contract:stack  # the same suites through Express + Next.js behind the vercel.json router
 npm run typecheck       # tsc --noEmit
 npm run lint            # ESLint (JavaScript and TypeScript)
 ```
@@ -136,7 +137,7 @@ During the migration one Vercel project runs two services (`vercel.json`):
 - `web`: Next.js, at the repo root.
 - `legacy`: the Express app in `legacy/`, which serves `legacy/public/` from the CDN.
 
-Rewrites send each path to one of them. Today the public pages, the auth screens, `/`, `/setup`, `/transactions`, `/summary`, `/activity`, `/next-health` and Next.js assets (`/_next/*`) go to `web`; everything else goes to `legacy`. The exact list is the `web` rewrite in `vercel.json`. Functions run in `syd1`, next to the Supabase region (`ap-southeast-2`).
+Rewrites send each path to one of them. Today every page, the account API (`/api/banks`, `/api/credit-cards`, `/api/cash-balance`), `/next-health` and Next.js assets (`/_next/*`) go to `web`; the rest of the API goes to `legacy`. The exact list is the `web` rewrite in `vercel.json`. Functions run in `syd1`, next to the Supabase region (`ap-southeast-2`).
 
 ### Database layout
 
