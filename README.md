@@ -102,6 +102,7 @@ Pushing a branch creates a preview deployment; merging into `master` deploys pro
 
 - [docs/API.md](docs/API.md): API reference
 - [docs/STATUS.md](docs/STATUS.md): current status and known issues
+- [docs/v2-plan.md](docs/v2-plan.md): planned features
 
 ## License
 
