@@ -14,7 +14,7 @@ BalanceTrack is being extended into a public personal-finance product. The plan 
 | N0 | Safety net: Playwright user flows, API contract suites | Done |
 | N1 | Express moved to `legacy/`, Next.js scaffolded alongside it | Done, live on Vercel |
 | N2 | Screens move to React, one at a time | Done: every page is Next.js |
-| N3 | API routes move to Next.js route handlers | |
+| N3 | API routes move to Next.js route handlers | Done |
 | N4 | Express removed | |
 
 **2. v2 features (after the migration).** The scope and decisions are in [docs/v2-audit.md](docs/v2-audit.md).
@@ -137,7 +137,7 @@ During the migration one Vercel project runs two services (`vercel.json`):
 - `web`: Next.js, at the repo root.
 - `legacy`: the Express app in `legacy/`, which serves `legacy/public/` from the CDN.
 
-Rewrites send each path to one of them. Today every page, the account, transaction and report API (`/api/banks`, `/api/credit-cards`, `/api/cash-balance`, `/api/income`, `/api/expenses`, `/api/monthly-summary`, `/api/activity`), `/next-health` and Next.js assets (`/_next/*`) go to `web`; the auth API goes to `legacy`. The exact list is the `web` rewrite in `vercel.json`. Functions run in `syd1`, next to the Supabase region (`ap-southeast-2`).
+Rewrites send each path to one of them. Today every page, all of `/api/*`, `/next-health` and Next.js assets (`/_next/*`) go to `web`; only the old frontend's static files still go to `legacy`, until N4 removes it. The exact list is the `web` rewrite in `vercel.json`. Functions run in `syd1`, next to the Supabase region (`ap-southeast-2`).
 
 ### Database layout
 

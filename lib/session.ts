@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import type { Pool } from 'pg';
 
 /**
@@ -8,10 +8,13 @@ import type { Pool } from 'pg';
  * express-session sends the cookie `sessionId` as `s:<sid>.<signature>` (URL-encoded), where
  * the signature is HMAC-SHA256 of the sid with SESSION_SECRET, base64 without padding (the
  * cookie-signature package). connect-pg-simple stores the session in the `session` table.
- * Creating and destroying sessions stays in Express until the auth routes move (last in N3).
+ * Since the auth routes moved (N3), sessions are also created and destroyed here, in the same
+ * row and cookie format, so either app accepts a session the other made.
  */
 
 export const SESSION_COOKIE = 'sessionId';
+/** Two hours, like the Express cookie's maxAge */
+export const SESSION_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 
 function sign(sid: string, secret: string): string {
     return createHmac('sha256', secret).update(sid).digest('base64').replace(/=+$/, '');
@@ -55,4 +58,48 @@ export async function sessionUserId(pool: Pool, cookieValue: string | undefined)
     );
     const userId = result.rows[0]?.sess?.userId;
     return typeof userId === 'number' && Number.isInteger(userId) ? userId : null;
+}
+
+/** The secret, or an error: sessions cannot be signed without one */
+function requireSecret(): string {
+    const secret = process.env.SESSION_SECRET;
+    if (!secret) throw new Error('SESSION_SECRET is not set');
+    return secret;
+}
+
+/**
+ * Start a new session for a user and return the Set-Cookie header value. Always a new id, so a
+ * session id known before login is useless afterwards (express-session's regenerate did this).
+ * The row matches connect-pg-simple's: sess JSON with the cookie and userId, and expire.
+ */
+export async function createSession(pool: Pick<Pool, 'query'>, userId: number, secure: boolean): Promise<string> {
+    const secret = requireSecret();
+    const sid = randomBytes(24).toString('base64url');
+    const expires = new Date(Date.now() + SESSION_MAX_AGE_MS);
+    const sess = {
+        cookie: {
+            originalMaxAge: SESSION_MAX_AGE_MS, expires: expires.toISOString(),
+            secure, httpOnly: true, path: '/', sameSite: 'strict',
+        },
+        userId,
+    };
+    await pool.query('INSERT INTO session (sid, sess, expire) VALUES ($1, $2, to_timestamp($3))',
+        [sid, JSON.stringify(sess), expires.getTime() / 1000]);
+    return [
+        `${SESSION_COOKIE}=${signSessionCookie(sid, secret)}`, 'Path=/', `Expires=${expires.toUTCString()}`,
+        'HttpOnly', 'SameSite=Strict', ...(secure ? ['Secure'] : []),
+    ].join('; ');
+}
+
+/** Delete the session behind a cookie, if any (a bad or missing cookie is simply ignored) */
+export async function destroySession(pool: Pick<Pool, 'query'>, cookieValue: string | undefined): Promise<void> {
+    const secret = process.env.SESSION_SECRET;
+    if (!cookieValue || !secret) return;
+    const sid = unsignSessionCookie(cookieValue, secret);
+    if (sid) await pool.query('DELETE FROM session WHERE sid = $1', [sid]);
+}
+
+/** Set-Cookie value that removes the session cookie */
+export function clearSessionCookie(secure: boolean): string {
+    return [`${SESSION_COOKIE}=`, 'Path=/', 'Expires=Thu, 01 Jan 1970 00:00:00 GMT', 'HttpOnly', 'SameSite=Strict', ...(secure ? ['Secure'] : [])].join('; ');
 }
