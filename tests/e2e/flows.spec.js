@@ -130,7 +130,7 @@ test('logout ends the session and login restores it', async ({ page }) => {
     expect(afterLogin.status()).toBe(200);
 });
 
-test('forgot username shows the username for a known email', async ({ page }) => {
+test('forgot username shows the username after the security answer', async ({ page }) => {
     const user = uniqueUser();
     await register(page, user);
     await chooseTracking(page, 'both');
@@ -139,7 +139,32 @@ test('forgot username shows the username for a known email', async ({ page }) =>
     await page.locator('[data-action="showForgotUsername"]').click();
     await page.locator('#forgot-username-email-input').fill(user.email);
     await page.locator('[data-action="forgotUsername"]').click();
+    await expect(page.locator('#forgot-username-question')).toHaveText('What was the name of your first pet?');
+
+    await page.locator('#forgot-username-answer').fill('wrong answer');
+    await page.locator('[data-action="verifyUsernameRecovery"]').click();
+    await expect(page.locator('#auth-message')).toContainText('Security answer could not be verified');
+
+    await page.locator('#forgot-username-answer').fill(user.securityAnswer);
+    await page.locator('[data-action="verifyUsernameRecovery"]').click();
     await expect(page.locator('#auth-message')).toContainText(`Username found: ${user.username}`);
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.locator('#login-username')).toHaveValue(user.username);
+});
+
+test('recovery looks the same for an email with no account', async ({ page }) => {
+    await page.goto('/forgot-username');
+    await page.locator('#forgot-username-email-input').fill(`${uniqueUser().username}@example.test`);
+    await page.locator('[data-action="forgotUsername"]').click();
+    await expect(page.locator('#forgot-username-question')).not.toBeEmpty();
+    await page.locator('#forgot-username-answer').fill('anything');
+    await page.locator('[data-action="verifyUsernameRecovery"]').click();
+    await expect(page.locator('#auth-message')).toContainText('Security answer could not be verified');
+
+    await page.goto('/forgot-password');
+    await page.locator('#forgot-username-email').fill('nobody_e2e_unknown');
+    await page.locator('[data-action="requestPasswordReset"]').click();
+    await expect(page.locator('#reset-security-question')).not.toBeEmpty();
 });
 
 test('forgot password resets it through the security question', async ({ page }) => {

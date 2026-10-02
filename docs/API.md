@@ -48,29 +48,42 @@ Response: `{ "success": true, "userId": 1, "name": "string", "trackingOption": "
 ```
 Response: `{ "success": true }`
 
-### Forgot username
+### Account recovery
+
+None of these endpoints reveal whether an account exists:
+- An unknown username or email gets a security question too. It is made up, but stable: the same identifier always gets the same question.
+- Every failed answer gets the same `400`, whatever the reason: unknown account, wrong answer, or recovery paused. Its text is `Security answer could not be verified. Check it and try again; after 5 failed attempts, recovery is paused for 15 minutes.`
+
+Each wrong answer for a real account is written to its activity log (`action_type` `recovery_failed`, `entity_type` `account`). After 5 in 15 minutes, every answer is refused until the window passes, including the right one.
+
+Format errors are still reported: `Invalid email format`, `Invalid username format...`, `Email is required`, `Username or email is required`. They reveal nothing about accounts.
+
+#### Forgot username
 **POST** `/api/forgot-username`
 
-```json
-{ "email": "string" }
-```
-Response: `{ "success": true, "username": "string", "name": "string", "message": "Username found successfully" }`
+Step 1, `{ "email": "string" }`: returns `{ "success": true, "securityQuestion": "pet" }`.
 
-### Forgot password (step 1)
+Step 2, `{ "email": "string", "securityAnswer": "string" }`: returns `{ "success": true, "username": "string" }`, or the generic `400`.
+
+#### Forgot password (step 1)
 **POST** `/api/forgot-password`
 
-```json
-{ "username": "string", "email": "string" }
-```
-Response: `{ "success": true, "userId": 1, "username": "string", "name": "string", "securityQuestion": "string" }`
+Send either `{ "username": "string" }` or `{ "email": "string" }`. Returns `{ "success": true, "securityQuestion": "pet" }`.
 
-### Reset password (step 2)
+#### Reset password (step 2)
 **POST** `/api/reset-password`
 
 ```json
-{ "userId": 1, "securityAnswer": "string", "newPassword": "string" }
+{ "username": "string", "securityAnswer": "string", "newPassword": "string" }
 ```
-Response: `{ "success": true, "message": "Password reset successfully" }`
+Send `email` instead of `username` if you prefer. A bare `userId` is refused (`400 Username or email is required`).
+
+On success:
+- the response is `{ "success": true, "message": "Password reset successfully" }`;
+- all of the account's sessions are deleted;
+- a `password_reset` entry is written to its activity log.
+
+A weak `newPassword` returns the password rule error. A failed answer returns the generic `400`.
 
 ## Banks
 

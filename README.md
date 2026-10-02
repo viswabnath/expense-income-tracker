@@ -44,7 +44,7 @@ Principles that apply to every phase:
 - **Tracking modes:** income only, expenses only, or both, chosen at sign-up.
 - **Accounts and security:**
   - username login, 2-hour sessions stored in Postgres;
-  - password reset by security question, username lookup by email;
+  - password reset and username lookup by security question, without revealing whether an account exists;
   - bcrypt hashing;
   - rate-limited login in production;
   - Content-Security-Policy and security headers;

@@ -8,12 +8,15 @@ import { apiError, apiPost } from '@/lib/api-client';
 import { isValidEmail, isValidUsername, passwordProblem, requireValue, securityQuestionText } from '@/lib/auth-validation';
 
 interface ResetTarget {
-    userId: number;
-    name: string;
+    /** { username } or { email }, sent again with the answer */
+    account: { username: string } | { email: string };
     question: string;
 }
 
-/** Two steps, as in the legacy app: find the account, then answer the security question */
+/**
+ * Two steps, as in the legacy app: the username or email, then the security question. The API
+ * shows a question for any username or email, so this screen does not reveal who has an account.
+ */
 export function ForgotPasswordForm() {
     const router = useRouter();
     const toast = useToast();
@@ -31,16 +34,10 @@ export function ForgotPasswordForm() {
             if (!isEmail && !isValidUsername(input)) {
                 throw new Error('Please enter a valid username (letters, numbers, underscore only) or a valid email address');
             }
-            const result = await apiPost<{ success?: boolean; userId?: number; name?: string; securityQuestion?: string }>(
-                '/api/forgot-password',
-                isEmail ? { email: input } : { username: input },
-            );
-            if (result.data.success && result.data.userId !== undefined) {
-                setTarget({
-                    userId: result.data.userId,
-                    name: result.data.name ?? '',
-                    question: securityQuestionText(result.data.securityQuestion ?? ''),
-                });
+            const account = isEmail ? { email: input } : { username: input };
+            const result = await apiPost<{ success?: boolean; securityQuestion?: string }>('/api/forgot-password', account);
+            if (result.data.success && result.data.securityQuestion) {
+                setTarget({ account, question: securityQuestionText(result.data.securityQuestion) });
                 setMessage(null);
             } else {
                 toast('error', apiError(result.data, 'Error occurred. Please try again.'));
@@ -64,7 +61,7 @@ export function ForgotPasswordForm() {
                 throw new Error('Passwords do not match');
             }
             const result = await apiPost<{ success?: boolean }>('/api/reset-password', {
-                userId: target.userId,
+                ...target.account,
                 securityAnswer,
                 newPassword: password,
             });
@@ -74,7 +71,9 @@ export function ForgotPasswordForm() {
                 toast('success', text);
                 setTimeout(() => router.push('/login'), 2000);
             } else {
-                toast('error', apiError(result.data, 'Error occurred. Please try again.'));
+                const text = apiError(result.data, 'Error occurred. Please try again.');
+                setMessage({ kind: 'error', text });
+                toast('error', text);
             }
         } catch (error) {
             toast('error', error instanceof Error ? error.message : 'Error occurred. Please try again.');
@@ -108,7 +107,6 @@ export function ForgotPasswordForm() {
             ) : (
                 <div id="reset-password-form" className="auth-form">
                     <h3>Create New Password</h3>
-                    <p>Hello, <span id="reset-user-name">{target.name}</span>!</p>
                     <p><strong>Security Question</strong> <span id="reset-security-question">{target.question}</span></p>
                     <div className="form-group">
                         <label htmlFor="reset-security-answer">Security Answer</label>

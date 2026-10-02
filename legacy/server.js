@@ -380,145 +380,145 @@ app.get('/api/user', requireAuth, async (req, res) => {
     }
 });
 
-// Forgot Username - Retrieve username by email
+// Account recovery. Responses never reveal whether an account exists: an unknown username or
+// email gets a stable made-up security question, and every failed answer (unknown account, wrong
+// answer, or recovery paused) gets the same message. Failed answers are recorded in the account's
+// activity log, and after RECOVERY_MAX_FAILURES within RECOVERY_WINDOW_MINUTES recovery pauses.
+const RECOVERY_QUESTIONS = ['pet', 'school', 'city', 'mother', 'car', 'street'];
+const RECOVERY_MAX_FAILURES = 5;
+const RECOVERY_WINDOW_MINUTES = 15;
+const RECOVERY_FAILED_MESSAGE = `Security answer could not be verified. Check it and try again; after ${RECOVERY_MAX_FAILURES} failed attempts, recovery is paused for ${RECOVERY_WINDOW_MINUTES} minutes.`;
+const RECOVERY_KEY = process.env.SESSION_SECRET || require('crypto').randomBytes(32).toString('hex');
+// Unknown or paused accounts still cost one bcrypt comparison, so timing does not tell them apart
+let dummyAnswerHash;
+async function compareWithDummy(answer) {
+    dummyAnswerHash = dummyAnswerHash || bcrypt.hash(require('crypto').randomBytes(16).toString('hex'), 10);
+    await bcrypt.compare(answer, await dummyAnswerHash);
+}
+
+/** The lookup column and value from { username } or { email }, or a format error (which reveals nothing) */
+function recoveryIdentifier({ username, email }, { emailOnly = false } = {}) {
+    if (email) {
+        if (typeof email !== 'string' || email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return { error: 'Invalid email format' };
+        }
+        return { column: 'email', value: email };
+    }
+    if (emailOnly) return { error: 'Email is required' };
+    if (username) {
+        if (typeof username !== 'string' || username.length > 50 || !/^[a-zA-Z0-9_]+$/.test(username)) {
+            return { error: 'Invalid username format. Username can only contain letters, numbers, and underscores' };
+        }
+        return { column: 'username', value: username };
+    }
+    return { error: 'Username or email is required' };
+}
+
+async function findRecoveryUser({ column, value }) {
+    // column comes from recoveryIdentifier, never from the request
+    const result = await pool.query(
+        `SELECT id, username, security_question, security_answer_hash FROM users WHERE ${column === 'email' ? 'email' : 'username'} = $1`,
+        [value]
+    );
+    return result.rows[0] || null;
+}
+
+/** The question to show: the account's own, or one derived from the identifier so repeated lookups match */
+function recoveryQuestion(user, value) {
+    if (user) return user.security_question;
+    const digest = require('crypto').createHmac('sha256', RECOVERY_KEY).update(value.trim().toLowerCase()).digest();
+    return RECOVERY_QUESTIONS[digest.readUInt32BE(0) % RECOVERY_QUESTIONS.length];
+}
+
+/** True when the answer is right and recovery is not paused; records each wrong answer */
+async function checkRecoveryAnswer(user, securityAnswer) {
+    const answer = securityAnswer.toLowerCase().trim();
+    if (!user) {
+        await compareWithDummy(answer);
+        return false;
+    }
+    const failures = await pool.query(
+        `SELECT COUNT(*)::int AS n FROM activity_log
+         WHERE user_id = $1 AND action_type = 'recovery_failed' AND created_at > LOCALTIMESTAMP - make_interval(mins => $2)`,
+        [user.id, RECOVERY_WINDOW_MINUTES]
+    );
+    if (failures.rows[0].n >= RECOVERY_MAX_FAILURES) {
+        await compareWithDummy(answer);
+        return false;
+    }
+    if (await bcrypt.compare(answer, user.security_answer_hash)) return true;
+    // A single insert on its own: it must persist even though the request fails
+    await logActivity(pool, user.id, 'recovery_failed', 'account', user.id, 'Failed account recovery attempt: wrong security answer');
+    return false;
+}
+
+function validRecoveryAnswer(securityAnswer) {
+    return typeof securityAnswer === 'string' && securityAnswer.trim() !== '' && securityAnswer.length <= 200;
+}
+
+// Forgot username. Step 1, { email }: the security question. Step 2, { email, securityAnswer }: the username.
 app.post('/api/forgot-username', authLimiter, async (req, res) => {
     try {
-        const { email } = req.body;
+        const identifier = recoveryIdentifier({ email: req.body.email }, { emailOnly: true });
+        if (identifier.error) return res.status(400).json({ error: identifier.error });
+        const user = await findRecoveryUser(identifier);
 
-        if (!email) {
-            return res.status(400).json({ error: 'Email is required' });
+        if (req.body.securityAnswer === undefined) {
+            return res.json({ success: true, securityQuestion: recoveryQuestion(user, identifier.value) });
         }
-
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return res.status(400).json({ error: 'Invalid email format' });
+        if (!validRecoveryAnswer(req.body.securityAnswer)) {
+            return res.status(400).json({ error: 'Security answer is required' });
         }
-
-        const result = await pool.query(
-            'SELECT username, name FROM users WHERE email = $1',
-            [email]
-        );
-
-        if (result.rows.length === 0) {
-            return res
-                .status(404)
-                .json({ error: 'No account found with this email address' });
+        if (!(await checkRecoveryAnswer(user, req.body.securityAnswer))) {
+            return res.status(400).json({ error: RECOVERY_FAILED_MESSAGE });
         }
-
-        const user = result.rows[0];
-        res.json({
-            success: true,
-            username: user.username,
-            name: user.name,
-            message: 'Username found successfully',
-        });
+        res.json({ success: true, username: user.username });
     } catch (error) {
         res.status(500).json({ error: 'Server error. Please try again.' });
     }
 });
 
-// Password Reset - Step 1: Verify user and security question
+// Password reset step 1, { username } or { email }: the security question
 app.post('/api/forgot-password', authLimiter, async (req, res) => {
     try {
-        const { username, email } = req.body;
-
-        if (!username && !email) {
-            return res.status(400).json({ error: 'Username or email is required' });
-        }
-
-        // Validate email format if email is provided
-        if (email) {
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                return res.status(400).json({ error: 'Invalid email format' });
-            }
-        }
-
-        // Validate username format if username is provided
-        if (username) {
-            const usernameRegex = /^[a-zA-Z0-9_]+$/;
-            if (!usernameRegex.test(username)) {
-                return res
-                    .status(400)
-                    .json({
-                        error:
-              'Invalid username format. Username can only contain letters, numbers, and underscores',
-                    });
-            }
-        }
-
-        let query, params;
-        if (email) {
-            query =
-        'SELECT id, username, name, security_question FROM users WHERE email = $1';
-            params = [email];
-        } else {
-            query =
-        'SELECT id, username, name, security_question FROM users WHERE username = $1';
-            params = [username];
-        }
-
-        const result = await pool.query(query, params);
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        const user = result.rows[0];
-        res.json({
-            success: true,
-            userId: user.id,
-            username: user.username,
-            name: user.name,
-            securityQuestion: user.security_question,
-        });
+        const identifier = recoveryIdentifier(req.body);
+        if (identifier.error) return res.status(400).json({ error: identifier.error });
+        const user = await findRecoveryUser(identifier);
+        res.json({ success: true, securityQuestion: recoveryQuestion(user, identifier.value) });
     } catch (error) {
         res.status(500).json({ error: 'Server error. Please try again.' });
     }
 });
 
-// Password Reset - Step 2: Reset password with security answer
+// Password reset step 2, { username or email, securityAnswer, newPassword }. A reset signs the
+// account out everywhere and is recorded in its activity log.
 app.post('/api/reset-password', authLimiter, async (req, res) => {
     try {
-        const { userId, securityAnswer, newPassword } = req.body;
-
-        if (!userId || !securityAnswer || !newPassword) {
+        const { securityAnswer, newPassword } = req.body;
+        const identifier = recoveryIdentifier(req.body);
+        if (identifier.error) return res.status(400).json({ error: identifier.error });
+        if (!validRecoveryAnswer(securityAnswer) || !newPassword) {
             return res.status(400).json({ error: 'All fields are required' });
         }
-
-        // Validate new password strength
         const passwordError = validatePassword(newPassword);
         if (passwordError) {
             return res.status(400).json({ error: passwordError });
         }
 
-        // Get user's security answer hash
-        const result = await pool.query(
-            'SELECT security_answer_hash FROM users WHERE id = $1',
-            [userId]
-        );
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'User not found' });
+        const user = await findRecoveryUser(identifier);
+        if (!(await checkRecoveryAnswer(user, securityAnswer))) {
+            return res.status(400).json({ error: RECOVERY_FAILED_MESSAGE });
         }
 
-        const user = result.rows[0];
-        const isValidAnswer = await bcrypt.compare(
-            securityAnswer.toLowerCase().trim(),
-            user.security_answer_hash
-        );
-
-        if (!isValidAnswer) {
-            return res.status(400).json({ error: 'Incorrect security answer' });
-        }
-
-        // Update password
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-        await pool.query(
-            'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
-            [hashedNewPassword, userId]
-        );
+        await withTransaction(pool, async (client) => {
+            await client.query(
+                'UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+                [hashedNewPassword, user.id]
+            );
+            await client.query('DELETE FROM session WHERE sess->>\'userId\' = $1', [String(user.id)]);
+            await logActivity(client, user.id, 'password_reset', 'account', user.id, 'Password reset through the security question; all sessions signed out');
+        });
 
         res.json({ success: true, message: 'Password reset successfully' });
     } catch (error) {

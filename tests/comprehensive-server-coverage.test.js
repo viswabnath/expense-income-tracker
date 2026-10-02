@@ -165,13 +165,14 @@ describe('Comprehensive Server Coverage Tests', () => {
         });
 
         test('should cover reset password', async () => {
-            // Mock user found
+            // Mock user found, then no recent failed answers
             mockQuery.mockResolvedValueOnce({
-                rows: [{ id: 1, security_answer_hash: 'hashedAnswer' }],
+                rows: [{ id: 1, username: 'testuser', security_question: 'pet', security_answer_hash: 'hashedAnswer' }],
                 rowCount: 1
             });
-            // Mock password update
-            mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
+            mockQuery.mockResolvedValueOnce({ rows: [{ n: 0 }], rowCount: 1 });
+            // Transaction: BEGIN, password update, session delete, activity log, COMMIT
+            for (let step = 0; step < 5; step++) mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 1 });
 
             const response = await request(app)
                 .post('/api/reset-password')

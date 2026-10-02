@@ -143,7 +143,7 @@ The server does not reject requests for hidden modules. The only server-side use
 |---|---|---|
 | **Critical** | Edit and delete of income and expenses run `pool.query('BEGIN')` on the connection pool. Each pool query can run on a different connection, so the writes are not atomic. The open transaction is also handed to other requests. Reproduced against the test schema: after one `pool.query('BEGIN')`, 4 of 6 later queries ran inside that leaked transaction. A rollback or dropped connection can discard **other users'** writes. | `server.js` PUT/DELETE `/api/income/:id`, `/api/expenses/:id` (BEGIN at lines 1214, 1298, 1387, 1481) |
 | High | Creating income or expenses makes separate writes (entry insert, balance update, activity insert) with no transaction. A failure midway leaves an entry without its balance change, or the reverse. | `server.js:894`, `server.js:1003` |
-| High | Username and name are disclosed to anyone who knows the email; the recovery endpoints reveal whether accounts exist; the security answers are guessable. | `server.js:369`, `407`, `467` |
+| High | Username and name are disclosed to anyone who knows the email; the recovery endpoints reveal whether accounts exist; the security answers are guessable. **Fixed 2026-10-01** except that the security question remains the only recovery factor (see STATUS). | `server.js:369`, `407`, `467` |
 | High | If `SESSION_SECRET` is missing in production, each Vercel instance uses its own random secret and logins break. The server should refuse to start instead. | `server.js:113` |
 | Medium | Stored running balances and derived month-end balances can disagree (section 7); the cash endpoint accepts an absolute balance from the client. | `server.js:618`, summary route |
 | Medium | Activity log writes are outside the transaction and fail silently. | `server.js:161` |
@@ -153,7 +153,7 @@ The server does not reject requests for hidden modules. The only server-side use
 | Low | `credited_to_id` and `payment_source_id` are not foreign keys, so deleting a bank relies on application checks. | schema |
 | Low | Logout clears the wrong cookie name. | `server.js:1816` |
 | Low | `tests/setup.js` never runs: `setupFilesAfterEnv` is at the top level, which Jest ignores when `projects` is used. | `package.json` |
-| Low | Password reset does not invalidate existing sessions. | `server.js:467` |
+| Low | Password reset does not invalidate existing sessions. **Fixed 2026-10-01.** | `server.js:467` |
 
 ## Decisions needed before Phase 1
 

@@ -61,7 +61,8 @@ The core features work: auth, accounts, transactions, the activity log and month
 
 | Severity | Issue | Where |
 |---|---|---|
-| High | Account recovery discloses usernames and names by email, and reveals whether accounts exist; security answers are guessable (see `docs/v2-audit.md`) | `legacy/server.js` recovery routes |
+| Medium | Account recovery still rests on a security question, which a person who knows the user can often answer. Guessing is now limited to 5 tries per 15 minutes per account. The real fix is recovery by an emailed link, which needs an email provider (planned for Phase 6) | `legacy/server.js` recovery routes |
+| Low | Registration still says when a username or email is already taken, so it can be used to check whether an email has an account. Closing it also needs email verification | `POST /api/register` |
 | Medium | CSV export does not escape quotes or neutralize formula-like values | `GET /api/activity?export=true` |
 | Low | Logout clears a cookie named `connect.sid` instead of `sessionId` | `legacy/server.js`, logout route |
 | Medium | Legacy toasts insert their message as HTML (`toast-manager.js` uses `innerHTML`); messages can include the user's free-text name. CSP blocks inline script handlers, which limits the impact, and the Next.js toasts render text only | `legacy/public/js/toast-manager.js` |
@@ -73,6 +74,13 @@ The core features work: auth, accounts, transactions, the activity log and month
 | Low | 9 ESLint warnings, all in three obsolete test files that aren't run (`comprehensive-coverage`, `server-coverage`, `frontend-execution-coverage`) | `tests/` |
 
 ### Fixed on 2026-10-01
+- Account recovery revealed the username and name for any email and confirmed whether an account existed. Password reset accepted a bare user id, so answers could be guessed account by account without knowing anyone's details. Now:
+  - unknown accounts get a stable made-up question;
+  - every failure gets the same message;
+  - the username comes back only after the security answer;
+  - reset needs the username or email;
+  - 5 wrong answers in 15 minutes pause recovery for that account;
+  - a reset signs out all of that account's sessions and is recorded in its activity log.
 - Bank edit/delete and card delete returned early inside an open transaction and released the connection mid-transaction, so later requests on that pooled connection ran inside it. Users were intermittently treated as logged out right after login or registration (the Setup end-to-end tests failed this way whenever they ran after a refused delete). Card delete also ran its DELETE outside the transaction. All three now use `withTransaction`.
 - Auth forms and the welcome step could ignore a click made before React hydrated. Their controls now stay disabled until the page is interactive (`components/HydrationGate.tsx`).
 
