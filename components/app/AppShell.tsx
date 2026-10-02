@@ -74,7 +74,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                             </button>
                         </div>
                         <div className="nav-brand">
-                            <h1><a href="/setup" data-action="showSection" data-section="setup" style={{ color: 'inherit', textDecoration: 'none' }}>BalanceTrack</a></h1>
+                            <h1><a href="/setup" data-action="showSection" data-section="setup" style={{ color: 'inherit', textDecoration: 'none' }}>FinDB</a></h1>
                         </div>
                         <div className="nav-desktop">
                             {NAV_ITEMS.map(({ section, label, icon: Icon, href }) => (
@@ -90,7 +90,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
                     <div id="mobile-sidebar">
                         <div className="mobile-brand">
-                            <h1><a href="/setup" style={{ color: 'inherit', textDecoration: 'none' }}>BalanceTrack</a></h1>
+                            <h1><a href="/setup" style={{ color: 'inherit', textDecoration: 'none' }}>FinDB</a></h1>
                         </div>
                         {NAV_ITEMS.map(({ section, label, icon: Icon, href }) => (
                             <a key={section} href={href} data-action="showSection" data-section={section} data-close-sidebar="true">

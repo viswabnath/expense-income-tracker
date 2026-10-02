@@ -48,7 +48,7 @@ function run(command, args, env) {
 async function startServer() {
     console.log('Building Next.js...');
     if (await run('node', [NEXT_BIN, 'build'], {}) !== 0) throw new Error('next build failed');
-    const logFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'balancetrack-api-')), 'server.log');
+    const logFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'findb-api-')), 'server.log');
     const log = fs.openSync(logFile, 'a');
     // node directly (not npx), so kill() stops the server itself
     const server = spawn('node', [NEXT_BIN, 'start', '--port', String(PORT)], {

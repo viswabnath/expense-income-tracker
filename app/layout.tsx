@@ -9,7 +9,7 @@ import './fintech-theme.css';
 const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800'] });
 
 export const metadata = {
-    title: 'BalanceTrack',
+    title: 'FinDB',
     description: 'Track your expenses and income',
 };
 

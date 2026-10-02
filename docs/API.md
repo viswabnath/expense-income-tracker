@@ -1,4 +1,4 @@
-# BalanceTrack API Documentation
+# FinDB API Documentation
 
 All endpoints are Next.js route handlers under `/api` (`app/api`), with the logic in `lib/services/`. Request and response bodies are JSON (the activity export is CSV).
 

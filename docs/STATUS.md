@@ -1,4 +1,4 @@
-# BalanceTrack - Project Status
+# FinDB - Project Status
 
 _Last reviewed: 2026-10-02_
 
@@ -55,9 +55,9 @@ The app is one Next.js project on Vercel with Supabase Postgres; the move from E
 
 ## Deployment
 
-- **Vercel**: a standard Next.js project, functions in `syd1` next to Supabase `ap-southeast-2`. Security headers are in `next.config.ts`; pages get a nonce CSP from `proxy.ts`.
+- **Vercel**: project `findb` (renamed from `balancetrack` on 2026-10-03, framework set to Next.js), a standard Next.js project with functions in `syd1` next to Supabase `ap-southeast-2`. Production addresses: `findb-app.vercel.app` (new) and `balancetrack-one.vercel.app` (kept for now). `findb.vercel.app` belongs to another project. Security headers are in `next.config.ts`; pages get a nonce CSP from `proxy.ts`.
 - **Supabase**: one project. Production data is in `public`, and tests use `balancetrack_test`. It is reached through the transaction pooler (port 6543) with SSL, and every table has RLS enabled to block the public Data API.
-- Setup steps are in the README under "Deployment (Vercel + Supabase)".
+- Setup steps are in the README under "Deployment".
 
 ## Known issues
 
