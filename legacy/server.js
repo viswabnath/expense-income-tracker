@@ -1767,7 +1767,8 @@ app.get('/api/monthly-summary', requireAuth, async (req, res) => {
         });
     } catch (error) {
         console.error('Monthly summary error:', error);
-        res.status(500).json({ error: 'Failed to load monthly summary', details: error.message });
+        // No error details in the response: they stay in the server log
+        res.status(500).json({ error: 'Failed to load monthly summary' });
     }
 });
 
@@ -1843,7 +1844,8 @@ app.get('/api/activity', requireAuth, async (req, res) => {
             }
         }
 
-        // Enhanced activities query using the activity_log table
+        // Enhanced activities query using the activity_log table. Account names are looked up only
+        // among the user's own accounts: entries carry client-sent ids
         let activitiesQuery = `
             SELECT
                 entity_type as activity_type,
@@ -1853,22 +1855,22 @@ app.get('/api/activity', requireAuth, async (req, res) => {
                 CASE
                     WHEN entity_type = 'cash_balance' THEN 'Cash'
                     WHEN entity_type = 'bank' THEN 
-                        COALESCE((SELECT name FROM banks WHERE id = entity_id), 'Bank')
+                        COALESCE((SELECT name FROM banks WHERE id = entity_id AND user_id = activity_log.user_id), 'Bank')
                     WHEN entity_type = 'credit_card' THEN 
-                        COALESCE((SELECT name FROM credit_cards WHERE id = entity_id), 'Credit Card')
+                        COALESCE((SELECT name FROM credit_cards WHERE id = entity_id AND user_id = activity_log.user_id), 'Credit Card')
                     WHEN entity_type = 'income' AND new_values->>'creditedToType' = 'bank' THEN 
-                        COALESCE((SELECT name FROM banks WHERE id = (new_values->>'creditedToId')::int), 'Bank')
+                        COALESCE((SELECT name FROM banks WHERE id = (new_values->>'creditedToId')::int AND user_id = activity_log.user_id), 'Bank')
                     WHEN entity_type = 'income' AND new_values->>'creditedToType' = 'cash' THEN 'Cash'
                     WHEN entity_type = 'expense' AND (new_values->>'paymentMethod' = 'bank' OR old_values->>'payment_method' = 'bank') THEN 
                         COALESCE(
-                            (SELECT name FROM banks WHERE id = (new_values->>'paymentSourceId')::int),
-                            (SELECT name FROM banks WHERE id = (old_values->>'payment_source_id')::int),
+                            (SELECT name FROM banks WHERE id = (new_values->>'paymentSourceId')::int AND user_id = activity_log.user_id),
+                            (SELECT name FROM banks WHERE id = (old_values->>'payment_source_id')::int AND user_id = activity_log.user_id),
                             'Bank'
                         )
                     WHEN entity_type = 'expense' AND (new_values->>'paymentMethod' = 'credit_card' OR old_values->>'payment_method' = 'credit_card') THEN 
                         COALESCE(
-                            (SELECT name FROM credit_cards WHERE id = (new_values->>'paymentSourceId')::int),
-                            (SELECT name FROM credit_cards WHERE id = (old_values->>'payment_source_id')::int),
+                            (SELECT name FROM credit_cards WHERE id = (new_values->>'paymentSourceId')::int AND user_id = activity_log.user_id),
+                            (SELECT name FROM credit_cards WHERE id = (old_values->>'payment_source_id')::int AND user_id = activity_log.user_id),
                             'Credit Card'
                         )
                     WHEN entity_type = 'expense' AND (new_values->>'paymentMethod' = 'cash' OR old_values->>'payment_method' = 'cash') THEN 'Cash'

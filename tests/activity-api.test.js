@@ -12,11 +12,13 @@ const { target, closeTarget } = require('./api-target');
 const { createTestUser, deleteTestUser } = require('../test-helpers');
 
 const USERNAME = 'activity_api_user';
+const OTHER_USERNAME = 'activity_api_other';
 const PASSWORD = 'TestPass123&';
 let agent;
 
 beforeAll(async () => {
     await deleteTestUser(USERNAME);
+    await deleteTestUser(OTHER_USERNAME);
     await createTestUser({ username: USERNAME, password: PASSWORD, email: 'activity_api@example.com' });
     agent = request.agent(target());
     expect((await agent.post('/api/login').send({ username: USERNAME, password: PASSWORD })).status).toBe(200);
@@ -32,6 +34,7 @@ beforeAll(async () => {
 
 afterAll(async () => {
     await deleteTestUser(USERNAME);
+    await deleteTestUser(OTHER_USERNAME);
     await closeTarget();
 });
 
@@ -76,4 +79,26 @@ test('the CSV export quotes every field and neutralizes formulas', async () => {
     for (const line of lines.slice(1)) {
         expect(line).toMatch(/^"[^"]*","[^"]*",".*","[0-9.]+","[^"]*"$/);
     }
+});
+
+test('the feed never shows another user\'s account name', async () => {
+    // Another user's bank, whose id this user then sends with an income entry
+    const other = request.agent(target());
+    await createTestUser({ username: OTHER_USERNAME, password: PASSWORD, email: 'activity_api_other@example.com' });
+    expect((await other.post('/api/login').send({ username: OTHER_USERNAME, password: PASSWORD })).status).toBe(200);
+    const secretBank = await other.post('/api/banks').send({ name: 'Secret Bank Name', initialBalance: 100 });
+    expect(secretBank.status).toBe(200);
+
+    // An edit records the account id in the entry's new values, which the feed looks up
+    const probe = await agent.post('/api/income')
+        .send({ source: 'Probe', amount: 1, creditedToType: 'cash', creditedToId: null, date: '2026-01-15' });
+    expect(probe.status).toBe(200);
+    const edited = await agent.put(`/api/income/${probe.body.id}`)
+        .send({ source: 'Probe', amount: 1, creditedToType: 'bank', creditedToId: secretBank.body.id, date: '2026-01-15' });
+    expect(edited.status).toBe(200);
+    const feed = await agent.get('/api/activity?limit=100');
+    expect(feed.status).toBe(200);
+    expect(JSON.stringify(feed.body)).not.toContain('SECRET BANK NAME');
+    const csv = await agent.get('/api/activity?export=true');
+    expect(csv.text).not.toContain('SECRET BANK NAME');
 });

@@ -198,7 +198,11 @@ Route handlers use the Node.js runtime, never Edge, because `pg` and bcrypt need
 - **Transactions (done):** income and expenses (list, get, add, edit, delete) are route handlers, with the logic in `lib/services/transactions.ts`. Every write keeps its single transaction and `FOR UPDATE` locks. The date rule (`entryDate`) moved with them and is unit tested in several time zones.
   - **Fixed in both apps:** the overspend check compared the stored balance text with the amount. A string amount such as `"700"` was compared as text, so `"1000.00" < "700"` refused a valid expense. Both apps now compare numbers (`tests/entry-dates.test.js`).
   - **Parity:** the contract suites, now including `entry-dates`, pass through the stack: 80 tests. `atomic-writes` forces failures mid-write against the Next.js handlers.
-- **Next:** reports (monthly summary, activity).
+- **Reports (done):** `GET /api/monthly-summary` and `GET /api/activity`, including the CSV export, are route handlers. The logic is in `lib/services/reports.ts`, with the same queries and response shapes.
+  - **Security fix, in both apps:** the activity feed's account-name lookups are now limited to the user's own accounts (see STATUS).
+  - **Also fixed:** the summary's error response no longer includes the raw database error.
+  - **Parity:** the contract suites pass through the stack, now including `activity-api`. The contract runner keeps server logs and can run named suites.
+- **Next:** session and auth (last): register, login, logout, recovery, user, tracking option. Then N4.
 
 ### N4. Remove Express
 - Delete `legacy/`, the Services config and rewrites (Next.js becomes a plain project again) and the mocked-`pg` tests.
