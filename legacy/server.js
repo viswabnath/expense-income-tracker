@@ -176,6 +176,23 @@ async function logActivity(client, userId, actionType, entityType, entityId, des
     );
 }
 
+// An entry's calendar date as stored: YYYY-MM-DD with its month and year, read from the string
+// itself. Converting through the server's local time moved entries across midnight (an entry
+// added just after midnight IST was stored as the previous day, under the new month).
+function entryDate(value) {
+    if (typeof value !== 'string' || value === '') return null;
+    let day = value;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        const parsed = new Date(value);
+        if (isNaN(parsed.getTime())) return null;
+        day = parsed.toISOString().slice(0, 10);
+    }
+    const [year, month, dayOfMonth] = day.split('-').map(Number);
+    // Rejects dates that do not exist, such as 2026-02-30
+    if (new Date(Date.UTC(year, month - 1, dayOfMonth)).toISOString().slice(0, 10) !== day) return null;
+    return { date: day, month, year };
+}
+
 // Send the response for an error thrown inside a route: expected RequestErrors carry their own
 // status; anything else is a generic 500
 function sendError(res, error, fallbackMessage = 'An error occurred. Please try again.') {
@@ -896,30 +913,11 @@ app.post('/api/income', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'Date is required' });
         }
 
-        // If only date is provided (YYYY-MM-DD), add current time to make it more realistic
-        let finalDate = date;
-        if (date && date.length === 10) { // YYYY-MM-DD format
-            const now = new Date();
-            const selectedDate = new Date(date);
-
-            // Check if the date is valid and hasn't been auto-corrected
-            if (isNaN(selectedDate.getTime()) || selectedDate.toISOString().split('T')[0] !== date) {
-                return res.status(400).json({ error: 'Invalid date format' });
-            }
-
-            selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
-            finalDate = selectedDate.toISOString();
-        }
-
-        const dateObj = new Date(finalDate);
-
-        // Validate the final date
-        if (isNaN(dateObj.getTime())) {
+        const entry = entryDate(date);
+        if (!entry) {
             return res.status(400).json({ error: 'Invalid date format' });
         }
-
-        const month = dateObj.getMonth() + 1;
-        const year = dateObj.getFullYear();
+        const { month, year } = entry;
 
         // Entry, balance change and activity log commit together or not at all
         const income = await withTransaction(pool, async (client) => {
@@ -931,7 +929,7 @@ app.post('/api/income', requireAuth, async (req, res) => {
                     amount,
                     creditedToType,
                     creditedToId,
-                    finalDate,
+                    entry.date,
                     month,
                     year,
                 ]
@@ -1009,30 +1007,11 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'Date is required' });
         }
 
-        // If only date is provided (YYYY-MM-DD), add current time to make it more realistic
-        let finalDate = date;
-        if (date && date.length === 10) { // YYYY-MM-DD format
-            const now = new Date();
-            const selectedDate = new Date(date);
-
-            // Check if the date is valid and hasn't been auto-corrected
-            if (isNaN(selectedDate.getTime()) || selectedDate.toISOString().split('T')[0] !== date) {
-                return res.status(400).json({ error: 'Invalid date format' });
-            }
-
-            selectedDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
-            finalDate = selectedDate.toISOString();
-        }
-
-        const dateObj = new Date(finalDate);
-
-        // Validate the final date
-        if (isNaN(dateObj.getTime())) {
+        const entry = entryDate(date);
+        if (!entry) {
             return res.status(400).json({ error: 'Invalid date format' });
         }
-
-        const month = dateObj.getMonth() + 1;
-        const year = dateObj.getFullYear();
+        const { month, year } = entry;
 
         // Balance check, entry, balance change and activity log commit together or not at all
         const expense = await withTransaction(pool, async (client) => {
@@ -1098,7 +1077,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
                     amount,
                     paymentMethod,
                     paymentSourceId,
-                    finalDate,
+                    entry.date,
                     month,
                     year,
                 ]
@@ -1199,9 +1178,11 @@ app.put('/api/income/:id', requireAuth, async (req, res) => {
     try {
         const incomeId = req.params.id;
         const { source, amount, creditedToType, creditedToId, date } = req.body;
-        const dateObj = new Date(date);
-        const month = dateObj.getMonth() + 1;
-        const year = dateObj.getFullYear();
+        const entry = entryDate(date);
+        if (!entry) {
+            return res.status(400).json({ error: 'Invalid date format' });
+        }
+        const { month, year } = entry;
 
         // Reversal, update, re-application and activity log commit together or not at all
         await withTransaction(pool, async (client) => {
@@ -1233,7 +1214,7 @@ app.put('/api/income/:id', requireAuth, async (req, res) => {
             // Update the income transaction
             await client.query(
                 'UPDATE income_entries SET source = $1, amount = $2, credited_to_type = $3, credited_to_id = $4, date = $5, month = $6, year = $7 WHERE id = $8 AND user_id = $9',
-                [source, amount, creditedToType, creditedToId, dateObj, month, year, incomeId, req.session.userId]
+                [source, amount, creditedToType, creditedToId, entry.date, month, year, incomeId, req.session.userId]
             );
 
             // Apply the new transaction effect
@@ -1352,9 +1333,11 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
     try {
         const expenseId = req.params.id;
         const { title, amount, paymentMethod, paymentSourceId, date } = req.body;
-        const dateObj = new Date(date);
-        const month = dateObj.getMonth() + 1;
-        const year = dateObj.getFullYear();
+        const entry = entryDate(date);
+        if (!entry) {
+            return res.status(400).json({ error: 'Invalid date format' });
+        }
+        const { month, year } = entry;
 
         // Reversal, update, re-application and activity log commit together or not at all
         await withTransaction(pool, async (client) => {
@@ -1391,7 +1374,7 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
             // Update the expense transaction
             await client.query(
                 'UPDATE expenses SET title = $1, amount = $2, payment_method = $3, payment_source_id = $4, date = $5, month = $6, year = $7 WHERE id = $8 AND user_id = $9',
-                [title, amount, paymentMethod, paymentSourceId, dateObj, month, year, expenseId, req.session.userId]
+                [title, amount, paymentMethod, paymentSourceId, entry.date, month, year, expenseId, req.session.userId]
             );
 
             // Apply the new transaction effect
