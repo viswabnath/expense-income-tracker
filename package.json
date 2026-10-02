@@ -1,5 +1,5 @@
 {
-  "name": "expense-income-tracker",
+  "name": "findb",
   "version": "1.0.0",
   "scripts": {
     "dev": "next dev",
@@ -21,7 +21,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "FinDB: a personal finance dashboard for India",
   "dependencies": {
     "bcryptjs": "^3.0.2",
     "dotenv": "^17.2.0",

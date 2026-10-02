@@ -9,7 +9,7 @@ import { apiError, apiPost } from '@/lib/api-client';
 import { isValidUsername, requireValue } from '@/lib/auth-validation';
 
 /** Set by the forgot-username screen so the login form opens with the username filled in */
-export const PREFILL_USERNAME_KEY = 'balancetrack:prefill-username';
+export const PREFILL_USERNAME_KEY = 'findb:prefill-username';
 
 export function LoginForm() {
     const router = useRouter();

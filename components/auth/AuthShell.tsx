@@ -10,13 +10,13 @@ export interface AuthMessage {
 }
 
 /**
- * The legacy auth screen frame: "BalanceTrack" heading, the active form, and #auth-message.
+ * The legacy auth screen frame: "FinDB" heading, the active form, and #auth-message.
  * Same ids and classes as the former single-page app, so the shared CSS and the Playwright flows apply.
  */
 export function AuthShell({ message, children }: { message?: AuthMessage | null; children: ReactNode }) {
     return (
         <div id="auth-section">
-            <h2>BalanceTrack</h2>
+            <h2>FinDB</h2>
             <HydrationGate>{children}</HydrationGate>
             <div id="auth-message" className={message?.kind ?? 'error'}>{message?.text ?? ''}</div>
         </div>

@@ -1,184 +1,108 @@
-# BalanceTrack
+# FinDB
 
-A personal finance tracker for people in India. You enter your money manually: bank accounts, credit cards, cash, income and expenses. BalanceTrack keeps the balances up to date and shows where your money went each month. It does not connect to banks. Amounts are shown in rupees with Indian digit grouping (5,00,000).
+FinDB (Finance Dashboard) is a personal finance tracker for people in India. You record your money yourself: bank accounts, credit cards, cash, income and expenses. FinDB keeps every balance up to date and shows where your money went each month. It never connects to your bank. Amounts are in rupees with Indian digit grouping (5,00,000.00).
 
-## Where it is going
+## Features
 
-BalanceTrack is being extended into a public personal-finance product. The plan has two tracks, run one after the other.
-
-**1. Move to Next.js (done).** The app moved from plain JavaScript with Express to Next.js one piece at a time, without changing behaviour except for the fixes listed in [docs/STATUS.md](docs/STATUS.md). See [docs/nextjs-migration-plan.md](docs/nextjs-migration-plan.md).
-
-| Step | What | Status |
-|---|---|---|
-| Phase 0 | Atomic writes, activity log inside transactions, audit fixes | Done |
-| N0 | Safety net: Playwright user flows, API contract suites | Done |
-| N1 | Express moved to `legacy/`, Next.js scaffolded alongside it | Done, live on Vercel |
-| N2 | Screens move to React, one at a time | Done: every page is Next.js |
-| N3 | API routes move to Next.js route handlers | Done |
-| N4 | Express removed | Done |
-
-**2. v2 features (next).** The scope and decisions are in [docs/v2-audit.md](docs/v2-audit.md).
-
-| Phase | What |
-|---|---|
-| 1. Foundation | Module toggles (Income, Expenses, Investments, Debts, Cards); money movements that are neither income nor expense (loan disbursement, EMI payment, investment buy and sell, transfers); net savings = income minus expenses, where only loan interest and fees count as expenses |
-| 2. Debts | Loans with reducing-balance and flat-rate EMIs, the effective rate, a full amortization schedule, EMI payments (full, partial, late), top-ups, prepayments, missed-payment tracking, and a public EMI calculator |
-| 3. Credit cards | Credit lines with one shared limit across cards, statements, billing and due days, and loans on cards |
-| 4. Investments | Gold, stocks, crypto and mutual funds; buys and sells; manual price updates; profit and loss; allocation |
-| 5. Net worth | Assets minus liabilities, a monthly trend, EMI-to-income and debt-to-asset ratios |
-| 6. Public launch | Stronger account recovery, rate limiting on write endpoints, data export and account deletion, PWA, monitoring |
-
-Principles that apply to every phase:
-- Money is stored exactly (`bigint` paise for new tables), and multi-table writes are atomic.
-- Every table is isolated per user.
-- Every change is recorded in the activity log.
-- No emoji anywhere.
-- The design follows a serious fintech dashboard: Source Sans 3 with tabular numerals, a chart library, and light and dark themes.
-
-## What it does today
-
-- **Accounts:** bank accounts (with starting balance), credit cards (with limit and used amount), cash.
-- **Transactions:** income into a bank or cash; expenses paid by cash, bank or card. Adding, editing and deleting an entry updates the account behind it.
-- **Monthly summary:** income, expenses, net savings, current wealth, and each account's balance at month end.
-- **Activity log:** every change, with old and new values, filters by type and date, and CSV export.
+- **Accounts:** bank accounts with a starting balance, credit cards with a limit and the amount used, and cash.
+- **Transactions:** income into a bank or cash, and expenses paid by cash, bank or card. Adding, editing or deleting an entry updates the account behind it. Users who also track income cannot overspend an account.
+- **Monthly summary:** income, expenses, net savings, total wealth, and each account's balance at the end of the month.
+- **Activity log:** every change with its old and new values, filters by month and year, paging, and CSV export.
 - **Tracking modes:** income only, expenses only, or both, chosen at sign-up.
 - **Accounts and security:**
-  - username login, 2-hour sessions stored in Postgres;
-  - password reset and username lookup by security question, without revealing whether an account exists;
-  - bcrypt hashing;
-  - rate-limited login in production;
-  - Content-Security-Policy and security headers;
-  - row level security on every table.
+  - username and password login with 2-hour sessions;
+  - account recovery by security question that does not reveal whether an account exists, and pauses after repeated wrong answers;
+  - bcrypt password hashing and rate-limited login;
+  - a Content-Security-Policy and standard security headers on every response;
+  - every query limited to the signed-in user, and row level security on every table.
 
 ## Tech stack
 
 | Layer | Technology |
 |---|---|
-| App | Next.js 16 App Router, React 19, TypeScript (strict) |
-| API | Next.js route handlers calling framework-free services in `lib/services/` |
-| Database | Supabase Postgres via `pg` (plain SQL) |
-| Hosting | Vercel (functions in `syd1`, next to Supabase in `ap-southeast-2`) |
-| Tests | Jest (unit, API over HTTP, scripts), Playwright |
+| App | Next.js 16 (App Router), React 19, TypeScript |
+| API | Next.js route handlers in `app/api`, with the logic in `lib/services` |
+| Database | PostgreSQL (Supabase) through `pg`, plain SQL |
+| Hosting | Vercel |
+| Tests | Jest and Playwright |
 
-## Repository layout
+## Project structure
 
 ```
-app/                  Pages (route groups (public) and (app)), API route handlers (app/api), fintech-theme.css
-components/           React components
-proxy.ts              Per-request nonce CSP for pages; sends logged-out visitors to /login
-next.config.ts        Security headers
-lib/                  Server and shared code: db, sessions, rate limits, services/ (accounts, transactions, reports, auth)
-setup-db.js           Creates and migrates the schema (tables, indexes, RLS); safe to rerun
-reset-test-db.js      Clears the test schema (refuses any schema not ending in _test)
-test-helpers.js       Test database helpers
-tests/                API suites (Jest over HTTP), tests/unit (TypeScript), tests/e2e (Playwright)
-scripts/              run-api-tests.js (starts Next.js on the test schema and runs Jest)
-docs/                 API reference, status, v2 audit, migration plan
-vercel.json           Framework and region
+app/            Pages, API route handlers (app/api) and the stylesheet
+components/     React components
+lib/            Server and shared code: database, sessions, rate limits, services
+proxy.ts        Per-request Content-Security-Policy; sends signed-out visitors to /login
+next.config.ts  Security headers
+setup-db.js     Creates and updates the database schema (safe to rerun)
+tests/          API tests, unit tests (tests/unit) and end-to-end tests (tests/e2e)
+docs/           API reference and project status
 ```
 
 ## Getting started
 
-Requirements: Node.js 20.9 or later, and a Supabase project (or any Postgres).
+Requirements: Node.js 20.9 or later, and a PostgreSQL database (for example a Supabase project).
 
 ```bash
 npm install
 ```
 
-Create `.env`:
+Create a `.env` file:
 
 ```env
-DB_HOST=<supabase pooler host>
+DB_HOST=<database host>
 DB_PORT=6543
 DB_NAME=postgres
-DB_USER=postgres.<project-ref>
+DB_USER=<database user>
 DB_PASSWORD=<password>
 DB_SSL=true
-SESSION_SECRET=<64-byte hex>
-NODE_ENV=development
-# Optional: a separate schema for local work; without it you read and write the public schema
-DB_SCHEMA=balancetrack_dev
+SESSION_SECRET=<64-byte hex string>
+# Optional: the Postgres schema to use (default: public)
+DB_SCHEMA=findb_dev
+```
+
+Generate a session secret with:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ```
 
 Create the tables and start the app:
 
 ```bash
-npm run setup-db    # creates tables in DB_SCHEMA (public if unset)
+npm run setup-db    # creates the tables in DB_SCHEMA (public if unset)
 npm run dev         # http://localhost:3000
 ```
 
-> **Warning:** the Supabase database in `.env` also holds production data (schema `public`). Set `DB_SCHEMA` for local development if you do not want to work on production data.
+## Scripts
 
-## Testing
-
-All tests run against the `balancetrack_test` schema, never `public`:
-- `tests/env.js` forces that schema in Jest;
-- every server a test starts gets `DB_SCHEMA=balancetrack_test` and `REQUIRE_TEST_SCHEMA=true`, and then refuses any other schema;
-- the cleanup helpers refuse to delete in any schema whose name does not end in `_test`.
-
-```bash
-npm test                # build Next.js, start it on :3200, run every Jest project
-npm run test:clean      # set up and reset the test schema, then npm test
-npm run test:unit       # TypeScript unit tests only (fast; no server or database)
-npm run test:e2e        # Playwright user flows against a production build on :3100
-npm run typecheck       # tsc --noEmit
-npm run lint            # ESLint (JavaScript and TypeScript)
-```
-
-| Suite | What it proves |
+| Command | What it does |
 |---|---|
-| Jest `api` | API behaviour over HTTP against the real test schema, including atomic writes, exact balance restoration on edit and delete, per-user isolation and account recovery |
-| Jest `unit` | `lib/` in isolation: sessions, rate limits, dates, formatting, routing, security headers |
-| Jest `scripts` | `setup-db.js` and the no-emoji rule |
-| Playwright | The main user flows end to end |
+| `npm run dev` | Development server on port 3000 |
+| `npm run build` / `npm start` | Production build and server |
+| `npm run setup-db` | Create or update the tables |
+| `npm test` | Build the app, start it against the `balancetrack_test` schema, and run all Jest tests |
+| `npm run test:unit` | Unit tests only (no database needed) |
+| `npm run test:e2e` | End-to-end browser tests (Playwright) |
+| `npm run typecheck` / `npm run lint` | TypeScript and ESLint checks |
 
-## Deployment (Vercel + Supabase)
+Tests always use the `balancetrack_test` schema and refuse to run against any other, so they never touch real data. Create it once with `npm run setup-test-db`.
 
-A standard Next.js project on Vercel (`vercel.json` sets the framework and the `syd1` region, next to the Supabase region `ap-southeast-2`).
+## Deployment
 
-### Database layout
+FinDB runs on Vercel as a standard Next.js project (`vercel.json` sets the region, `syd1`).
 
-| Schema | Used by |
-|---|---|
-| `public` | Production |
-| `balancetrack_test` | The test suite |
+1. Import the repository in Vercel.
+2. Add the environment variables from `.env` (Settings > Environment Variables). Use a different `SESSION_SECRET` per environment, and set `DB_SCHEMA=balancetrack_test` for previews so they never touch production data.
+3. Run `npm run setup-db` once against the production database.
 
-Every table has row level security enabled with no policies, so Supabase's public Data API cannot read or change them. The app connects as the table owner, which RLS does not restrict.
-
-### Vercel project setup
-
-1. Import the repository in Vercel. The framework (Next.js) and region come from `vercel.json`.
-2. Set environment variables (Settings > Environment Variables):
-
-   | Variable | Production | Preview |
-   |---|---|---|
-   | `DB_HOST`, `DB_PORT` (`6543`), `DB_NAME` (`postgres`), `DB_USER`, `DB_PASSWORD` | Supabase pooler values | Same |
-   | `DB_SSL` | `true` | `true` |
-   | `SESSION_SECRET` | A 64-byte hex secret | A different secret |
-   | `DB_SCHEMA` | Leave unset (uses `public`) | `balancetrack_test`, so previews never touch production data |
-
-   Generate a secret with `node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`. Vercel sets `NODE_ENV=production` itself.
-3. Pushing a branch creates a preview; merging to `master` deploys production.
-
-After a deploy, check that:
-- `/next-health` returns `{"ok":true,"app":"next"}`;
-- `/` redirects to `/login` when logged out, and logging in lands on `/setup`;
-- adding a transaction works.
-
-### Notes
-
-- Rate limits count in memory, so each function instance counts separately.
-- Sessions are stored in Postgres (`session` table), so they work across instances.
-- `.vercelignore` keeps `.env`, `.db-backups/` and the tests out of CLI uploads.
+Pushing a branch creates a preview deployment; merging into `master` deploys production.
 
 ## Documentation
 
-- [docs/v2-audit.md](docs/v2-audit.md): audit of the codebase, risks, and the decisions for v2
-- [docs/nextjs-migration-plan.md](docs/nextjs-migration-plan.md): migration strategy and step status
 - [docs/API.md](docs/API.md): API reference
 - [docs/STATUS.md](docs/STATUS.md): current status and known issues
-- [CLAUDE.md](CLAUDE.md): working guide for Claude Code in this repository
 
 ## License
 
-`package.json` declares the ISC license. There is no LICENSE file yet.
+ISC (declared in `package.json`).

@@ -8,7 +8,7 @@ const { test, expect } = require('@playwright/test');
 const { uniqueUser, register, chooseTracking } = require('./helpers');
 
 const PAGES = [
-    { path: '/about', heading: 'About BalanceTrack', text: 'Powered by OneMark' },
+    { path: '/about', heading: 'About FinDB', text: 'Powered by OneMark' },
     { path: '/security', heading: 'Security Policy', text: 'Vulnerability Management' },
     { path: '/privacy', heading: 'Privacy Guide', text: 'We never sell your data' },
     { path: '/terms', heading: 'Terms of Service', text: 'Limitation of Liability' },

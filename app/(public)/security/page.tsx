@@ -2,14 +2,14 @@ import type { Metadata } from 'next';
 import { ShieldCheck } from 'lucide-react';
 import { ResourcePage } from '@/components/ResourcePage';
 
-export const metadata: Metadata = { title: 'Security Policy - BalanceTrack' };
+export const metadata: Metadata = { title: 'Security Policy - FinDB' };
 
 export default function SecurityPage() {
     return (
         <ResourcePage icon={ShieldCheck} title="Security Policy" subtitle="Last Updated: September 2026">
             <h2>Data Protection</h2>
             <p>
-                At BalanceTrack, security is our top priority. We implement industry-standard encryption protocols to ensure that
+                At FinDB, security is our top priority. We implement industry-standard encryption protocols to ensure that
                 your financial data remains private and protected at all times.
             </p>
             <h2>Security Measures</h2>

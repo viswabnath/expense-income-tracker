@@ -9,7 +9,7 @@ import { Pool } from 'pg';
  * REQUIRE_TEST_SCHEMA=true (set by `npm test` and the end-to-end runs) refuses to connect to
  * anything but a *_test schema, so a test server can never write production data.
  */
-const globalForDb = globalThis as unknown as { balancetrackPool?: Pool };
+const globalForDb = globalThis as unknown as { findbPool?: Pool };
 
 function createPool(): Pool {
     const schema = process.env.DB_SCHEMA;
@@ -32,6 +32,6 @@ function createPool(): Pool {
 
 /** The shared pool, created on first use (one per server instance; reused across hot reloads in dev) */
 export function db(): Pool {
-    globalForDb.balancetrackPool ??= createPool();
-    return globalForDb.balancetrackPool;
+    globalForDb.findbPool ??= createPool();
+    return globalForDb.findbPool;
 }

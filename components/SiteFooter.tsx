@@ -14,7 +14,7 @@ export function SiteFooter() {
                     <div className="footer-col footer-about">
                         <div className="footer-brand">
                             <LayoutDashboard />
-                            <span>BalanceTrack</span>
+                            <span>FinDB</span>
                         </div>
                         <p>
                             Professional financial tracking designed for simplicity and precision. Manage your wealth,
@@ -53,7 +53,7 @@ export function SiteFooter() {
                 </div>
 
                 <div className="footer-bottom">
-                    <div className="copyright">&copy; 2025 BalanceTrack Premium. All rights reserved.</div>
+                    <div className="copyright">&copy; 2026 FinDB. All rights reserved.</div>
                     <div className="footer-credits">
                         Crafted with <Heart className="icon-danger" /> by{' '}
                         <a href="https://onemark.co.in" target="_blank" rel="noopener noreferrer">Team OneMark</a>
