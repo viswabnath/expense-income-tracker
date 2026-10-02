@@ -7,7 +7,7 @@ import { RequestError, withTransaction } from '../transaction';
 
 /**
  * Registration, login, profile and account recovery: the auth routes moved from
- * legacy/server.js (the last N3 group). Same validation, messages and recovery rules. The route
+ * the former Express app (the last N3 group). Same validation, messages and recovery rules. The route
  * handlers create and destroy sessions (lib/session.ts); these functions only work with users.
  */
 

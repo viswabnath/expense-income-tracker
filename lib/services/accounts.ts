@@ -3,7 +3,7 @@ import { logActivity } from '../activity-log';
 import { RequestError, withTransaction } from '../transaction';
 
 /**
- * Banks, credit cards and cash: the account routes moved from legacy/server.js (N3).
+ * Banks, credit cards and cash: the account routes moved from the former Express app (N3).
  * Same queries, messages and activity log entries as the Express routes, so the API contract
  * suites pass against either app. Known gaps kept for now (see docs/v2-audit.md): add accepts
  * negative balances and zero limits, and edits and deletes write no activity log entry.

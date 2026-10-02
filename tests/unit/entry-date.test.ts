@@ -1,5 +1,5 @@
 /**
- * Unit tests for entryDate in lib/services/transactions.ts (same rule as legacy/server.js)
+ * Unit tests for entryDate in lib/services/transactions.ts
  */
 import { entryDate } from '../../lib/services/transactions';
 

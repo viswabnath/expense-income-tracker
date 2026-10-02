@@ -1,33 +1,20 @@
 /**
- * What the API contract suites send requests to.
- *
- * - Default: the Express app in-process (fast, no server to start).
- * - API_BASE_URL set (e.g. http://localhost:3200): a running server, which can be the
- *   Express app or the Next.js app. The same tests then check either implementation.
- *
- * The running server must use the balancetrack_test schema; the suites also read and
- * write that schema directly through test-helpers.
+ * Where the API suites send their requests: a running Next.js server at API_BASE_URL.
+ * `npm test` builds and starts one on the balancetrack_test schema (scripts/run-api-tests.js);
+ * to test an already running server, set API_BASE_URL yourself. The suites also read and write
+ * the test schema directly through test-helpers.
  */
 const baseUrl = process.env.API_BASE_URL;
 
-let inProcessServer = null;
-function loadInProcessServer() {
-    if (!inProcessServer) {
-        inProcessServer = require('../legacy/server');
-    }
-    return inProcessServer;
-}
-
 /** Pass to supertest: request(target()) or request.agent(target()) */
 function target() {
-    return baseUrl || loadInProcessServer().app;
-}
-
-/** Close the in-process server's database pool, if one was opened */
-async function closeTarget() {
-    if (inProcessServer) {
-        await inProcessServer.pool.end();
+    if (!baseUrl) {
+        throw new Error('API_BASE_URL is not set: run the API suites with `npm test` (it starts a server), or set it to a running server');
     }
+    return baseUrl;
 }
 
-module.exports = { target, closeTarget, isRemote: Boolean(baseUrl) };
+/** Nothing to close: the server runs in its own process */
+async function closeTarget() {}
+
+module.exports = { target, closeTarget };

@@ -2,14 +2,13 @@ import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
 import type { Pool } from 'pg';
 
 /**
- * Reading the legacy Express session from Next.js route handlers, so both apps accept the
- * same login while the API moves over (see docs/nextjs-migration-plan.md, "Sessions").
+ * Login sessions, stored in the `session` table.
  *
- * express-session sends the cookie `sessionId` as `s:<sid>.<signature>` (URL-encoded), where
- * the signature is HMAC-SHA256 of the sid with SESSION_SECRET, base64 without padding (the
- * cookie-signature package). connect-pg-simple stores the session in the `session` table.
- * Since the auth routes moved (N3), sessions are also created and destroyed here, in the same
- * row and cookie format, so either app accepts a session the other made.
+ * The format is the one the former Express app used (express-session with connect-pg-simple),
+ * so sessions created before the move to Next.js stay valid: the cookie `sessionId` is
+ * `s:<sid>.<signature>` (URL-encoded), where the signature is HMAC-SHA256 of the sid with
+ * SESSION_SECRET, base64 without padding (the cookie-signature package; the unit tests check
+ * against it). The row holds sess JSON with the cookie and userId, and an expire time.
  */
 
 export const SESSION_COOKIE = 'sessionId';
@@ -38,7 +37,7 @@ export function unsignSessionCookie(cookieValue: string, secret: string): string
     return given.length === expected.length && timingSafeEqual(given, expected) ? sid : null;
 }
 
-/** The cookie value express-session would set for a session id (used by tests; login moves later) */
+/** The signed cookie value for a session id */
 export function signSessionCookie(sid: string, secret: string): string {
     return encodeURIComponent(`s:${sid}.${sign(sid, secret)}`);
 }
@@ -85,6 +84,8 @@ export async function createSession(pool: Pick<Pool, 'query'>, userId: number, s
     };
     await pool.query('INSERT INTO session (sid, sess, expire) VALUES ($1, $2, to_timestamp($3))',
         [sid, JSON.stringify(sess), expires.getTime() / 1000]);
+    // Expired sessions are removed here (connect-pg-simple pruned them on a timer); indexed on expire
+    await pool.query('DELETE FROM session WHERE expire < NOW()');
     return [
         `${SESSION_COOKIE}=${signSessionCookie(sid, secret)}`, 'Path=/', `Expires=${expires.toUTCString()}`,
         'HttpOnly', 'SameSite=Strict', ...(secure ? ['Secure'] : []),

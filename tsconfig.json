@@ -47,7 +47,6 @@
     "next.config.ts"
   ],
   "exclude": [
-    "node_modules",
-    "legacy"
+    "node_modules"
   ]
 }

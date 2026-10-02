@@ -6,10 +6,6 @@
 
 const request = require('supertest');
 
-// Mock rate limiter to prevent 429 errors in tests
-jest.mock('express-rate-limit', () => {
-    return () => (req, res, next) => next(); // No-op middleware
-});
 
 // Import the actual server app AFTER mocking rate limiter
 const { target, closeTarget } = require('./api-target');

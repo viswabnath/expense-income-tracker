@@ -1,6 +1,6 @@
 /**
  * Client-side checks for the auth forms. Same rules and messages as the legacy
- * AuthManager (legacy/public/js/auth.js) and the server's validatePassword, so users see
+ * single-page app's AuthManager and the server's validatePassword, so users see
  * identical behaviour. The server validates again; these only give faster feedback.
  */
 

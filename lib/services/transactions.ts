@@ -3,7 +3,7 @@ import { logActivity } from '../activity-log';
 import { RequestError, withTransaction } from '../transaction';
 
 /**
- * Income and expenses: the transaction routes moved from legacy/server.js (N3). Every write
+ * Income and expenses: the transaction routes moved from the former Express app (N3). Every write
  * runs in one transaction with the entry, the balance change and the activity entry, and locks
  * the rows it checks or reverses (FOR UPDATE), exactly as the Express routes do.
  */

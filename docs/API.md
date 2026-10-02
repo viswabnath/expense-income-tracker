@@ -1,6 +1,6 @@
 # BalanceTrack API Documentation
 
-All endpoints live in `legacy/server.js` under `/api` (moving to Next.js route handlers in migration step N3). Request and response bodies are JSON.
+All endpoints are Next.js route handlers under `/api` (`app/api`), with the logic in `lib/services/`. Request and response bodies are JSON (the activity export is CSV).
 
 ## Base URL
 ```
@@ -223,19 +223,18 @@ Response:
 
 Errors return `{ "error": "message" }` with status `400` (validation), `401` (not logged in), `404` (record not found for this user), `429` (rate limit) or `500`.
 
-During the move to Next.js (N3), routes served by Next.js answer an unsupported method on an existing path with `405`; Express answers `404`. All routes are served by Next.js; a missing `name` on an account returns `400` (Express returned `500`).
-
-Unknown API paths return `404 { "error": "Not found" }`.
+An unsupported method on an existing path returns `405`. Unknown API paths return `404 { "error": "Not found" }`.
 
 ## Rate limiting
 
-- All requests: 100 per minute per IP. Next.js counts its routes separately from Express; both count in memory per instance.
+- All requests: 100 per minute per IP, then `429`. Counted in memory per server instance.
 - Auth endpoints (register, login, forgot-username, forgot-password, reset-password): 5 **failed** attempts per 15 minutes per IP, then `429`. Successful requests don't count. Skipped in development and when `DISABLE_RATE_LIMIT=true` (test servers).
 
 ## Security notes
 
 - Passwords and security answers are hashed with bcrypt.
 - Queries use parameterized statements.
-- Helmet sets the standard security headers plus a Content-Security-Policy: scripts only from `'self'` and `https://unpkg.com` (Lucide, pinned with an SRI hash), no inline scripts or handlers, fonts from Google Fonts. Inline `style` attributes are allowed. `upgrade-insecure-requests` is only sent in production.
-- In production, requests the proxy reports as plain HTTP (`X-Forwarded-Proto: http`) are redirected to HTTPS with a 301.
+- Every response carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: no-referrer`, `Strict-Transport-Security` and `Cross-Origin-Opener-Policy: same-origin` (`next.config.ts`).
+- API responses carry `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'`. Pages get a per-request nonce policy from `proxy.ts` (`'strict-dynamic'`, no inline scripts).
+- Vercel serves HTTPS only.
 - Monetary columns are `DECIMAL(20,2)`.

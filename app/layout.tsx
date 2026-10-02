@@ -3,7 +3,7 @@ import { headers } from 'next/headers';
 import { Inter } from 'next/font/google';
 import { ToastProvider } from '@/components/Toast';
 // Shared with the legacy app until the redesign, so ported pages look the same
-import '../legacy/public/css/fintech-theme.css';
+import './fintech-theme.css';
 
 // Self-hosted at build time (no request to Google at runtime, so CSP font-src 'self' is enough)
 const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800'] });
