@@ -10,11 +10,22 @@ import { buildContentSecurityPolicy, createNonce } from './lib/csp';
  * Keep this list in step with app/ and the "web" rewrites in vercel.json; a test checks all three.
  */
 /** Logged-in screens served by Next.js; visitors without a session cookie go to /login */
-const APP_PATHS = new Set(['/setup', '/transactions', '/summary']);
+const APP_PATHS = new Set(['/setup', '/transactions', '/summary', '/activity']);
 /** Session cookie set by the legacy Express app (express-session, name: 'sessionId') */
 const SESSION_COOKIE = 'sessionId';
+/** Old links into the legacy single-page app (/?section=...) and where those screens live now */
+const SECTION_PATHS: Record<string, string> = {
+    setup: '/setup', transactions: '/transactions', summary: '/summary', activity: '/activity',
+};
 
 export function proxy(request: NextRequest) {
+    if (request.nextUrl.pathname === '/') {
+        const section = request.nextUrl.searchParams.get('section') ?? '';
+        const target = !request.cookies.has(SESSION_COOKIE) ? '/login'
+            : Object.prototype.hasOwnProperty.call(SECTION_PATHS, section) ? SECTION_PATHS[section]! : '/setup';
+        return NextResponse.redirect(new URL(target, request.url));
+    }
+
     if (APP_PATHS.has(request.nextUrl.pathname) && !request.cookies.has(SESSION_COOKIE)) {
         // Cheap check only: an expired or invalid session is caught by the page's first API call (401)
         return NextResponse.redirect(new URL('/login', request.url));
@@ -39,6 +50,7 @@ export function proxy(request: NextRequest) {
 
 export const config = {
     matcher: [
+        '/',
         '/about',
         '/security',
         '/privacy',
@@ -51,5 +63,6 @@ export const config = {
         '/setup',
         '/transactions',
         '/summary',
+        '/activity',
     ],
 };

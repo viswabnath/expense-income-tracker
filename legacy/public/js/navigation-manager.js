@@ -12,8 +12,8 @@ class NavigationManager {
         // Prevent event from bubbling up if it's from a link
         if (window.event) window.event.preventDefault();
 
-        // Account Setup, Transactions and Monthly Summary are Next.js pages now
-        if (section === 'setup' || section === 'transactions' || section === 'summary') {
+        // Every screen is a Next.js page now
+        if (['setup', 'transactions', 'summary', 'activity'].includes(section)) {
             window.location.assign(`/${section}`);
             return false;
         }

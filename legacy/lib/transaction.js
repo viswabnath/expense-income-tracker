@@ -9,7 +9,8 @@
 
 /**
  * Run `fn` inside one transaction on a single checked-out connection.
- * Commits if `fn` resolves, rolls back if it throws, and always releases the connection.
+ * Commits if `fn` resolves, rolls back if it throws, and always releases the connection
+ * (closing it if the rollback failed).
  * @template T
  * @param {import('pg').Pool} pool
  * @param {(client: import('pg').PoolClient) => Promise<T>} fn
@@ -17,6 +18,9 @@
  */
 async function withTransaction(pool, fn) {
     const client = await pool.connect();
+    // Set when ROLLBACK fails: the connection's state is then unknown (for example a query that
+    // timed out may still be running), so it is closed instead of going back to the pool
+    let broken;
     try {
         await client.query('BEGIN');
         const result = await fn(client);
@@ -24,10 +28,10 @@ async function withTransaction(pool, fn) {
         return result;
     } catch (error) {
         // A failed ROLLBACK must not hide the original error
-        await client.query('ROLLBACK').catch(() => {});
+        await client.query('ROLLBACK').catch((rollbackError) => { broken = rollbackError; });
         throw error;
     } finally {
-        client.release();
+        client.release(broken);
     }
 }
 

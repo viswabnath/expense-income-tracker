@@ -45,6 +45,12 @@ const pool = new Pool({
         : false,
     // Optional Postgres schema; tests use balancetrack_test, production uses public
     ...(process.env.DB_SCHEMA && { options: `-c search_path=${process.env.DB_SCHEMA}` }),
+    // Fail instead of hanging when the database or its pooler stalls: no time limit used to mean
+    // a stalled connection held its request open indefinitely. Client-side limits, so they work
+    // through the Supabase transaction pooler.
+    connectionTimeoutMillis: 10000,
+    query_timeout: 20000,
+    keepAlive: true,
 });
 
 // Test database connection (skip in test environment)
@@ -191,6 +197,14 @@ function entryDate(value) {
     // Rejects dates that do not exist, such as 2026-02-30
     if (new Date(Date.UTC(year, month - 1, dayOfMonth)).toISOString().slice(0, 10) !== day) return null;
     return { date: day, month, year };
+}
+
+// One CSV field: always quoted, quotes doubled, and text a spreadsheet would run as a formula
+// (starting with = + - @, tab or carriage return) prefixed with an apostrophe
+function csvField(value) {
+    let text = String(value ?? '');
+    if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+    return `"${text.replace(/"/g, '""')}"`;
 }
 
 // Send the response for an error thrown inside a route: expected RequestErrors carry their own
@@ -1781,7 +1795,10 @@ app.get('/api/activity', requireAuth, async (req, res) => {
         } = req.query;
 
         const userId = req.session.userId;
-        const offset = (parseInt(page) - 1) * parseInt(limit);
+        // Whole numbers only: a bad value used to reach the SQL as "LIMIT NaN" and fail with a 500
+        const pageNumber = Math.max(1, parseInt(page, 10) || 1);
+        const pageSize = Math.min(100, Math.max(1, parseInt(limit, 10) || 20));
+        const offset = (pageNumber - 1) * pageSize;
 
         // Build WHERE conditions for filtering
         const whereConditions = [];
@@ -1871,27 +1888,30 @@ app.get('/api/activity', requireAuth, async (req, res) => {
         // Apply type filtering if specified
         if (type && type !== '') {
             paramCount++;
+            whereConditions.push(`entity_type = $${paramCount}`);
             activitiesQuery += ` AND entity_type = $${paramCount}`;
             params.push(type);
         }
+        // The same filters, for the page count (the count used to ignore them)
+        const filterSql = whereConditions.length > 0 ? ` AND ${whereConditions.join(' AND ')}` : '';
+        const filterParams = [...params];
 
         activitiesQuery += ' ORDER BY created_at DESC';
 
         // For CSV export, don't limit results
         if (!exportCsv) {
-            activitiesQuery += ` LIMIT ${parseInt(limit)} OFFSET ${offset}`;
+            activitiesQuery += ` LIMIT ${pageSize} OFFSET ${offset}`;
         }
 
         const activitiesResult = await pool.query(activitiesQuery, params);
 
         // Get count for pagination
-        const countQuery = `
-            SELECT COUNT(*) as total FROM activity_log WHERE user_id = $1
-        `;
-
-        const countResult = await pool.query(countQuery, [userId]);
+        const countResult = await pool.query(
+            `SELECT COUNT(*) as total FROM activity_log WHERE user_id = $1${filterSql}`,
+            filterParams
+        );
         const totalItems = parseInt(countResult.rows[0].total);
-        const totalPages = Math.ceil(totalItems / parseInt(limit));
+        const totalPages = Math.ceil(totalItems / pageSize);
 
         // Get summary statistics
         const statsResult = await pool.query(`
@@ -1913,7 +1933,7 @@ app.get('/api/activity', requireAuth, async (req, res) => {
             const csvRows = activitiesResult.rows.map(activity => {
                 const date = new Date(activity.activity_date).toLocaleDateString();
                 const amount = parseFloat(activity.amount || 0).toFixed(2);
-                return `${date},${activity.activity_type},"${activity.description}",${amount},"${activity.account_info || ''}"`;
+                return [date, activity.activity_type, activity.description, amount, activity.account_info || ''].map(csvField).join(',');
             }).join('\n');
 
             res.setHeader('Content-Type', 'text/csv');
@@ -1929,10 +1949,10 @@ app.get('/api/activity', requireAuth, async (req, res) => {
                 totalExpenses: 0,
                 netBalance: 0
             },
-            currentPage: parseInt(page),
+            currentPage: pageNumber,
             totalPages: totalPages,
             totalItems: totalItems,
-            limit: parseInt(limit)
+            limit: pageSize
         });
 
     } catch (error) {

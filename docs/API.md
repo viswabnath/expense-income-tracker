@@ -189,10 +189,12 @@ When the month has no transactions, `message` is `"No transactions found for thi
 **GET** `/api/activity`
 
 Query parameters (all optional):
-- `page` (default 1), `limit` (default 20)
-- `type`: entity type, one of `income`, `expense`, `bank`, `credit_card`, `cash_balance`
+- `page` (default 1), `limit` (default 20, at most 100); values that are not positive whole numbers fall back to the defaults
+- `type`: entity type, one of `income`, `expense`, `bank`, `credit_card`, `cash_balance`, `account` (recovery and password reset entries)
 - `month` + `year`, or `year` alone, or `from_date` / `to_date` (YYYY-MM-DD)
-- `export=true`: returns a CSV file (`activity-export.csv`) instead of JSON, without pagination
+- `export=true`: returns a CSV file (`activity-export.csv`) instead of JSON, without pagination. Every field is quoted with quotes doubled, and a value starting with `=`, `+`, `-`, `@`, tab or carriage return is prefixed with `'` so spreadsheets show it as text
+
+`totalItems` and `totalPages` count only the entries that match the filters.
 
 Response:
 ```json

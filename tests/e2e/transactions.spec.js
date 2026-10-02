@@ -3,7 +3,7 @@
  * Transactions moved to Next.js (/transactions) in N2. Add, edit and delete with balance
  * checks are covered by flows.spec.js; this covers the rest of the screen: messages, the
  * month filter, the "moved to another month" notice, the delete dialog, tracking-option
- * visibility, escaping, navigation to and from the legacy screens, and the CSP.
+ * visibility, escaping, navigation, and the CSP.
  */
 const { test, expect } = require('@playwright/test');
 const { uniqueUser, register, chooseTracking, rupees, today, addBank, showSection, selectAccount } = require('./helpers');
@@ -35,7 +35,7 @@ test('/transactions without a session goes to /login', async ({ page }) => {
     await expect(page).toHaveURL(/\/login$/);
 });
 
-test('transactions renders under the nonce CSP without console errors, and links to and from the legacy screen', async ({ page }) => {
+test('transactions renders under the nonce CSP without console errors, and the nav links to and from Activity work', async ({ page }) => {
     await newUser(page);
     const problems = [];
     page.on('console', message => { if (message.type() === 'error') problems.push(message.text()); });
@@ -49,9 +49,8 @@ test('transactions renders under the nonce CSP without console errors, and links
     expect(response?.headers()['content-security-policy'] || '').toMatch(/'nonce-[A-Za-z0-9+/=]+' 'strict-dynamic'/);
     await expect(page.locator('#transactions-section')).toBeVisible();
 
-    // Activity is still a legacy screen; its nav link back to Transactions must load the Next.js page
     await showSection(page, 'activity');
-    await expect(page).toHaveURL(/\/\?section=activity$/);
+    await expect(page).toHaveURL(/\/activity$/);
     await showSection(page, 'transactions');
     await expect(page).toHaveURL(/\/transactions$/);
 

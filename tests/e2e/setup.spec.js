@@ -2,7 +2,7 @@
 /**
  * Account Setup moved to Next.js (/setup) in N2. The add flows are covered by flows.spec.js;
  * this covers the rest of the screen: validation, edit and delete dialogs, tracking-option
- * visibility, escaping, navigation to the other screens, and the CSP.
+ * visibility, escaping, navigation, and the CSP.
  */
 const { test, expect } = require('@playwright/test');
 const { uniqueUser, register, chooseTracking, rupees, today, addBank, bankRow, cardRow, showSection } = require('./helpers');
@@ -21,8 +21,8 @@ test('/setup without a session goes to /login', async ({ page }) => {
     await expect(page).toHaveURL(/\/login$/);
 });
 
-test('setup renders under the nonce CSP without console errors, and links to the other screens', async ({ page }) => {
-    // Registration visits the logged-out legacy page, which logs an expected 401; watch from Setup on
+test('setup renders under the nonce CSP without console errors, and the nav links to and from Activity work', async ({ page }) => {
+    // Watch from Setup on: registration's own pages are covered by auth-pages.spec.js
     await newUser(page);
     const problems = [];
     page.on('console', message => { if (message.type() === 'error') problems.push(message.text()); });
@@ -34,7 +34,7 @@ test('setup renders under the nonce CSP without console errors, and links to the
     expect(response?.headers()['content-security-policy'] || '').toMatch(/'nonce-[A-Za-z0-9+/=]+' 'strict-dynamic'/);
 
     await showSection(page, 'activity');
-    await expect(page).toHaveURL(/\/\?section=activity$/);
+    await expect(page).toHaveURL(/\/activity$/);
     await showSection(page, 'setup');
     await expect(page).toHaveURL(/\/setup$/);
 

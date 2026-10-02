@@ -140,7 +140,15 @@ Progress:
   - The year list now matches the Transactions filter (2020 to next year). The legacy app filled it twice, with 2020 or five years back depending on which script ran last.
   - No charts yet: they come with the redesign, using the chosen chart library.
   - The legacy Summary section is removed; legacy links and `showSection('summary')` load `/summary`.
-- **Next:** `/activity`.
+- **Activity (done, N2 complete):** `/activity` is a Next.js page.
+  - **Paging now comes from the server, 10 entries per page.** The legacy feed loaded only the API's first page of 20 and paged that locally, so older entries were unreachable.
+  - The API's total and page counts now follow the filters; they used to count every entry.
+  - **Clear** reloads everything. It used to redisplay the last filtered results.
+  - Month is disabled until a year is chosen, because the API filters by month only together with a year.
+  - Entries from the recovery fix have their own labels: "Recovery Attempt Failed" and "Password Reset".
+  - The labels live in `lib/activity.ts`, which is unit tested.
+- **`/` is Next.js too:** `proxy.ts` sends visitors without a session cookie to `/login`, old `/?section=...` links to the matching page, and everyone else to `/setup`.
+- **The legacy frontend can no longer be reached** except as `/index.html`, which redirects to the Next.js pages. Its files and their Jest frontend tests are deleted with Express in N4.
 
 Port one screen per step, each behind its Playwright test. The first ones use the existing `fintech-theme.css` so nothing changes visually. The redesign is a separate later pass, as the brief requires.
 

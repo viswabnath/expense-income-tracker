@@ -13,13 +13,17 @@ export type TransactionPool = Pick<Pool, 'connect'>;
 
 /**
  * Run `fn` inside one transaction on a single checked-out connection.
- * Commits if `fn` resolves, rolls back if it throws, and always releases the connection.
+ * Commits if `fn` resolves, rolls back if it throws, and always releases the connection
+ * (closing it if the rollback failed).
  */
 export async function withTransaction<T>(
     pool: TransactionPool,
     fn: (client: PoolClient) => Promise<T>,
 ): Promise<T> {
     const client = await pool.connect();
+    // Set when ROLLBACK fails: the connection's state is then unknown (for example a query that
+    // timed out may still be running), so it is closed instead of going back to the pool
+    let broken: Error | undefined;
     try {
         await client.query('BEGIN');
         const result = await fn(client);
@@ -27,10 +31,10 @@ export async function withTransaction<T>(
         return result;
     } catch (error) {
         // A failed ROLLBACK must not hide the original error
-        await client.query('ROLLBACK').catch(() => {});
+        await client.query('ROLLBACK').catch((rollbackError: Error) => { broken = rollbackError; });
         throw error;
     } finally {
-        client.release();
+        client.release(broken);
     }
 }
 

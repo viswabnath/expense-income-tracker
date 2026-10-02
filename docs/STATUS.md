@@ -63,10 +63,8 @@ The core features work: auth, accounts, transactions, the activity log and month
 |---|---|---|
 | Medium | Account recovery still rests on a security question, which a person who knows the user can often answer. Guessing is now limited to 5 tries per 15 minutes per account. The real fix is recovery by an emailed link, which needs an email provider (planned for Phase 6) | `legacy/server.js` recovery routes |
 | Low | Registration still says when a username or email is already taken, so it can be used to check whether an email has an account. Closing it also needs email verification | `POST /api/register` |
-| Medium | CSV export does not escape quotes or neutralize formula-like values | `GET /api/activity?export=true` |
 | Low | Logout clears a cookie named `connect.sid` instead of `sessionId` | `legacy/server.js`, logout route |
 | Medium | Legacy toasts insert their message as HTML (`toast-manager.js` uses `innerHTML`); messages can include the user's free-text name. CSP blocks inline script handlers, which limits the impact, and the Next.js toasts render text only | `legacy/public/js/toast-manager.js` |
-| Low | The legacy database pool has no connection or statement timeout, so a stalled Supabase pooler connection hangs requests instead of failing them (one Playwright run hung for hours) | `legacy/server.js`, `new Pool` |
 | Low | `edge-cases` occasionally fails in the full Jest run: a 401 after its re-login (seen before the transaction fix) or its `beforeAll` exceeding 30s (seen once after it). It passes on its own and in most full runs, and a lock probe during a passing run found no stuck transactions. Likely remote-database latency, not confirmed | `tests/edge-cases.test.js` |
 | Low | Transaction dates are sent to the browser as timestamps at the server's midnight, and the add forms default to the UTC date. In a browser far from the server's time zone, or just after midnight IST, a date can show or default to the neighbouring day. To fix with the v2 data model | `legacy/server.js`, `lib/dates.ts` |
 | Low | `tests/setup.js` never runs: `setupFilesAfterEnv` is set at the top level, which Jest ignores when `projects` is used | `package.json` |
@@ -74,6 +72,9 @@ The core features work: auth, accounts, transactions, the activity log and month
 | Low | 9 ESLint warnings, all in three obsolete test files that aren't run (`comprehensive-coverage`, `server-coverage`, `frontend-execution-coverage`) | `tests/` |
 
 ### Fixed on 2026-10-02
+- The database pools had no time limits, so a stalled Supabase connection held requests open indefinitely (a test-database reset once hung for 7 hours, and several end-to-end runs stalled). The app's pool now gives up on a connection after 10 s and on a query after 20 s; the test and setup scripts after 10 s and 60 s. `withTransaction` closes a connection whose rollback failed instead of returning it to the pool.
+- The activity CSV export did not escape quotes, and a value starting with `=`, `+`, `-` or `@` (for example a bank name) would run as a formula in a spreadsheet. Every field is now quoted with quotes doubled, and formula-like values are prefixed with an apostrophe.
+- The activity feed showed only the 20 most recent entries; the API's total ignored the filters; and a non-numeric `limit` caused a 500.
 - Adding income or an expense converted the chosen date through the server's local time. On a server east of UTC (any local run in India), an entry added between midnight and 05:30 was stored on the previous day, but under the new month. It then vanished from its month after an edit. Edits had the matching problem on servers west of UTC. Production runs in UTC and was not affected. Dates are now read straight from `YYYY-MM-DD`, and impossible dates such as 2026-02-30 are refused (`tests/entry-dates.test.js`).
 
 ### Fixed on 2026-10-01

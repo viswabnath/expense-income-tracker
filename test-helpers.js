@@ -20,7 +20,10 @@ try {
         password: process.env.DB_PASSWORD || '',
         port: process.env.DB_PORT || 5432,
         ssl: process.env.DB_SSL === 'true' || process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-        ...(process.env.DB_SCHEMA && { options: `-c search_path=${process.env.DB_SCHEMA}` })
+        ...(process.env.DB_SCHEMA && { options: `-c search_path=${process.env.DB_SCHEMA}` }),
+        // Fail rather than hang if the database stalls (a reset once hung for hours)
+        connectionTimeoutMillis: 10000,
+        query_timeout: 60000
     });
 }
 
