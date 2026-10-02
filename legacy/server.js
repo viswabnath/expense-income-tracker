@@ -207,6 +207,17 @@ function csvField(value) {
     return `"${text.replace(/"/g, '""')}"`;
 }
 
+// Refuse an account the user does not own (same rule as lib/services/transactions.ts). Entries
+// used to accept any account id the client sent, pointing at someone else's account.
+async function requireOwnAccount(client, userId, type, id, allowed) {
+    if (typeof type !== 'string' || !allowed.includes(type)) throw new RequestError(400, 'Invalid account type');
+    if (type === 'cash') return;
+    const accountIdValue = /^\d+$/.test(String(id)) ? id : -1;
+    const table = type === 'bank' ? 'banks' : 'credit_cards';
+    const owned = await client.query(`SELECT id FROM ${table} WHERE id = $1 AND user_id = $2`, [accountIdValue, userId]);
+    if (owned.rows.length === 0) throw new RequestError(400, type === 'bank' ? 'Bank not found' : 'Credit card not found');
+}
+
 // Send the response for an error thrown inside a route: expected RequestErrors carry their own
 // status; anything else is a generic 500
 function sendError(res, error, fallbackMessage = 'An error occurred. Please try again.') {
@@ -935,6 +946,7 @@ app.post('/api/income', requireAuth, async (req, res) => {
 
         // Entry, balance change and activity log commit together or not at all
         const income = await withTransaction(pool, async (client) => {
+            await requireOwnAccount(client, req.session.userId, creditedToType, creditedToId, ['bank', 'cash']);
             const result = await client.query(
                 'INSERT INTO income_entries (user_id, source, amount, credited_to_type, credited_to_id, date, month, year) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
                 [
@@ -1029,6 +1041,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
 
         // Balance check, entry, balance change and activity log commit together or not at all
         const expense = await withTransaction(pool, async (client) => {
+            await requireOwnAccount(client, req.session.userId, paymentMethod, paymentSourceId, ['bank', 'cash', 'credit_card']);
             // Get user's tracking option to determine validation behavior
             const userResult = await client.query(
                 'SELECT tracking_option FROM users WHERE id = $1',
@@ -1213,6 +1226,7 @@ app.put('/api/income/:id', requireAuth, async (req, res) => {
             }
 
             const currentIncome = currentResult.rows[0];
+            await requireOwnAccount(client, req.session.userId, creditedToType, creditedToId, ['bank', 'cash']);
 
             // Reverse the previous transaction effect
             if (currentIncome.credited_to_type === 'bank') {
@@ -1368,6 +1382,7 @@ app.put('/api/expenses/:id', requireAuth, async (req, res) => {
             }
 
             const currentExpense = currentResult.rows[0];
+            await requireOwnAccount(client, req.session.userId, paymentMethod, paymentSourceId, ['bank', 'cash', 'credit_card']);
 
             // Reverse the previous transaction effect
             if (currentExpense.payment_method === 'bank') {

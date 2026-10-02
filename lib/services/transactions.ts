@@ -64,6 +64,28 @@ async function applyExpense(client: Client, userId: number, method: unknown, sou
 
 const amountOf = (value: unknown) => parseFloat(String(value));
 
+/**
+ * Refuse an account the user does not own. Entries used to accept any account id the client
+ * sent: the balance update (limited to the user's rows) then changed nothing, and the entry
+ * pointed at someone else's account.
+ */
+async function requireOwnAccount(client: Client, userId: number, type: unknown, id: unknown, allowed: readonly string[]) {
+    if (typeof type !== 'string' || !allowed.includes(type)) throw new RequestError(400, 'Invalid account type');
+    if (type === 'cash') return;
+    const table = type === 'bank' ? 'banks' : 'credit_cards';
+    const owned = await client.query(`SELECT id FROM ${table} WHERE id = $1 AND user_id = $2`, [id, userId]);
+    if (owned.rows.length === 0) throw new RequestError(400, type === 'bank' ? 'Bank not found' : 'Credit card not found');
+}
+
+const INCOME_ACCOUNTS = ['bank', 'cash'] as const;
+const EXPENSE_ACCOUNTS = ['bank', 'cash', 'credit_card'] as const;
+
+/** Account ids are whole numbers; anything else cannot be one of the user's accounts */
+function accountId(type: unknown, id: unknown): unknown {
+    if (type === 'cash') return id ?? null;
+    return /^\d+$/.test(String(id)) ? id : -1;
+}
+
 // ----- Income -----
 
 export async function listIncome(pool: Pool, userId: number, month: string | null, year: string | null): Promise<QueryResultRow[]> {
@@ -98,6 +120,7 @@ export async function addIncome(pool: Pool, userId: number, body: Body): Promise
     const { source, amount, creditedToType, creditedToId } = body;
     const entry = requireEntryDate(body.date, 'Date is required');
     return withTransaction(pool, async (client) => {
+        await requireOwnAccount(client, userId, creditedToType, accountId(creditedToType, creditedToId), INCOME_ACCOUNTS);
         const result = await client.query(
             'INSERT INTO income_entries (user_id, source, amount, credited_to_type, credited_to_id, date, month, year) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
             [userId, source, amount, creditedToType, creditedToId, entry.date, entry.month, entry.year],
@@ -116,6 +139,7 @@ export async function updateIncome(pool: Pool, userId: number, id: string, body:
         const current = await client.query('SELECT * FROM income_entries WHERE id = $1 AND user_id = $2 FOR UPDATE', [id, userId]);
         if (current.rows.length === 0) throw new RequestError(404, 'Income transaction not found');
         const old = current.rows[0];
+        await requireOwnAccount(client, userId, creditedToType, accountId(creditedToType, creditedToId), INCOME_ACCOUNTS);
 
         await applyIncome(client, userId, old.credited_to_type, old.credited_to_id, old.amount, -1);
         await client.query(
@@ -200,6 +224,7 @@ export async function addExpense(pool: Pool, userId: number, body: Body): Promis
     const { title, amount, paymentMethod, paymentSourceId } = body;
     const entry = requireEntryDate(body.date, 'Date is required');
     return withTransaction(pool, async (client) => {
+        await requireOwnAccount(client, userId, paymentMethod, accountId(paymentMethod, paymentSourceId), EXPENSE_ACCOUNTS);
         await checkCanSpend(client, userId, paymentMethod, paymentSourceId, amount);
         const result = await client.query(
             'INSERT INTO expenses (user_id, title, amount, payment_method, payment_source_id, date, month, year) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
@@ -220,6 +245,7 @@ export async function updateExpense(pool: Pool, userId: number, id: string, body
         const current = await client.query('SELECT * FROM expenses WHERE id = $1 AND user_id = $2 FOR UPDATE', [id, userId]);
         if (current.rows.length === 0) throw new RequestError(404, 'Expense transaction not found');
         const old = current.rows[0];
+        await requireOwnAccount(client, userId, paymentMethod, accountId(paymentMethod, paymentSourceId), EXPENSE_ACCOUNTS);
 
         await applyExpense(client, userId, old.payment_method, old.payment_source_id, old.amount, -1);
         await client.query(

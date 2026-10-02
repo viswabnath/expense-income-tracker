@@ -101,6 +101,7 @@
           "<rootDir>/tests/account-recovery.test.js",
           "<rootDir>/tests/entry-dates.test.js",
           "<rootDir>/tests/activity-api.test.js",
+          "<rootDir>/tests/account-ownership.test.js",
           "<rootDir>/tests/transaction-helper.test.js"
         ],
         "collectCoverageFrom": [
