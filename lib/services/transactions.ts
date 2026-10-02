@@ -1,0 +1,246 @@
+import type { Pool, PoolClient, QueryResultRow } from 'pg';
+import { logActivity } from '../activity-log';
+import { RequestError, withTransaction } from '../transaction';
+
+/**
+ * Income and expenses: the transaction routes moved from legacy/server.js (N3). Every write
+ * runs in one transaction with the entry, the balance change and the activity entry, and locks
+ * the rows it checks or reverses (FOR UPDATE), exactly as the Express routes do.
+ */
+
+type Body = Record<string, unknown>;
+type Client = Pick<PoolClient, 'query'>;
+
+/**
+ * An entry's calendar date as stored: YYYY-MM-DD with its month and year, read from the string
+ * itself (never through the server's time zone). Null for a date that does not exist.
+ */
+export function entryDate(value: unknown): { date: string; month: number; year: number } | null {
+    if (typeof value !== 'string' || value === '') return null;
+    let day = value;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) return null;
+        day = parsed.toISOString().slice(0, 10);
+    }
+    const [year, month, dayOfMonth] = day.split('-').map(Number) as [number, number, number];
+    // Rejects dates that do not exist, such as 2026-02-30
+    if (new Date(Date.UTC(year, month - 1, dayOfMonth)).toISOString().slice(0, 10) !== day) return null;
+    return { date: day, month, year };
+}
+
+function requireEntryDate(value: unknown, requiredMessage?: string) {
+    if (requiredMessage && !value) throw new RequestError(400, requiredMessage);
+    const entry = entryDate(value);
+    if (!entry) throw new RequestError(400, 'Invalid date format');
+    return entry;
+}
+
+/**
+ * Apply (sign 1) or reverse (sign -1) an income entry on the bank or cash it was credited to.
+ * Amounts go to SQL as given, so decimal arithmetic stays exact.
+ */
+async function applyIncome(client: Client, userId: number, type: unknown, sourceId: unknown, amount: unknown, sign: 1 | -1) {
+    const op = sign === 1 ? '+' : '-';
+    if (type === 'bank') {
+        await client.query(`UPDATE banks SET current_balance = current_balance ${op} $1 WHERE id = $2 AND user_id = $3`, [amount, sourceId, userId]);
+    } else if (type === 'cash') {
+        await client.query(`UPDATE cash_balance SET balance = balance ${op} $1 WHERE user_id = $2`, [amount, userId]);
+    }
+}
+
+/** Apply (sign 1) or reverse (sign -1) an expense on its payment source */
+async function applyExpense(client: Client, userId: number, method: unknown, sourceId: unknown, amount: unknown, sign: 1 | -1) {
+    const spend = sign === 1 ? '-' : '+';
+    const use = sign === 1 ? '+' : '-';
+    if (method === 'bank') {
+        await client.query(`UPDATE banks SET current_balance = current_balance ${spend} $1 WHERE id = $2 AND user_id = $3`, [amount, sourceId, userId]);
+    } else if (method === 'credit_card') {
+        await client.query(`UPDATE credit_cards SET used_limit = used_limit ${use} $1 WHERE id = $2 AND user_id = $3`, [amount, sourceId, userId]);
+    } else if (method === 'cash') {
+        await client.query(`UPDATE cash_balance SET balance = balance ${spend} $1 WHERE user_id = $2`, [amount, userId]);
+    }
+}
+
+const amountOf = (value: unknown) => parseFloat(String(value));
+
+// ----- Income -----
+
+export async function listIncome(pool: Pool, userId: number, month: string | null, year: string | null): Promise<QueryResultRow[]> {
+    let query = `
+        SELECT i.*,
+               CASE
+                   WHEN i.credited_to_type = 'bank' THEN b.name
+                   WHEN i.credited_to_type = 'cash' THEN 'Cash'
+                   WHEN i.credited_to_type = 'credit_card' THEN cc.name
+                   ELSE 'Unknown'
+               END as credited_to_name
+        FROM income_entries i
+        LEFT JOIN banks b ON i.credited_to_type = 'bank' AND i.credited_to_id = b.id
+        LEFT JOIN credit_cards cc ON i.credited_to_type = 'credit_card' AND i.credited_to_id = cc.id
+        WHERE i.user_id = $1`;
+    const params: unknown[] = [userId];
+    if (month && year) {
+        query += ' AND i.month = $2 AND i.year = $3';
+        params.push(month, year);
+    }
+    query += ' ORDER BY i.date DESC';
+    return (await pool.query(query, params)).rows;
+}
+
+export async function getIncome(pool: Pool, userId: number, id: string): Promise<QueryResultRow> {
+    const result = await pool.query('SELECT * FROM income_entries WHERE id = $1 AND user_id = $2', [id, userId]);
+    if (result.rows.length === 0) throw new RequestError(404, 'Income transaction not found');
+    return result.rows[0];
+}
+
+export async function addIncome(pool: Pool, userId: number, body: Body): Promise<QueryResultRow> {
+    const { source, amount, creditedToType, creditedToId } = body;
+    const entry = requireEntryDate(body.date, 'Date is required');
+    return withTransaction(pool, async (client) => {
+        const result = await client.query(
+            'INSERT INTO income_entries (user_id, source, amount, credited_to_type, credited_to_id, date, month, year) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+            [userId, source, amount, creditedToType, creditedToId, entry.date, entry.month, entry.year],
+        );
+        await applyIncome(client, userId, creditedToType, creditedToId, amount, 1);
+        await logActivity(client, userId, 'created', 'income', result.rows[0].id, `Added income: ${source}`, amount);
+        return result.rows[0];
+    });
+}
+
+export async function updateIncome(pool: Pool, userId: number, id: string, body: Body): Promise<void> {
+    const { source, amount, creditedToType, creditedToId } = body;
+    const entry = requireEntryDate(body.date);
+    await withTransaction(pool, async (client) => {
+        // Locked so concurrent edits cannot both reverse the same old amount
+        const current = await client.query('SELECT * FROM income_entries WHERE id = $1 AND user_id = $2 FOR UPDATE', [id, userId]);
+        if (current.rows.length === 0) throw new RequestError(404, 'Income transaction not found');
+        const old = current.rows[0];
+
+        await applyIncome(client, userId, old.credited_to_type, old.credited_to_id, old.amount, -1);
+        await client.query(
+            'UPDATE income_entries SET source = $1, amount = $2, credited_to_type = $3, credited_to_id = $4, date = $5, month = $6, year = $7 WHERE id = $8 AND user_id = $9',
+            [source, amount, creditedToType, creditedToId, entry.date, entry.month, entry.year, id, userId],
+        );
+        await applyIncome(client, userId, creditedToType, creditedToId, amount, 1);
+        await logActivity(client, userId, 'updated', 'income', Number(id), `Updated income: ${source}`, amount,
+            { source: old.source, amount: old.amount, credited_to_type: old.credited_to_type, credited_to_id: old.credited_to_id },
+            { source, amount, creditedToType, creditedToId });
+    });
+}
+
+export async function deleteIncome(pool: Pool, userId: number, id: string): Promise<void> {
+    await withTransaction(pool, async (client) => {
+        const current = await client.query('SELECT * FROM income_entries WHERE id = $1 AND user_id = $2 FOR UPDATE', [id, userId]);
+        if (current.rows.length === 0) throw new RequestError(404, 'Income transaction not found');
+        const old = current.rows[0];
+
+        await applyIncome(client, userId, old.credited_to_type, old.credited_to_id, old.amount, -1);
+        await client.query('DELETE FROM income_entries WHERE id = $1 AND user_id = $2', [id, userId]);
+        await logActivity(client, userId, 'deleted', 'income', Number(id), `Deleted income: ${old.source}`, old.amount);
+    });
+}
+
+// ----- Expenses -----
+
+export async function listExpenses(pool: Pool, userId: number, month: string | null, year: string | null): Promise<QueryResultRow[]> {
+    let query = `
+        SELECT e.*,
+               CASE
+                   WHEN e.payment_method = 'bank' THEN b.name
+                   WHEN e.payment_method = 'cash' THEN 'Cash'
+                   WHEN e.payment_method = 'credit_card' THEN cc.name
+                   ELSE 'Unknown'
+               END as payment_source_name
+        FROM expenses e
+        LEFT JOIN banks b ON e.payment_method = 'bank' AND e.payment_source_id = b.id
+        LEFT JOIN credit_cards cc ON e.payment_method = 'credit_card' AND e.payment_source_id = cc.id
+        WHERE e.user_id = $1`;
+    const params: unknown[] = [userId];
+    if (month && year) {
+        query += ' AND e.month = $2 AND e.year = $3';
+        params.push(month, year);
+    }
+    query += ' ORDER BY e.date DESC';
+    return (await pool.query(query, params)).rows;
+}
+
+export async function getExpense(pool: Pool, userId: number, id: string): Promise<QueryResultRow> {
+    const result = await pool.query('SELECT * FROM expenses WHERE id = $1 AND user_id = $2', [id, userId]);
+    if (result.rows.length === 0) throw new RequestError(404, 'Expense transaction not found');
+    return result.rows[0];
+}
+
+/**
+ * Users who also track income cannot overspend: the bank, cash or card must cover the amount.
+ * Expenses-only users skip this check (their balances still change). Rows are locked so two
+ * expenses cannot both pass the check. Compared as numbers: the legacy check compared the stored
+ * balance text with the amount, which went wrong for an amount sent as a string.
+ */
+async function checkCanSpend(client: Client, userId: number, method: unknown, sourceId: unknown, amount: unknown) {
+    const user = await client.query('SELECT tracking_option FROM users WHERE id = $1', [userId]);
+    if ((user.rows[0]?.tracking_option || 'both') === 'expenses') return;
+
+    const needed = amountOf(amount);
+    if (method === 'bank') {
+        const bank = await client.query('SELECT current_balance FROM banks WHERE id = $1 AND user_id = $2 FOR UPDATE', [sourceId, userId]);
+        if (bank.rows.length === 0 || amountOf(bank.rows[0].current_balance) < needed) throw new RequestError(400, 'Insufficient bank balance');
+    } else if (method === 'cash') {
+        const cash = await client.query('SELECT balance FROM cash_balance WHERE user_id = $1 FOR UPDATE', [userId]);
+        if (cash.rows.length === 0 || amountOf(cash.rows[0].balance) < needed) throw new RequestError(400, 'Insufficient cash balance');
+    } else if (method === 'credit_card') {
+        const card = await client.query('SELECT credit_limit, used_limit FROM credit_cards WHERE id = $1 AND user_id = $2 FOR UPDATE', [sourceId, userId]);
+        if (card.rows.length === 0 || amountOf(card.rows[0].credit_limit) - amountOf(card.rows[0].used_limit) < needed) {
+            throw new RequestError(400, 'Insufficient credit limit');
+        }
+    }
+}
+
+export async function addExpense(pool: Pool, userId: number, body: Body): Promise<QueryResultRow> {
+    const { title, amount, paymentMethod, paymentSourceId } = body;
+    const entry = requireEntryDate(body.date, 'Date is required');
+    return withTransaction(pool, async (client) => {
+        await checkCanSpend(client, userId, paymentMethod, paymentSourceId, amount);
+        const result = await client.query(
+            'INSERT INTO expenses (user_id, title, amount, payment_method, payment_source_id, date, month, year) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
+            [userId, title, amount, paymentMethod, paymentSourceId, entry.date, entry.month, entry.year],
+        );
+        // Balances always change, for every tracking option
+        await applyExpense(client, userId, paymentMethod, paymentSourceId, amount, 1);
+        await logActivity(client, userId, 'created', 'expense', result.rows[0].id, `Added expense: ${title}`, amount);
+        return result.rows[0];
+    });
+}
+
+export async function updateExpense(pool: Pool, userId: number, id: string, body: Body): Promise<void> {
+    const { title, amount, paymentMethod, paymentSourceId } = body;
+    const entry = requireEntryDate(body.date);
+    await withTransaction(pool, async (client) => {
+        // Locked so concurrent edits cannot both reverse the same old amount
+        const current = await client.query('SELECT * FROM expenses WHERE id = $1 AND user_id = $2 FOR UPDATE', [id, userId]);
+        if (current.rows.length === 0) throw new RequestError(404, 'Expense transaction not found');
+        const old = current.rows[0];
+
+        await applyExpense(client, userId, old.payment_method, old.payment_source_id, old.amount, -1);
+        await client.query(
+            'UPDATE expenses SET title = $1, amount = $2, payment_method = $3, payment_source_id = $4, date = $5, month = $6, year = $7 WHERE id = $8 AND user_id = $9',
+            [title, amount, paymentMethod, paymentSourceId, entry.date, entry.month, entry.year, id, userId],
+        );
+        await applyExpense(client, userId, paymentMethod, paymentSourceId, amount, 1);
+        await logActivity(client, userId, 'updated', 'expense', Number(id), `Updated expense: ${title}`, amount,
+            { title: old.title, amount: old.amount, payment_method: old.payment_method, payment_source_id: old.payment_source_id },
+            { title, amount, paymentMethod, paymentSourceId });
+    });
+}
+
+export async function deleteExpense(pool: Pool, userId: number, id: string): Promise<void> {
+    await withTransaction(pool, async (client) => {
+        const current = await client.query('SELECT * FROM expenses WHERE id = $1 AND user_id = $2 FOR UPDATE', [id, userId]);
+        if (current.rows.length === 0) throw new RequestError(404, 'Expense transaction not found');
+        const old = current.rows[0];
+
+        await applyExpense(client, userId, old.payment_method, old.payment_source_id, old.amount, -1);
+        await client.query('DELETE FROM expenses WHERE id = $1 AND user_id = $2', [id, userId]);
+        await logActivity(client, userId, 'deleted', 'expense', Number(id), `Deleted expense: ${old.title}`, old.amount);
+    });
+}

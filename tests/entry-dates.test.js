@@ -4,6 +4,7 @@
  * An income or expense must be stored on the calendar date the user picked, in the month and
  * year of that date, whatever the server's time zone. The add routes used to convert through
  * local time, which stored entries made just after midnight IST on the previous day.
+ * Also covers the overspend check's handling of amounts sent as strings.
  * @jest-environment node
  */
 
@@ -80,6 +81,17 @@ describe.each(['Pacific/Kiritimati', 'America/Los_Angeles'])('server time zone %
         expect(editedExpense.status).toBe(200);
         expect(await stored('expenses', expense.body.id)).toEqual({ date: '2026-12-31', month: 12, year: 2026 });
     });
+});
+
+test('an amount sent as a string is checked as a number', async () => {
+    // A bank with 100000: "700" must pass the overspend check (a text comparison refused it)
+    const response = await agent.post('/api/expenses')
+        .send({ title: 'String amount', amount: '700', paymentMethod: 'bank', paymentSourceId: bankId, date: '2026-04-01' });
+    expect(response.status).toBe(200);
+    const tooMuch = await agent.post('/api/expenses')
+        .send({ title: 'Too much', amount: '9999999', paymentMethod: 'bank', paymentSourceId: bankId, date: '2026-04-01' });
+    expect(tooMuch.status).toBe(400);
+    expect(tooMuch.body.error).toBe('Insufficient bank balance');
 });
 
 test('dates that do not exist are refused', async () => {

@@ -52,7 +52,7 @@ describe('Next.js routing during the migration', () => {
     });
 
     test('the legacy app still owns everything else', () => {
-        for (const legacyPath of ['/api/income', '/api/login', '/css/fintech-theme.css', '/js/app.js', '/index.html']) {
+        for (const legacyPath of ['/api/monthly-summary', '/api/activity', '/api/login', '/css/fintech-theme.css', '/js/app.js', '/index.html']) {
             expect(routedToWeb(legacyPath)).toBe(false);
         }
     });
