@@ -6,12 +6,16 @@
  *   node scripts/run-contract-tests.js --stack         start the production layout: Express, a Next.js
  *                                                      build and the vercel.json router, and test through
  *                                                      the router (moved routes reach Next.js, logins Express)
+ *   node scripts/run-contract-tests.js --stack tests/atomic-writes.test.js
+ *                                                      only the named suites
  *   API_BASE_URL=http://localhost:3000 node scripts/run-contract-tests.js
  *                                                      test an already running server
  *
  * The server under test must use the balancetrack_test schema.
  */
 const { spawn } = require('child_process');
+const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
@@ -23,6 +27,7 @@ const CONTRACT_SUITES = [
     'tests/bank-deletion-fix.test.js',
     'tests/cash-balance-activity.test.js',
     'tests/entry-dates.test.js',
+    'tests/activity-api.test.js',
 ];
 
 async function waitUntilUp(url, timeoutMs = 60_000) {
@@ -48,12 +53,19 @@ function run(command, args, env) {
 
 const TEST_SERVER_ENV = { NODE_ENV: 'test', DB_SCHEMA: 'balancetrack_test' };
 
+/** Server output goes to log files (named in the run's output), so a 500 can be traced afterwards */
+const LOG_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'balancetrack-contract-'));
+function logTo(name) {
+    const fd = fs.openSync(path.join(LOG_DIR, `${name}.log`), 'a');
+    return ['ignore', fd, fd];
+}
+
 /** Express, a production Next.js build and the router, wired like Vercel; returns the processes */
 async function startStack() {
     const webPort = PORT + 1;
     const legacyPort = PORT + 2;
     const legacy = spawn('node', ['legacy/server.js'], {
-        cwd: ROOT, env: { ...process.env, ...TEST_SERVER_ENV, PORT: String(legacyPort) }, stdio: 'ignore',
+        cwd: ROOT, env: { ...process.env, ...TEST_SERVER_ENV, PORT: String(legacyPort) }, stdio: logTo('legacy'),
     });
     console.log('Building Next.js...');
     const built = await run('npx', ['next', 'build'], { LEGACY_URL: '' });
@@ -63,7 +75,7 @@ async function startStack() {
         cwd: ROOT,
         // Same safety settings as the Playwright web server: test schema only, no request limit
         env: { ...process.env, LEGACY_URL: '', DB_SCHEMA: 'balancetrack_test', REQUIRE_TEST_SCHEMA: 'true', DISABLE_RATE_LIMIT: 'true' },
-        stdio: 'ignore',
+        stdio: logTo('web'),
     });
     const router = spawn('node', ['scripts/services-router.js'], {
         cwd: ROOT,
@@ -93,8 +105,11 @@ async function main() {
         await waitUntilUp(baseUrl);
     }
 
-    console.log(`Running API contract suites against ${baseUrl}`);
-    const code = await run('npx', ['jest', '--selectProjects', 'backend', '--runTestsByPath', ...CONTRACT_SUITES,
+    console.log(`Running API contract suites against ${baseUrl} (server logs in ${LOG_DIR})`);
+    // Test files named on the command line replace the default list
+    const named = process.argv.slice(2).filter(arg => arg.endsWith('.test.js'));
+    const suites = named.length > 0 ? named : CONTRACT_SUITES;
+    const code = await run('npx', ['jest', '--selectProjects', 'backend', '--runTestsByPath', ...suites,
         '--detectOpenHandles', '--forceExit'], { API_BASE_URL: baseUrl });
 
     servers.forEach(server => server.kill());

@@ -223,7 +223,7 @@ Response:
 
 Errors return `{ "error": "message" }` with status `400` (validation), `401` (not logged in), `404` (record not found for this user), `429` (rate limit) or `500`.
 
-During the move to Next.js (N3), routes served by Next.js answer an unsupported method on an existing path with `405`; Express answers `404`. The account routes (banks, credit cards, cash) and the income and expense routes are served by Next.js; a missing `name` on an account returns `400` (Express returned `500`).
+During the move to Next.js (N3), routes served by Next.js answer an unsupported method on an existing path with `405`; Express answers `404`. All routes except the auth routes (register, login, logout, recovery, user, tracking option) are served by Next.js; a missing `name` on an account returns `400` (Express returned `500`).
 
 ## Rate limiting
 

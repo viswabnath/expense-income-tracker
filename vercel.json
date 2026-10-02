@@ -33,7 +33,7 @@
       }
     },
     {
-      "source": "/api/(banks|credit-cards|cash-balance|income|expenses)",
+      "source": "/api/(banks|credit-cards|cash-balance|income|expenses|monthly-summary|activity)",
       "destination": {
         "service": "web"
       }
