@@ -1,6 +1,6 @@
 /**
  * Database transaction helpers for the Next.js app. Framework-free (no Next.js imports).
- * Same behaviour as legacy/lib/transaction.js, which the Express app uses until N4.
+ * Every multi-statement write goes through withTransaction (tests/atomic-writes.test.js checks the source).
  *
  * Never run `pool.query('BEGIN')`: a pg Pool may send each query to a different
  * connection, so the statements are not atomic and the open transaction leaks to

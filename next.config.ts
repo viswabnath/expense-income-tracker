@@ -1,25 +1,28 @@
 import type { NextConfig } from 'next';
 
 /**
- * During the migration the legacy Express app serves every path Next.js does not own.
- * In production, Vercel Services routes traffic (see vercel.json) and LEGACY_URL is unset.
- * Locally (`npm run dev`, Playwright), Express runs on LEGACY_URL and this fallback rewrite
- * forwards anything Next.js does not handle, so localhost behaves like production.
- * Rewrites are fixed at build time, so LEGACY_URL must be set for `next build` too.
+ * Security headers for every response. The page Content-Security-Policy is per request (a nonce),
+ * so proxy.ts sets it; API responses are JSON or CSV and never render, so they get a policy that
+ * allows nothing. Vercel serves HTTPS only, so no HTTP-to-HTTPS redirect is needed here.
+ * tests/unit/security-headers.test.ts checks this list.
  */
-const legacyUrl = process.env.LEGACY_URL;
+export const SECURITY_HEADERS = [
+    { key: 'X-Content-Type-Options', value: 'nosniff' },
+    { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+    { key: 'Referrer-Policy', value: 'no-referrer' },
+    { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+    { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+];
+
+export const API_CONTENT_SECURITY_POLICY = "default-src 'none'; frame-ancestors 'none'";
 
 const nextConfig: NextConfig = {
     poweredByHeader: false,
-    async rewrites() {
-        if (!legacyUrl) {
-            return [];
-        }
-        return {
-            beforeFiles: [],
-            afterFiles: [],
-            fallback: [{ source: '/:path*', destination: `${legacyUrl}/:path*` }],
-        };
+    async headers() {
+        return [
+            { source: '/:path*', headers: SECURITY_HEADERS },
+            { source: '/api/:path*', headers: [{ key: 'Content-Security-Policy', value: API_CONTENT_SECURITY_POLICY }] },
+        ];
     },
 };
 

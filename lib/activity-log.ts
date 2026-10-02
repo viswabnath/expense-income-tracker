@@ -2,7 +2,7 @@ import type { PoolClient } from 'pg';
 
 /**
  * Write one activity log entry on the transaction's client, so the entry commits or rolls back
- * with the change it describes. Same columns and JSON as logActivity in legacy/server.js.
+ * with the change it describes. Same columns and JSON as the former Express app wrote.
  */
 export async function logActivity(
     client: Pick<PoolClient, 'query'>,

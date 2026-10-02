@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { Heart, LayoutDashboard } from 'lucide-react';
 
 /**
- * Same markup and classes as the legacy footer (legacy/public/index.html), so the shared
+ * Same markup and classes as the former single-page app's footer, so the shared
  * fintech-theme.css styles it identically. Quick links go to the app's screens; proxy.ts
  * sends logged-out visitors to /login.
  */

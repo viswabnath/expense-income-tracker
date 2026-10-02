@@ -2,7 +2,7 @@ import type { Pool, QueryResultRow } from 'pg';
 import { RequestError } from '../transaction';
 
 /**
- * Monthly summary and activity feed: the report routes moved from legacy/server.js (N3).
+ * Monthly summary and activity feed: the report routes moved from the former Express app (N3).
  * Same queries and response shapes as the Express routes, except that the activity feed's
  * account-name lookups are limited to the user's own accounts (see activityAccountInfo).
  */

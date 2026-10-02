@@ -6,7 +6,7 @@ A personal finance tracker for people in India. You enter your money manually: b
 
 BalanceTrack is being extended into a public personal-finance product. The plan has two tracks, run one after the other.
 
-**1. Move to Next.js (in progress).** The app is moving from plain JavaScript with Express to Next.js, one piece at a time, without changing behaviour. See [docs/nextjs-migration-plan.md](docs/nextjs-migration-plan.md).
+**1. Move to Next.js (done).** The app moved from plain JavaScript with Express to Next.js one piece at a time, without changing behaviour except for the fixes listed in [docs/STATUS.md](docs/STATUS.md). See [docs/nextjs-migration-plan.md](docs/nextjs-migration-plan.md).
 
 | Step | What | Status |
 |---|---|---|
@@ -15,9 +15,9 @@ BalanceTrack is being extended into a public personal-finance product. The plan 
 | N1 | Express moved to `legacy/`, Next.js scaffolded alongside it | Done, live on Vercel |
 | N2 | Screens move to React, one at a time | Done: every page is Next.js |
 | N3 | API routes move to Next.js route handlers | Done |
-| N4 | Express removed | |
+| N4 | Express removed | Done |
 
-**2. v2 features (after the migration).** The scope and decisions are in [docs/v2-audit.md](docs/v2-audit.md).
+**2. v2 features (next).** The scope and decisions are in [docs/v2-audit.md](docs/v2-audit.md).
 
 | Phase | What |
 |---|---|
@@ -52,29 +52,29 @@ Principles that apply to every phase:
 
 ## Tech stack
 
-| Layer | Today | Target |
-|---|---|---|
-| Frontend | Plain JavaScript modules in `legacy/public/` | Next.js 16 App Router, React 19, TypeScript (strict) |
-| API | Express 5 in `legacy/server.js` | Next.js route handlers calling framework-free services in `lib/` |
-| Database | Supabase Postgres via `pg` (plain SQL) | Same, plus per-request database-enforced isolation |
-| Hosting | Vercel, two services in one project during the migration | Vercel, Next.js only |
-| Tests | Jest (backend, frontend, unit), Playwright, API contract suites | Same |
+| Layer | Technology |
+|---|---|
+| App | Next.js 16 App Router, React 19, TypeScript (strict) |
+| API | Next.js route handlers calling framework-free services in `lib/services/` |
+| Database | Supabase Postgres via `pg` (plain SQL) |
+| Hosting | Vercel (functions in `syd1`, next to Supabase in `ap-southeast-2`) |
+| Tests | Jest (unit, API over HTTP, scripts), Playwright |
 
 ## Repository layout
 
 ```
-app/                  Next.js app: public pages, auth screens (login, register, recovery, welcome), Account Setup (/setup), Transactions (/transactions), Monthly Summary (/summary), Activity (/activity), /next-health
-components/           React components shared by Next.js pages
-proxy.ts              Per-request nonce CSP for Next.js pages
-lib/                  Framework-free server code for Next.js (TypeScript)
-legacy/               Current Express app: server.js, public/ (frontend), lib/, package.json
+app/                  Pages (route groups (public) and (app)), API route handlers (app/api), fintech-theme.css
+components/           React components
+proxy.ts              Per-request nonce CSP for pages; sends logged-out visitors to /login
+next.config.ts        Security headers
+lib/                  Server and shared code: db, sessions, rate limits, services/ (accounts, transactions, reports, auth)
 setup-db.js           Creates and migrates the schema (tables, indexes, RLS); safe to rerun
 reset-test-db.js      Clears the test schema (refuses any schema not ending in _test)
 test-helpers.js       Test database helpers
-tests/                Jest suites, tests/unit (TypeScript), tests/e2e (Playwright)
-scripts/              dev.js (runs both apps), run-contract-tests.js
+tests/                API suites (Jest over HTTP), tests/unit (TypeScript), tests/e2e (Playwright)
+scripts/              run-api-tests.js (starts Next.js on the test schema and runs Jest)
 docs/                 API reference, status, v2 audit, migration plan
-vercel.json           Vercel Services, rewrites, region, security headers
+vercel.json           Framework and region
 ```
 
 ## Getting started
@@ -100,44 +100,41 @@ NODE_ENV=development
 DB_SCHEMA=balancetrack_dev
 ```
 
-Create the tables and start both apps:
+Create the tables and start the app:
 
 ```bash
 npm run setup-db    # creates tables in DB_SCHEMA (public if unset)
-npm run dev         # Express on :3001, Next.js on :3000; open http://localhost:3000
+npm run dev         # http://localhost:3000
 ```
 
 > **Warning:** the Supabase database in `.env` also holds production data (schema `public`). Set `DB_SCHEMA` for local development if you do not want to work on production data.
 
 ## Testing
 
-All tests run against the `balancetrack_test` schema, never `public`. `tests/env.js` forces that schema, and the cleanup helpers refuse to delete in any schema whose name does not end in `_test`.
+All tests run against the `balancetrack_test` schema, never `public`:
+- `tests/env.js` forces that schema in Jest;
+- every server a test starts gets `DB_SCHEMA=balancetrack_test` and `REQUIRE_TEST_SCHEMA=true`, and then refuses any other schema;
+- the cleanup helpers refuse to delete in any schema whose name does not end in `_test`.
 
 ```bash
-npm run test:clean      # set up and reset the test schema, then run all Jest projects
-npm run test:unit       # TypeScript unit tests (tests/unit)
-npm run test:e2e        # Playwright user flows; starts the app on :3100
-npm run test:contract   # API contract suites over HTTP; starts the app on :3200, or uses API_BASE_URL
-npm run test:contract:stack  # the same suites through Express + Next.js behind the vercel.json router
+npm test                # build Next.js, start it on :3200, run every Jest project
+npm run test:clean      # set up and reset the test schema, then npm test
+npm run test:unit       # TypeScript unit tests only (fast; no server or database)
+npm run test:e2e        # Playwright user flows against a production build on :3100
 npm run typecheck       # tsc --noEmit
 npm run lint            # ESLint (JavaScript and TypeScript)
 ```
 
 | Suite | What it proves |
 |---|---|
-| Jest `backend` | API behaviour against the real test schema, including atomic writes and exact balance restoration on edit and delete |
-| Jest `frontend` | The legacy frontend modules (jsdom) |
-| Jest `unit` | Framework-free TypeScript in `lib/` |
-| Playwright | The main user flows end to end, through a local router that applies the `vercel.json` rewrites; used to check each migration step |
-| Contract | The same API tests against any running server, so Express and Next.js can be compared |
+| Jest `api` | API behaviour over HTTP against the real test schema, including atomic writes, exact balance restoration on edit and delete, per-user isolation and account recovery |
+| Jest `unit` | `lib/` in isolation: sessions, rate limits, dates, formatting, routing, security headers |
+| Jest `scripts` | `setup-db.js` and the no-emoji rule |
+| Playwright | The main user flows end to end |
 
 ## Deployment (Vercel + Supabase)
 
-During the migration one Vercel project runs two services (`vercel.json`):
-- `web`: Next.js, at the repo root.
-- `legacy`: the Express app in `legacy/`, which serves `legacy/public/` from the CDN.
-
-Rewrites send each path to one of them. Today every page, all of `/api/*`, `/next-health` and Next.js assets (`/_next/*`) go to `web`; only the old frontend's static files still go to `legacy`, until N4 removes it. The exact list is the `web` rewrite in `vercel.json`. Functions run in `syd1`, next to the Supabase region (`ap-southeast-2`).
+A standard Next.js project on Vercel (`vercel.json` sets the framework and the `syd1` region, next to the Supabase region `ap-southeast-2`).
 
 ### Database layout
 
@@ -150,7 +147,7 @@ Every table has row level security enabled with no policies, so Supabase's publi
 
 ### Vercel project setup
 
-1. Import the repository in Vercel. The services come from `vercel.json`.
+1. Import the repository in Vercel. The framework (Next.js) and region come from `vercel.json`.
 2. Set environment variables (Settings > Environment Variables):
 
    | Variable | Production | Preview |
@@ -164,13 +161,13 @@ Every table has row level security enabled with no policies, so Supabase's publi
 3. Pushing a branch creates a preview; merging to `master` deploys production.
 
 After a deploy, check that:
-- `/next-health` returns `{"ok":true,"app":"next"}` (Next.js is routed);
-- `/` redirects to `/login` when logged out (Express is routed), and logging in lands on `/setup` (Next.js);
-- logging in and adding a transaction works.
+- `/next-health` returns `{"ok":true,"app":"next"}`;
+- `/` redirects to `/login` when logged out, and logging in lands on `/setup`;
+- adding a transaction works.
 
 ### Notes
 
-- The login rate limit counts in memory, so each function instance counts separately.
+- Rate limits count in memory, so each function instance counts separately.
 - Sessions are stored in Postgres (`session` table), so they work across instances.
 - `.vercelignore` keeps `.env`, `.db-backups/` and the tests out of CLI uploads.
 

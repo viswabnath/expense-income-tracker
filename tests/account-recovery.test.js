@@ -8,7 +8,6 @@
 
 const request = require('supertest');
 
-jest.mock('express-rate-limit', () => () => (req, res, next) => next());
 
 const { target, closeTarget } = require('./api-target');
 const { createTestUser, deleteTestUser, query } = require('../test-helpers');

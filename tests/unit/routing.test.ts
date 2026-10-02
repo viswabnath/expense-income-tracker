@@ -1,8 +1,7 @@
 /**
- * During the migration a path works only if three lists agree:
- *   - app/                 has the page or route handler
- *   - vercel.json          rewrites the path to the "web" (Next.js) service
- *   - proxy.ts matcher     gives pages the nonce CSP (legacy paths must NOT be matched)
+ * Every page must get the per-request nonce Content-Security-Policy from proxy.ts, so the
+ * proxy matcher has to list exactly the pages in app/. API routes are not matched: they are
+ * JSON and get a deny-all policy from next.config.ts instead.
  */
 import fs from 'fs';
 import path from 'path';
@@ -27,34 +26,25 @@ function toRoute(file: string): string {
 const pageRoutes = findFiles(path.join(root, 'app'), 'page.tsx').map(toRoute).sort();
 const handlerRoutes = findFiles(path.join(root, 'app'), 'route.ts').map(toRoute).sort();
 
-const vercel = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8')) as {
-    rewrites: { source: string; destination: { service: string } }[];
-};
-const webSources = vercel.rewrites.filter(rule => rule.destination.service === 'web').map(rule => rule.source);
-const routedToWeb = (route: string) => webSources.some(source => new RegExp(`^${source}$`).test(route));
-
 const proxySource = fs.readFileSync(path.join(root, 'proxy.ts'), 'utf8');
 const matcherMatch = proxySource.match(/matcher:\s*\[([^\]]*)\]/);
 const proxyMatcher = matcherMatch ? [...matcherMatch[1]!.matchAll(/'([^']+)'/g)].map(m => m[1]!).sort() : [];
 
-describe('Next.js routing during the migration', () => {
-    test('every page and route handler is rewritten to the web service', () => {
-        const missing = [...pageRoutes, ...handlerRoutes].filter(route => !routedToWeb(route));
-        expect(missing).toEqual([]);
-    });
-
-    test('Next.js assets are rewritten to the web service', () => {
-        expect(routedToWeb('/_next/static/chunks/app.js')).toBe(true);
-    });
-
-    test('the proxy matcher lists exactly the pages (so legacy paths keep their own CSP)', () => {
+describe('routing', () => {
+    test('the proxy matcher lists exactly the pages', () => {
         expect(proxyMatcher).toEqual(pageRoutes);
     });
 
-    test('the legacy app still owns its static files', () => {
-        // Only the legacy frontend's static files remain (unreachable from the app since N2; removed in N4)
-        for (const legacyPath of ['/css/fintech-theme.css', '/js/app.js', '/index.html']) {
-            expect(routedToWeb(legacyPath)).toBe(false);
-        }
+    test('API route handlers are not matched by the proxy', () => {
+        const apiRoutes = handlerRoutes.filter(route => route.startsWith('/api/'));
+        expect(apiRoutes.length).toBeGreaterThan(0);
+        expect(proxyMatcher.filter(route => route.startsWith('/api'))).toEqual([]);
+    });
+
+    test('vercel.json is a plain Next.js project (no services or rewrites since N4)', () => {
+        const vercel = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+        expect(vercel.framework).toBe('nextjs');
+        expect(vercel.services).toBeUndefined();
+        expect(vercel.rewrites).toBeUndefined();
     });
 });

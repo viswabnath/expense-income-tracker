@@ -6,34 +6,28 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Development
-npm run dev          # Express (legacy/) on :3001 + next dev on :3000; open http://localhost:3000
-npm run dev:legacy   # Express only, with nodemon
+npm run dev          # next dev on :3000 (without DB_SCHEMA it reads and writes production data)
 npm run build        # next build
 npm run typecheck    # tsc --noEmit
-npm run test:unit    # TypeScript unit tests (tests/unit)
+npm run lint         # ESLint (npm run lint:fix to fix)
 
 # Database
-npm run setup-db     # Create/migrate all tables (public schema = production)
+npm run setup-db       # Create/migrate all tables (public schema = production)
 npm run setup-test-db  # Same, in the balancetrack_test schema
-npm run reset-test-db  # Delete all rows from app tables in the .env database (destructive)
+npm run reset-test-db  # Delete all rows from app tables in the test schema (destructive)
 
 # Testing
-npm test                        # Run all tests
-npm run test:backend            # Backend Jest project only
-npm run test:frontend           # Frontend Jest project only (jsdom)
-npm run test:coverage           # With coverage report
-npm run test:clean              # Reset test DB then run all tests
-npm run test:e2e                # Playwright: router :3100 (vercel.json rewrites) -> Next.js :3101 + Express :3102, test schema
-npm run test:contract           # API contract suites against a running server (API_BASE_URL, or starts Express on :3200)
-npm run test:contract:stack     # The same suites through the router: Express + a Next.js build, as on Vercel
+npm test               # Build Next.js, start it on :3200 (test schema), run every Jest project
+npm run test:clean     # Set up and reset the test schema, then npm test
+npm run test:unit      # TypeScript unit tests only (fast, no server or database)
+npm run test:e2e       # Playwright user flows against a production build on :3100 (test schema)
 
-# Run a single test file
-npx jest tests/server.test.js --detectOpenHandles --forceExit
-
-# Linting
-npm run lint         # Check
-npm run lint:fix     # Auto-fix
+# Some test files only (the API suites still need the server the script starts)
+node scripts/run-api-tests.js tests/atomic-writes.test.js
+npx jest tests/unit/session.test.ts
 ```
+
+Run the full suites (Jest and Playwright) once at the end of a change, not repeatedly while working; use typecheck, lint and the unit tests in between.
 
 ### Environment setup
 
@@ -45,86 +39,62 @@ DB_NAME=expense_tracker
 DB_PASSWORD=your-password
 DB_PORT=5432
 SESSION_SECRET=your-secure-secret
-NODE_ENV=development
 ```
 
-The Supabase database in `.env` is also production. Production data is in the `public` schema; tests run in `balancetrack_test`. `tests/env.js` (Jest `setupFiles`) forces `DB_SCHEMA=balancetrack_test`, every pool passes it as `search_path`, and `clearTestData`/`deleteTestUser`/`reset-test-db.js` refuse to delete outside a `*_test` schema. Never weaken those guards. Running the app locally without `DB_SCHEMA` reads and writes production data. Run `npm run test:clean` for a clean run. `testTimeout` is 30s because of the remote database round trips, and `maxWorkers` is 1 because suites share one database (parallel runs hang on the Supabase pooler and clobber each other's data).
+The Supabase database in `.env` is also production. Production data is in the `public` schema; tests run in `balancetrack_test`.
+- `tests/env.js` forces `DB_SCHEMA=balancetrack_test` in Jest; `clearTestData`, `deleteTestUser` and `reset-test-db.js` refuse to delete outside a `*_test` schema.
+- Every server a test starts (`scripts/run-api-tests.js`, `playwright.config.js`) gets `DB_SCHEMA=balancetrack_test` and `REQUIRE_TEST_SCHEMA=true`; with that flag `lib/db.ts` refuses any other schema. It also gets `DISABLE_RATE_LIMIT=true`.
+- Never weaken those guards. A server without `DB_SCHEMA` reads and writes production data.
+- Never `require()` a database script to "check it loads" (`setup-db.js` runs on load); use `node --check`.
+- `testTimeout` is 30 s because of the remote database round trips, and suites run one at a time because they share one database.
 
 ## Conventions
 
-- **No emoji anywhere**: not in the UI (`legacy/public/`, `app/`), docs, README, or console/log messages. Use plain text labels such as `Warning:` instead. `tests/no-emoji.test.js` enforces this.
+- **No emoji anywhere**: not in the UI, docs, README, or console/log messages. Use plain text labels such as `Warning:` instead. `tests/no-emoji.test.js` enforces this.
+- When you add or change an API route, update `docs/API.md` to match.
 
 ## Architecture
 
-### Migration layout (Next.js, in progress: see `docs/nextjs-migration-plan.md`)
-- `legacy/`: the current Express app (`server.js`, `public/`, `lib/transaction.js`, own `package.json`). It still serves every page and API route.
-- `app/`, `components/`, `lib/*.ts`: the Next.js 16 app (App Router, TypeScript strict). It serves the public pages `/about`, `/security`, `/privacy`, `/terms`, the auth screens `/login`, `/register`, `/forgot-username`, `/forgot-password`, `/welcome` (all in route group `app/(public)`) and `/next-health`. It also serves `/` (redirects only, in `proxy.ts`) and every logged-in screen: `/setup`, `/transactions`, `/summary`, `/activity` (route group `app/(app)`, the logged-in shell in `components/app/AppShell.tsx`). Every API route is a Next.js route handler in `app/api` (N3 complete), with the logic in `lib/services/` and sessions in `lib/session.ts`. Express in `legacy/` still has its own copy of every route (used by the in-process Jest suites) and serves only the unreachable legacy frontend in `legacy/public/` on Vercel; both go in N4. Logged-out visits to `/` redirect to `/login`.
-- `vercel.json` defines two Vercel Services (`web` = Next.js at `./`, `legacy` = Express at `legacy/`), with rewrites deciding which one gets each path. To move a path to Next.js, add a rewrite above the catch-all.
-- Locally, `npm run dev` and Playwright mirror this: `next.config.ts` forwards unhandled paths to Express when `LEGACY_URL` is set (it must be set at build time too, since rewrites are fixed by `next build`).
-- **Logged-in Next.js pages:** add the path to `APP_PATHS` in `proxy.ts` (it redirects requests with no `sessionId` cookie to `/login`), handle a 401 from the API with `redirectIfUnauthorized`, and render interactive content only after it is hydrated: either after the data loads, or inside `HydrationGate`. Server-rendered buttons do nothing before hydration.
-- **Adding a Next.js page takes three edits:** the page in `app/`, its path in the `web` rewrite in `vercel.json`, and its path in the `proxy.ts` matcher. Also exclude it from the legacy-only CSP header rule in `vercel.json`. `tests/unit/routing.test.ts` fails if they disagree.
-- **CSP for Next.js pages:** `proxy.ts` sets a per-request nonce policy built by `lib/csp.ts`, and pages read `headers()` so they render per request. Never add inline scripts; bundle third-party code from npm instead of loading it from a CDN.
-- Ported screens reuse `legacy/public/css/fintech-theme.css` (imported in `app/(public)/layout.tsx`) and keep the legacy class names, so they look the same until the redesign pass.
-- `lib/transaction.ts` (Next.js) and `legacy/lib/transaction.js` (Express) must behave identically until Express is removed.
-- New server code goes in `lib/` with no Next.js imports; financial logic goes in `src/core/`.
-- **Moving an API route (N3):**
-  - Put the logic in `lib/services/*.ts`, with the same queries, messages and activity entries as the Express route.
-  - Add a thin handler in `app/api/.../route.ts` wrapped in `withUser` (`lib/api-route.ts`). It applies the request limit, reads the Express session (`lib/session.ts`), and turns `RequestError` into the legacy JSON errors.
-  - Add the path to the `web` rewrites in `vercel.json`, above the catch-all. Express keeps its copy of the route until N4.
-  - Prove parity with `npm run test:contract:stack`, which runs the API contract suites through the router with Express and a Next.js build. Name test files after `--stack` to run only those. Server logs go to a temporary folder named in the output.
-- **Next.js and the database:** `lib/db.ts` is the pool. Any Next.js server started by tests must get `DB_SCHEMA=balancetrack_test` and `REQUIRE_TEST_SCHEMA=true` (the pool then refuses any other schema), plus `DISABLE_RATE_LIMIT=true`. `playwright.config.js` and `scripts/run-contract-tests.js` set them. Without `DB_SCHEMA`, a Next.js server reads and writes production data.
+A single Next.js 16 app (App Router, TypeScript strict) on Vercel, with Supabase Postgres. It replaced an Express app and a plain JavaScript frontend in steps N0 to N4 (`docs/nextjs-migration-plan.md`).
 
-### Backend (`legacy/server.js`)
-Single-file Express.js server. All routes live here. When you add or change a route, update `docs/API.md` to match. Key patterns:
-- `requireAuth` middleware guards all `/api/*` routes except auth endpoints
-- **Transactions:** never write `client.query('BEGIN')` by hand. An early `return res...` inside it leaves the transaction open on a pooled connection (`tests/atomic-writes.test.js` guards this). Any write touching more than one row or table runs in `withTransaction(pool, async (client) => ...)` from `legacy/lib/transaction.js`, with every query on `client`. Never call `pool.query('BEGIN')`: the pool can use a different connection per query (`tests/atomic-writes.test.js` guards this). Throw `RequestError(status, message)` for expected failures inside a transaction and answer with `sendError(res, error)`.
-- `logActivity(client, userId, ...)` takes the transaction's client and throws on failure, so the log entry commits or rolls back with the change it describes. Call it inside the same `withTransaction`.
-- Lock rows you check or modify with `SELECT ... FOR UPDATE` inside the transaction.
-- Sessions stored in PostgreSQL via `connect-pg-simple`
-- `authLimiter` allows 5 failed auth attempts per 15 min and is skipped when `NODE_ENV` is `development` or `test`. `generalLimiter` allows 100 req/min.
-- Helmet sends a CSP (see the `helmet({...})` directives). Adding a new external script, font or API origin needs a matching directive. `upgrade-insecure-requests` is production-only because Safari applies it to http://localhost.
-- The production HTTP→HTTPS redirect is the first middleware; keep it above `express.static`.
-- Deployed on Vercel as the `legacy` service: `legacy/server.js` must keep `module.exports = app` (Vercel runs the exported app as a function; `app.listen` only runs locally). On Vercel `legacy/public/` is served by the CDN without Express, so the security headers are duplicated in `vercel.json`. Change both together; `tests/security-middleware.test.js` fails if they differ.
-- Middleware reads `NODE_ENV` once at load time. `tests/security-middleware.test.js` uses `jest.isolateModules` to load the server under other environments.
-- Build SQL with `$n` parameters only, never string interpolation (`/api/activity` had an injection bug from this)
-- SSL enabled automatically when `NODE_ENV=production` or `DB_SSL=true`
+### Pages (`app/`, `components/`)
+- Public pages `/about`, `/security`, `/privacy`, `/terms` and the auth screens `/login`, `/register`, `/forgot-username`, `/forgot-password`, `/welcome` are in route group `app/(public)`.
+- Logged-in screens `/setup`, `/transactions`, `/summary`, `/activity` are in `app/(app)`, inside `components/app/AppShell.tsx` (nav bar, mobile sidebar, logout, loading overlay).
+- `/` only redirects (in `proxy.ts`): to `/login` without a session cookie, to the screen named in an old `/?section=...` link, otherwise to `/setup`. `/next-health` is a health check.
+- **`proxy.ts`** gives every page a per-request nonce Content-Security-Policy (built by `lib/csp.ts`), and sends visitors without a `sessionId` cookie from the logged-in screens to `/login`. Its matcher lists exactly the pages; `tests/unit/routing.test.ts` checks that. A new page needs its path in the matcher, and a logged-in page also in `APP_PATHS`.
+- Pages read `headers()` so they render per request. Never add inline scripts; bundle third-party code from npm instead of loading it from a CDN.
+- **Logged-in screens** fetch their data on the client (`lib/api-client.ts`), handle a 401 with `redirectIfUnauthorized`, and render interactive content only once hydrated (after the data loads, or inside `HydrationGate`): server-rendered buttons do nothing before hydration.
+- The screens keep the former app's ids, `data-action` attributes and class names, styled by `app/fintech-theme.css`, until the redesign pass. Names are rendered as text, never as HTML.
+
+### API (`app/api`, `lib/`)
+- Route handlers are thin: they parse the request and call `lib/services/*.ts` (accounts, transactions, reports, auth). Handlers that need a login use `withUser`, the others `withPublic` (`lib/api-route.ts`): the request limit, the session, and JSON errors (`{ "error": "..." }`, with `RequestError(status, message)` for expected failures). Unknown `/api` paths get a JSON 404 (`app/api/[...path]`).
+- **Transactions:** any write touching more than one row or table runs in `withTransaction(pool, async (client) => ...)` from `lib/transaction.ts`, with every query on `client`. Never write `BEGIN`/`COMMIT`/`ROLLBACK` by hand and never `pool.query('BEGIN')`; `tests/atomic-writes.test.js` scans the source for both. Lock rows you check or change with `SELECT ... FOR UPDATE` inside the transaction.
+- `logActivity(client, userId, ...)` (`lib/activity-log.ts`) runs on the transaction's client, so the log entry commits or rolls back with the change it describes. Every change writes one entry.
+- Entries may only use the user's own accounts (`requireOwnAccount` in `lib/services/transactions.ts`); every query is limited to the session's user.
+- Build SQL with `$n` parameters only, never string interpolation.
+- `lib/db.ts` is the pool: `DB_SCHEMA` selects the schema, SSL when `DB_SSL=true` or in production, and client-side time limits (10 s to connect, 20 s per query) so a stalled connection fails instead of hanging.
+- **Sessions** (`lib/session.ts`) live in the `session` table in the former Express format (signed `sessionId` cookie, `sess` JSON with `userId`), so older sessions stay valid. Login and registration always start a new session; logout deletes it. The cookie is `HttpOnly`, `SameSite=Strict`, 2 hours, and `Secure` over HTTPS. Expired rows are deleted on each login.
+- **Rate limits** (`lib/rate-limit.ts`): 100 requests a minute per IP, and 5 failed auth attempts per 15 minutes per IP. Counted in memory per instance, behind `RateLimitStore`.
+- **Security headers** are in `next.config.ts` (`tests/unit/security-headers.test.ts`): the standard set on every response, and a deny-all CSP on API responses (pages get theirs from `proxy.ts`).
+- New server code goes in `lib/` with no Next.js imports; financial logic goes in `src/core/`.
 
 ### Database (`setup-db.js`)
 Tables: `users`, `banks`, `credit_cards`, `income_entries`, `expenses`, `cash_balance`, `activity_log`, `session`
 - Every table has row level security enabled with no policies, which blocks Supabase's public Data API. Enable RLS on any new table.
-- `DB_SCHEMA` (optional) selects the Postgres schema via `search_path`; unset means `public`
-- All monetary columns use `DECIMAL(20,2)`
-- `activity_log` stores `old_values`/`new_values` as JSONB for change tracking
-- `income_entries` references `credited_to_type` (`bank`|`cash`) and `credited_to_id`
-- `expenses` references `payment_method` (`cash`|`bank`|`credit_card`) and `payment_source_id`
+- `DB_SCHEMA` (optional) selects the Postgres schema via `search_path`; unset means `public`.
+- All monetary columns use `DECIMAL(20,2)`; amounts go to SQL as given so decimal arithmetic stays exact.
+- `activity_log` stores `old_values`/`new_values` as JSONB for change tracking.
+- `income_entries` references `credited_to_type` (`bank`|`cash`) and `credited_to_id`; `expenses` references `payment_method` (`cash`|`bank`|`credit_card`) and `payment_source_id`. Dates are stored as given (`YYYY-MM-DD`, see `entryDate`).
 
-### Frontend (`legacy/public/js/`)
-Vanilla JS with a class-based modular architecture. Modules are loaded as global instances on `window`:
-- `app.js` — `ExpenseTracker` class; entry point, checks auth status and routes to login or main app
-- `auth.js` — `AuthManager`; login, register, password reset
-- `setup-manager.js` — `SetupManager`; bank/credit card/cash balance CRUD (the screen is Next.js `/setup` now; the module stays for its Jest tests until N4)
-- `transaction-manager.js` — `TransactionManager`; income/expense CRUD and filtering (the screen is Next.js `/transactions` now; the module stays for its Jest tests until N4)
-- `summary-manager.js` — `SummaryManager`; monthly summary calculations (the screen is Next.js `/summary` now; the module stays for its Jest tests until N4)
-- `activity-manager.js` — `ActivityManager`; unified activity feed with change tracking (the screen is Next.js `/activity` now; the module stays for its Jest tests until N4)
-- `navigation-manager.js` — `NavigationManager`; section transitions and sidebar
-- `api.js` — `ApiClient` (static methods); centralized `fetch` wrapper and global loader
-- `toast-manager.js` — `ToastManager`; `showSuccess()`, `showError()`, `showInfo()`, `showWarning()` globals
-- `event-handlers.js` — `EventHandlers`; all DOM event listeners. Buttons use `data-action`, and navigation uses `data-action="showSection" data-section="..."`
-- `initialization.js` — `InitializationManager`; runs on DOMContentLoaded
+### Tests (`tests/`)
+Jest projects in `package.json`, each listing its files in `testMatch` (**a new test file does not run until you add it there**):
+- **unit**: TypeScript via `@swc/jest` (`tests/unit/`), no server or database.
+- **api**: the API suites, over HTTP to the server `npm test` starts (`tests/api-target.js` reads `API_BASE_URL`), and to the test schema through `test-helpers.js`.
+- **scripts**: `setup-db.js` (mocked `pg`) and the no-emoji check.
 
-The frontend is strictly CSP-compliant: no inline JavaScript or `eval`. All event listeners are attached programmatically in `event-handlers.js`. `tests/csp-compliance.test.js` fails on any `onclick=` in `index.html`. `module-validator.js` is only used by tests and is not loaded by `index.html`.
+Playwright flows are in `tests/e2e/` (`npm run test:e2e`); they use the screens' ids and `data-action` hooks.
 
-### Test structure (`tests/`)
-Jest uses two projects configured in `package.json`:
-- **backend** project: `testEnvironment: node`, for `legacy/server.js` and `setup-db.js`
-- **frontend** project: `testEnvironment: jsdom`, for `legacy/public/js/**`
-- **unit** project: TypeScript via `@swc/jest`, for `lib/**/*.ts` and `src/**/*.ts` (`tests/unit/`)
-
-Each project lists its files explicitly in `testMatch`. **A new test file does not run until you add it there.**
-
-`tests/env.js` runs before every test file (per-project `setupFiles`). `tests/setup.js` is **not** currently run: it is listed in the top-level `setupFilesAfterEnv`, which Jest ignores when `projects` is defined.
-
-`test-helpers.js` provides `clearTestData()`, `createTestUser()`, `deleteTestUser(username)` and other utilities that hit the real database. Use them rather than creating new pool connections, and have suites that register their own users call `deleteTestUser` in `beforeAll`/`afterAll` so reruns don't fail with "username exists". Test passwords must satisfy `validatePassword` (special chars: `_ - @ : &` only).
+`test-helpers.js` provides `clearTestData()`, `createTestUser()`, `deleteTestUser(username)` and `query()` against the test schema. Suites that create users call `deleteTestUser` in `beforeAll`/`afterAll` so reruns don't fail with "username exists". Test passwords must satisfy the password rules (special characters: `_ - @ : &` only).
 
 <!-- BEGIN:nextjs-agent-rules -->
 

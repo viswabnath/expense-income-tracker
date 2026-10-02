@@ -1,6 +1,6 @@
 # Next.js migration plan
 
-_Drafted 2026-09-30, after Phase 0 (`c03c72b`). Nothing in this plan is implemented yet._
+_Drafted 2026-09-30, after Phase 0 (`c03c72b`). **Complete as of 2026-10-02:** every step below is done, and the app is one Next.js project. The rest of this file is the plan as written, with progress notes._
 
 ## Goal and constraints
 
@@ -211,12 +211,26 @@ Route handlers use the Node.js runtime, never Edge, because `pg` and bcrypt need
   - **Rate limits:** the 5-per-15-minutes auth limit moved too, counting failed answers only, as before.
   - **Routing:** `vercel.json` sends all of `/api/*` to Next.js. Express now only serves the unreachable legacy frontend files.
   - **Parity:** the contract suites, now including `account-recovery`, pass through the stack: 99 tests.
-- **Next:** N4, removing Express.
+- **Next:** N4, removing Express (done, below).
 
 ### N4. Remove Express
 - Delete `legacy/`, the Services config and rewrites (Next.js becomes a plain project again) and the mocked-`pg` tests.
 - Move security headers from `vercel.json` into `proxy.ts` and `next.config.ts` (below).
 - Update the README, `CLAUDE.md` and `docs/API.md`.
+
+**Done (2026-10-02):**
+- Deleted:
+  - `legacy/` (Express, the vanilla JS frontend, `legacy/lib/transaction.js`);
+  - the services router and `scripts/dev.js`;
+  - the jsdom frontend tests, the mocked-`pg` server tests, the Helmet parity test, `tests/setup.js`;
+  - the Express packages (126 packages).
+- `fintech-theme.css` moved to `app/`.
+- `vercel.json` is now just the framework and region. Security headers are in `next.config.ts`, with a deny-all CSP on API responses; pages keep their nonce CSP from `proxy.ts`. There is no HTTPS redirect, because Vercel serves HTTPS only.
+- Tests: the API suites only ever run over HTTP. `npm test` (`scripts/run-api-tests.js`) builds Next.js, starts it on the test schema and runs every Jest project. Playwright runs one production build.
+  - The `atomic-writes` source guards now scan `lib/` and `app/`.
+  - The Express-only pool-leak test is gone: every transaction goes through `withTransaction`, which the guards enforce and the unit tests cover.
+- `lib/session.ts` deletes expired sessions on each login. `connect-pg-simple` used to prune them.
+- Sessions created before N4 stay valid: same cookie signature and row format, checked against `cookie-signature` in the unit tests.
 
 ## Sessions: staying compatible
 

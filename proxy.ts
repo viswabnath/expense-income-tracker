@@ -2,18 +2,17 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { buildContentSecurityPolicy, createNonce } from './lib/csp';
 
 /**
- * Gives every page Next.js renders a per-request nonce Content-Security-Policy.
+ * Gives every page a per-request nonce Content-Security-Policy, and sends visitors without a
+ * session cookie from the logged-in screens to /login.
  *
- * The matcher lists only the pages Next.js owns. Paths still served by the legacy Express
- * app must not get this policy: its scripts carry no nonce and 'strict-dynamic' would block
- * them (this matters locally, where next dev forwards those paths to Express).
- * Keep this list in step with app/ and the "web" rewrites in vercel.json; a test checks all three.
+ * The matcher lists exactly the pages in app/ (tests/unit/routing.test.ts checks it). API
+ * routes are not matched: next.config.ts gives them a deny-all policy.
  */
 /** Logged-in screens served by Next.js; visitors without a session cookie go to /login */
 const APP_PATHS = new Set(['/setup', '/transactions', '/summary', '/activity']);
-/** Session cookie set by the legacy Express app (express-session, name: 'sessionId') */
+/** The session cookie (lib/session.ts) */
 const SESSION_COOKIE = 'sessionId';
-/** Old links into the legacy single-page app (/?section=...) and where those screens live now */
+/** Old links into the former single-page app (/?section=...) and where those screens live now */
 const SECTION_PATHS: Record<string, string> = {
     setup: '/setup', transactions: '/transactions', summary: '/summary', activity: '/activity',
 };

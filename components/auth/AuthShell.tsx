@@ -11,7 +11,7 @@ export interface AuthMessage {
 
 /**
  * The legacy auth screen frame: "BalanceTrack" heading, the active form, and #auth-message.
- * Same ids and classes as legacy/public/index.html so the shared CSS and the Playwright flows apply.
+ * Same ids and classes as the former single-page app, so the shared CSS and the Playwright flows apply.
  */
 export function AuthShell({ message, children }: { message?: AuthMessage | null; children: ReactNode }) {
     return (

@@ -80,6 +80,8 @@ describe('createSession and destroySession', () => {
         const header = await createSession({ query } as unknown as Pool, 42, true);
 
         const [sql, params] = query.mock.calls[0] as [string, [string, string, number]];
+        // Expired sessions are cleared on each login
+        expect(query.mock.calls[1]).toEqual(['DELETE FROM session WHERE expire < NOW()']);
         expect(sql).toBe('INSERT INTO session (sid, sess, expire) VALUES ($1, $2, to_timestamp($3))');
         const [sid, sessJson, expireSeconds] = params;
         const sess = JSON.parse(sessJson);

@@ -1,10 +1,10 @@
 # BalanceTrack - Project Status
 
-_Last reviewed: 2026-09-30_
+_Last reviewed: 2026-10-02_
 
 ## Summary
 
-The core features work: auth, accounts, transactions, the activity log and monthly summaries. The full test suite passes (356 passed, 2 skipped, 26 suites; plus 11 Playwright flows and 70 API contract tests). The security gaps found on 2026-09-30 are fixed; the remaining [known issues](#known-issues) are low severity.
+The app is one Next.js project on Vercel with Supabase Postgres; the move from Express (N0 to N4) is complete. The core features work: auth, accounts, transactions, the activity log and monthly summaries. Test results for the current code are in the latest pull request. The remaining [known issues](#known-issues) are medium or low severity. Next: v2 Phase 1.
 
 ## Features
 
@@ -35,25 +35,27 @@ The core features work: auth, accounts, transactions, the activity log and month
 - [x] Tracking modes: income only, expenses only, or both
 
 ### Frontend
-- [x] Vanilla JS, one class per concern (see `CLAUDE.md`)
-- [x] No inline scripts or event handlers; all listeners are attached in `event-handlers.js`
+- [x] Next.js App Router pages in React; names and messages rendered as text, never HTML
+- [x] Per-request nonce Content-Security-Policy, no inline scripts
 - [x] Responsive layout with sidebar navigation
 - [x] About / Security / Privacy / Terms pages
 
 ## Testing
 
-| Project | Environment | Suites | Notes |
-|---|---|---|---|
-| backend | node | 14 | Uses the real database from `.env` (test schema) |
-| frontend | jsdom | 9 | `fetch` is mocked; includes the no-emoji check |
+| Project | What | Notes |
+|---|---|---|
+| unit | `lib/` in isolation (TypeScript) | No server or database |
+| api | API suites over HTTP | `npm test` builds and starts Next.js on the test schema |
+| scripts | `setup-db.js`, no-emoji rule | Mocked `pg` |
+| Playwright | User flows end to end | `npm run test:e2e`, production build |
 
-- `npm run test:clean` resets the database and runs everything.
-- Tests share the production Supabase database but run in the `balancetrack_test` schema. `tests/env.js` sets `DB_SCHEMA`, and `clearTestData`, `deleteTestUser` and `reset-test-db.js` refuse to delete outside a `*_test` schema.
-- `testTimeout` is 30s because each request makes a round trip to the remote database. `maxWorkers` is 1: suites share one database, and parallel runs exhausted the Supabase pooler and wiped each other's data. A full run takes about 3 minutes.
+- `npm run test:clean` resets the test schema and runs every Jest project.
+- Tests share the production Supabase database but run in the `balancetrack_test` schema. `tests/env.js` sets `DB_SCHEMA`; test servers get `REQUIRE_TEST_SCHEMA=true`, which refuses any other schema; and `clearTestData`, `deleteTestUser` and `reset-test-db.js` refuse to delete outside a `*_test` schema.
+- `testTimeout` is 30 s because each request makes a round trip to the remote database, and suites run one at a time because they share one database.
 
 ## Deployment
 
-- **Vercel**: two services in one project during the Next.js migration: `web` (Next.js) and `legacy` (the Express app in `legacy/`, run as a function in `syd1`, next to Supabase `ap-southeast-2`, with `legacy/public/` on the CDN). `vercel.json` repeats helmet's security headers for static files, and a test keeps the two in sync.
+- **Vercel**: a standard Next.js project, functions in `syd1` next to Supabase `ap-southeast-2`. Security headers are in `next.config.ts`; pages get a nonce CSP from `proxy.ts`.
 - **Supabase**: one project. Production data is in `public`, and tests use `balancetrack_test`. It is reached through the transaction pooler (port 6543) with SSL, and every table has RLS enabled to block the public Data API.
 - Setup steps are in the README under "Deployment (Vercel + Supabase)".
 
@@ -61,18 +63,16 @@ The core features work: auth, accounts, transactions, the activity log and month
 
 | Severity | Issue | Where |
 |---|---|---|
-| Medium | Account recovery still rests on a security question, which a person who knows the user can often answer. Guessing is now limited to 5 tries per 15 minutes per account. The real fix is recovery by an emailed link, which needs an email provider (planned for Phase 6) | `legacy/server.js` recovery routes |
+| Medium | Account recovery still rests on a security question, which a person who knows the user can often answer. Guessing is now limited to 5 tries per 15 minutes per account. The real fix is recovery by an emailed link, which needs an email provider (planned for Phase 6) | `lib/services/auth.ts` |
 | Low | Registration still says when a username or email is already taken, so it can be used to check whether an email has an account. Closing it also needs email verification | `POST /api/register` |
-| Medium | Legacy toasts insert their message as HTML (`toast-manager.js` uses `innerHTML`); messages can include the user's free-text name. CSP blocks inline script handlers, which limits the impact, and the Next.js toasts render text only | `legacy/public/js/toast-manager.js` |
 | Low | `edge-cases` occasionally fails in the full Jest run: a 401 after its re-login (seen before the transaction fix) or its `beforeAll` exceeding 30s (seen once after it). It passes on its own and in most full runs, and a lock probe during a passing run found no stuck transactions. Likely remote-database latency, not confirmed | `tests/edge-cases.test.js` |
-| Low | Transaction dates are sent to the browser as timestamps at the server's midnight, and the add forms default to the UTC date. In a browser far from the server's time zone, or just after midnight IST, a date can show or default to the neighbouring day. To fix with the v2 data model | `legacy/server.js`, `lib/dates.ts` |
-| Low | During long test runs, a request sometimes waits more than 15 s for the database and the test times out. On 2026-10-02 this hit `set-tracking-option`, income and expense writes, and activity pages, on both Express and Next.js, while other requests answered in 1 to 3 s. Reruns pass. The servers log no error, and the 10 s connection and 20 s query limits fire only on the longest waits. Likely the Supabase transaction pooler queueing requests for its small pool of database connections while several test pools are busy; not confirmed. Next step: check the project's pooler pool size, and whether the test runs need fewer concurrent connections | Supabase pooler, test runs |
+| Low | Transaction dates are sent to the browser as timestamps at the server's midnight, and the add forms default to the UTC date. In a browser far from the server's time zone, or just after midnight IST, a date can show or default to the neighbouring day. To fix with the v2 data model | `lib/services/transactions.ts`, `lib/dates.ts` |
+| Low | During long test runs, a request sometimes waits more than 15 s for the database and the test times out. On 2026-10-02 this hit `set-tracking-option`, income and expense writes, and activity pages, while other requests answered in 1 to 3 s. Reruns pass. The servers log no error, and the 10 s connection and 20 s query limits fire only on the longest waits. Likely the Supabase transaction pooler queueing requests for its small pool of database connections while several test pools are busy; not confirmed. Next step: check the project's pooler pool size, and whether the test runs need fewer concurrent connections | Supabase pooler, test runs |
 | Low | The monthly summary leaves out banks and cards created on the last day of the month, because its cut-off is the start of that day. Kept as is in the Next.js port; the summary is rebuilt in v2 Phase 1 | `lib/services/reports.ts` |
-| Low | `tests/setup.js` never runs: `setupFilesAfterEnv` is set at the top level, which Jest ignores when `projects` is used | `package.json` |
 | Low | Rate-limit counters are in memory, so on Vercel each function instance counts separately | `lib/rate-limit.ts` (a shared store can replace it behind `RateLimitStore`) |
-| Low | 9 ESLint warnings, all in three obsolete test files that aren't run (`comprehensive-coverage`, `server-coverage`, `frontend-execution-coverage`) | `tests/` |
 
 ### Fixed on 2026-10-02
+- **N4: Express removed.** The legacy Express app, its frontend and their tests are gone; the app is one Next.js project. With them went the legacy toast that inserted messages as HTML, `tests/setup.js` that never ran, and the obsolete test files behind the ESLint warnings (lint is clean). Expired sessions are now deleted on each login (connect-pg-simple used to prune them).
 - Logout cleared a cookie named `connect.sid` instead of `sessionId` (the session row was deleted, so it was already logged out, but the stale cookie stayed). Logout on Next.js clears `sessionId`.
 - Income and expense entries accepted any account id the client sent, including another user's bank or card (balances were never touched, but the entry pointed at that account). Adding or editing an entry now refuses an account that is not the user's own (`Bank not found`, `Credit card not found`) and an unknown account type (`Invalid account type`), in both apps (`tests/account-ownership.test.js`).
 - **Cross-user disclosure:** the activity feed looked up account names without limiting them to the user's own accounts. A user who edited an income entry onto another user's bank id saw that bank's name in their feed. All lookups are now limited to the user's own accounts, in both apps (`tests/activity-api.test.js`, which fails on the old code).

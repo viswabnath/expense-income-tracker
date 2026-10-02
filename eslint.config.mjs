@@ -30,7 +30,6 @@ export default [
       ecmaVersion: 2022,
       sourceType: "commonjs",
       globals: {
-        ...globals.browser,
         ...globals.node,
         ...globals.jest
       }
@@ -53,48 +52,6 @@ export default [
     }
   },
   {
-    files: ["legacy/public/js/transaction-manager.js"],
-    languageOptions: {
-      globals: {
-        ...globals.browser,
-        // Global objects/managers - these are available globally but not redefined
-        window: "readonly",
-        // Toast notification functions
-        showToast: "readonly",
-        showSuccess: "readonly",
-        showError: "readonly",
-        showInfo: "readonly",
-        showWarning: "readonly",
-        // Transaction CRUD functions - defined in this file for global use
-        filterTransactions: "writable",
-        editIncomeTransaction: "writable",
-        editExpenseTransaction: "writable",
-        deleteIncomeTransaction: "writable",
-        deleteExpenseTransaction: "writable",
-        saveIncomeEdit: "writable",
-        saveExpenseEdit: "writable",
-        confirmDelete: "writable",
-        closeEditIncomeModal: "writable",
-        closeEditExpenseModal: "writable",
-        closeDeleteModal: "writable"
-      }
-    }
-  },
-  {
-    files: ["legacy/public/js/event-handlers.js"],
-    languageOptions: {
-      globals: {
-        ...globals.browser,
-        // Toast notification functions
-        showToast: "readonly",
-        showSuccess: "readonly",
-        showError: "readonly",
-        showInfo: "readonly", 
-        showWarning: "readonly"
-      }
-    }
-  },
-  {
     files: ["tests/**/*.js"],
     languageOptions: {
       globals: {
@@ -106,6 +63,15 @@ export default [
         afterEach: "readonly",
         beforeAll: "readonly",
         afterAll: "readonly"
+      }
+    }
+  },
+  {
+    // Playwright specs pass some functions to the browser (page.addInitScript)
+    files: ["tests/e2e/**/*.js"],
+    languageOptions: {
+      globals: {
+        ...globals.browser
       }
     }
   },

@@ -1,13 +1,12 @@
 import { Pool } from 'pg';
 
 /**
- * The Next.js server's Postgres pool. Same settings as the legacy Express pool
- * (legacy/server.js) so both apps behave alike while they share the database:
+ * The app's Postgres pool:
  *   - DB_SCHEMA selects the schema (tests: balancetrack_test; production: unset, so public);
  *   - SSL when DB_SSL=true or in production;
  *   - client-side time limits, so a stalled connection fails instead of hanging.
  *
- * REQUIRE_TEST_SCHEMA=true (set by the end-to-end and contract runs) refuses to connect to
+ * REQUIRE_TEST_SCHEMA=true (set by `npm test` and the end-to-end runs) refuses to connect to
  * anything but a *_test schema, so a test server can never write production data.
  */
 const globalForDb = globalThis as unknown as { balancetrackPool?: Pool };
