@@ -137,7 +137,7 @@ During the migration one Vercel project runs two services (`vercel.json`):
 - `web`: Next.js, at the repo root.
 - `legacy`: the Express app in `legacy/`, which serves `legacy/public/` from the CDN.
 
-Rewrites send each path to one of them. Today every page, the account API (`/api/banks`, `/api/credit-cards`, `/api/cash-balance`), `/next-health` and Next.js assets (`/_next/*`) go to `web`; the rest of the API goes to `legacy`. The exact list is the `web` rewrite in `vercel.json`. Functions run in `syd1`, next to the Supabase region (`ap-southeast-2`).
+Rewrites send each path to one of them. Today every page, the account and transaction API (`/api/banks`, `/api/credit-cards`, `/api/cash-balance`, `/api/income`, `/api/expenses`), `/next-health` and Next.js assets (`/_next/*`) go to `web`; the rest of the API goes to `legacy`. The exact list is the `web` rewrite in `vercel.json`. Functions run in `syd1`, next to the Supabase region (`ap-southeast-2`).
 
 ### Database layout
 

@@ -22,6 +22,7 @@ const CONTRACT_SUITES = [
     'tests/edge-cases.test.js',
     'tests/bank-deletion-fix.test.js',
     'tests/cash-balance-activity.test.js',
+    'tests/entry-dates.test.js',
 ];
 
 async function waitUntilUp(url, timeoutMs = 60_000) {

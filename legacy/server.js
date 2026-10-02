@@ -1042,7 +1042,9 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
             const shouldValidateBalance = trackingOption !== 'expenses';
 
             if (shouldValidateBalance) {
-                // Validate balance/limit only for users who also track income.
+                // Validate balance/limit only for users who also track income. Compared as numbers:
+                // the stored balance is text, and text-to-text comparison went wrong for an amount
+                // sent as a string ("1000.00" < "700" is true).
                 // FOR UPDATE locks the row so concurrent expenses can't both pass the check.
                 if (paymentMethod === 'bank') {
                     const bankResult = await client.query(
@@ -1052,7 +1054,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
 
                     if (
                         bankResult.rows.length === 0 ||
-                        bankResult.rows[0].current_balance < amount
+                        parseFloat(bankResult.rows[0].current_balance) < parseFloat(amount)
                     ) {
                         throw new RequestError(400, 'Insufficient bank balance');
                     }
@@ -1064,7 +1066,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
 
                     if (
                         cashResult.rows.length === 0 ||
-                        cashResult.rows[0].balance < amount
+                        parseFloat(cashResult.rows[0].balance) < parseFloat(amount)
                     ) {
                         throw new RequestError(400, 'Insufficient cash balance');
                     }
@@ -1076,7 +1078,7 @@ app.post('/api/expenses', requireAuth, async (req, res) => {
 
                     if (
                         ccResult.rows.length === 0 ||
-                        ccResult.rows[0].credit_limit - ccResult.rows[0].used_limit < amount
+                        parseFloat(ccResult.rows[0].credit_limit) - parseFloat(ccResult.rows[0].used_limit) < parseFloat(amount)
                     ) {
                         throw new RequestError(400, 'Insufficient credit limit');
                     }
