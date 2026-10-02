@@ -28,7 +28,7 @@ export function SiteFooter() {
                         <ul className="footer-links">
                             <li><a href="/setup">Account Setup</a></li>
                             <li><a href="/transactions">Transactions</a></li>
-                            <li><a href="/?section=summary">Monthly Summary</a></li>
+                            <li><a href="/summary">Monthly Summary</a></li>
                             <li><a href="/?section=activity">Activity Log</a></li>
                         </ul>
                     </div>

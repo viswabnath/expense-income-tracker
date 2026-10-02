@@ -35,7 +35,7 @@ test('/transactions without a session goes to /login', async ({ page }) => {
     await expect(page).toHaveURL(/\/login$/);
 });
 
-test('transactions renders under the nonce CSP without console errors, and links to and from the legacy screens', async ({ page }) => {
+test('transactions renders under the nonce CSP without console errors, and links to and from the legacy screen', async ({ page }) => {
     await newUser(page);
     const problems = [];
     page.on('console', message => { if (message.type() === 'error') problems.push(message.text()); });
@@ -49,9 +49,9 @@ test('transactions renders under the nonce CSP without console errors, and links
     expect(response?.headers()['content-security-policy'] || '').toMatch(/'nonce-[A-Za-z0-9+/=]+' 'strict-dynamic'/);
     await expect(page.locator('#transactions-section')).toBeVisible();
 
-    // Summary is still a legacy screen; its nav link back to Transactions must load the Next.js page
-    await showSection(page, 'summary');
-    await expect(page).toHaveURL(/\/\?section=summary$/);
+    // Activity is still a legacy screen; its nav link back to Transactions must load the Next.js page
+    await showSection(page, 'activity');
+    await expect(page).toHaveURL(/\/\?section=activity$/);
     await showSection(page, 'transactions');
     await expect(page).toHaveURL(/\/transactions$/);
 

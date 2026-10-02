@@ -134,7 +134,13 @@ Progress:
   - Legacy quirks kept on purpose, to change in the redesign: the date inputs default to the UTC date, save failures in the edit dialogs show a generic message instead of the API's reason, and dates are shown in the browser's locale.
   - The legacy Transactions section and its three dialogs are removed; the legacy nav links and `showSection('transactions')` load `/transactions`.
   - `lib/dates.ts` holds the date helpers (unit tested); `components/useFormMessage.ts` is shared with Setup.
-- **Next:** `/summary`, `/activity`.
+- **Monthly Summary (done):** `/summary` is a Next.js page with the same month and year controls, cards, account balances, calculation breakdown and "no data" messages.
+  - Bank and card names render as text; the legacy screen inserted them as HTML.
+  - It opens on the current month, like the legacy section.
+  - The year list now matches the Transactions filter (2020 to next year). The legacy app filled it twice, with 2020 or five years back depending on which script ran last.
+  - No charts yet: they come with the redesign, using the chosen chart library.
+  - The legacy Summary section is removed; legacy links and `showSection('summary')` load `/summary`.
+- **Next:** `/activity`.
 
 Port one screen per step, each behind its Playwright test. The first ones use the existing `fintech-theme.css` so nothing changes visually. The redesign is a separate later pass, as the brief requires.
 

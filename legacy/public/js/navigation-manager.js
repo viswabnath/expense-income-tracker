@@ -12,8 +12,8 @@ class NavigationManager {
         // Prevent event from bubbling up if it's from a link
         if (window.event) window.event.preventDefault();
 
-        // Account Setup and Transactions are Next.js pages now
-        if (section === 'setup' || section === 'transactions') {
+        // Account Setup, Transactions and Monthly Summary are Next.js pages now
+        if (section === 'setup' || section === 'transactions' || section === 'summary') {
             window.location.assign(`/${section}`);
             return false;
         }
@@ -26,7 +26,6 @@ class NavigationManager {
 
         // Hide all sections (About, Security, Privacy and Terms are Next.js pages now)
         const sections = [
-            'summary-section',
             'activity-section'
         ];
         sections.forEach(sectionId => {

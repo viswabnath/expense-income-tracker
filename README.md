@@ -13,7 +13,7 @@ BalanceTrack is being extended into a public personal-finance product. The plan 
 | Phase 0 | Atomic writes, activity log inside transactions, audit fixes | Done |
 | N0 | Safety net: Playwright user flows, API contract suites | Done |
 | N1 | Express moved to `legacy/`, Next.js scaffolded alongside it | Done, live on Vercel |
-| N2 | Screens move to React, one at a time | In progress: public pages, auth screens, Account Setup and Transactions done |
+| N2 | Screens move to React, one at a time | In progress: public pages, auth screens, Account Setup, Transactions and Monthly Summary done; Activity next |
 | N3 | API routes move to Next.js route handlers | |
 | N4 | Express removed | |
 
@@ -63,7 +63,7 @@ Principles that apply to every phase:
 ## Repository layout
 
 ```
-app/                  Next.js app: public pages, auth screens (login, register, recovery, welcome), Account Setup (/setup), Transactions (/transactions), /next-health
+app/                  Next.js app: public pages, auth screens (login, register, recovery, welcome), Account Setup (/setup), Transactions (/transactions), Monthly Summary (/summary), /next-health
 components/           React components shared by Next.js pages
 proxy.ts              Per-request nonce CSP for Next.js pages
 lib/                  Framework-free server code for Next.js (TypeScript)
@@ -136,7 +136,7 @@ During the migration one Vercel project runs two services (`vercel.json`):
 - `web`: Next.js, at the repo root.
 - `legacy`: the Express app in `legacy/`, which serves `legacy/public/` from the CDN.
 
-Rewrites send each path to one of them. Today the public pages, the auth screens, `/setup`, `/transactions`, `/next-health` and Next.js assets (`/_next/*`) go to `web`; everything else goes to `legacy`. The exact list is the `web` rewrite in `vercel.json`. Functions run in `syd1`, next to the Supabase region (`ap-southeast-2`).
+Rewrites send each path to one of them. Today the public pages, the auth screens, `/setup`, `/transactions`, `/summary`, `/next-health` and Next.js assets (`/_next/*`) go to `web`; everything else goes to `legacy`. The exact list is the `web` rewrite in `vercel.json`. Functions run in `syd1`, next to the Supabase region (`ap-southeast-2`).
 
 ### Database layout
 
