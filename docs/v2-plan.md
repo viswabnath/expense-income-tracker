@@ -282,10 +282,26 @@ Data: `import_profiles`, `import_batches`, `budgets`, `documents`, `document_lin
 - **Loans against an FD, an insurance policy, securities or property:** the asset is linked and shown as pledged, and the loan reduces what is available from it.
 
 **Chit funds**
-- The chit value, members, monthly contribution, and the auction or draw schedule.
-- Before the user wins the chit, each monthly payment is savings, and any dividend (their share of the auction discount) is income.
-- Once they win, the prize received and the remaining contributions behave like a loan.
-- FinDB works out the effective return or cost, so a chit can be compared with an RD or a personal loan.
+- **Setting up a chit:**
+  - the chit value, the number of members and months, the monthly contribution, and the auction or draw schedule;
+  - the organiser, either a registered chit company (with its registration details) or an informal chit run by a person;
+  - the organiser's commission, usually around 5% of the chit value, taken from the prize.
+- A user can hold **several chits at once,** each with its own schedule.
+- **Each month:**
+  - the **amount actually due** is the contribution minus that month's dividend (the user's share of the auction discount after commission). It changes every month, so it is entered or calculated per month, not fixed like an EMI;
+  - the payment is recorded against the chit, and the dividend is recorded as income.
+- **Before the user wins the chit:** each payment is savings held in the chit, not spending.
+- **Winning the chit:**
+  - the user records their bid (or the draw), the prize amount, and the commission and other deductions;
+  - the net prize received goes into their account;
+  - the remaining contributions become a liability, like a loan, paid off month by month.
+- **The true return or cost:**
+  - for someone who wins late, the chit works like savings, with an effective yearly return;
+  - for someone who wins early, it works like a loan, with an effective yearly cost that includes the commission;
+  - either way it can be compared with an RD or a personal loan.
+- **Risk note:** an informal or unregistered chit is marked as higher risk, and the debt and status reviews mention it, as information only.
+- **Reminders:** the monthly payment date and the auction date.
+- **Documents:** the chit agreement, the passbook and the payment receipts, kept in the document vault and linked to the chit.
 
 **Money with people**
 - Money lent and borrowed: interest-free or with interest, an optional due date, repayments in parts, and a status of open, overdue or settled.
@@ -313,7 +329,7 @@ Data: `import_profiles`, `import_batches`, `budgets`, `documents`, `document_lin
 - **Payoff simulator:** highest-rate-first against smallest-balance-first, showing interest saved and the debt-free date.
 - **Warnings:** minimum-only payments, a high EMI-to-income ratio, gold loan margin risk, and overdue money from people.
 
-Data: `loans`, `loan_payments`, `pledges`, `chit_funds`, `chit_instalments`, `people`, `person_loans`, `person_loan_payments`, `groups`, `group_members`, `shared_expenses`, `shared_expense_shares`, `settlements`.
+Data: `loans`, `loan_payments`, `pledges`, `chit_funds` (organiser, registration, commission), `chit_instalments` (amount due, dividend, paid), `chit_auctions` (bid, prize, deductions), `people`, `person_loans`, `person_loan_payments`, `groups`, `group_members`, `shared_expenses`, `shared_expense_shares`, `settlements`.
 
 ## Phase 4: Credit cards
 
