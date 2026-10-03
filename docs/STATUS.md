@@ -4,7 +4,7 @@ _Last reviewed: 2026-10-02_
 
 ## Summary
 
-The app is one Next.js project on Vercel with Supabase Postgres; the move from Express (N0 to N4) is complete. The core features work: auth, accounts, transactions, the activity log and monthly summaries. Test results for the current code are in the latest pull request. The remaining [known issues](#known-issues) are medium or low severity. Next: v2 Phase 1.
+The app is one Next.js project on Vercel with Supabase Postgres; the move from Express (N0 to N4) is complete. The core features work: auth, accounts, transactions, the activity log and monthly summaries. Test results for the current code are in the latest pull request. The remaining [known issues](#known-issues) are medium or low severity. Next: v2, planned in [v2-plan.md](v2-plan.md) (awaiting approval).
 
 ## Features
 
@@ -68,7 +68,7 @@ The app is one Next.js project on Vercel with Supabase Postgres; the move from E
 | Low | `edge-cases` occasionally fails in the full Jest run: a 401 after its re-login (seen before the transaction fix) or its `beforeAll` exceeding 30s (seen once after it). It passes on its own and in most full runs, and a lock probe during a passing run found no stuck transactions. Likely remote-database latency, not confirmed | `tests/edge-cases.test.js` |
 | Low | Transaction dates are sent to the browser as timestamps at the server's midnight, and the add forms default to the UTC date. In a browser far from the server's time zone, or just after midnight IST, a date can show or default to the neighbouring day. To fix with the v2 data model | `lib/services/transactions.ts`, `lib/dates.ts` |
 | Low | During long test runs, a request sometimes waits more than 15 s for the database and the test times out. On 2026-10-02 this hit `set-tracking-option`, income and expense writes, and activity pages, while other requests answered in 1 to 3 s. Reruns pass. The servers log no error, and the 10 s connection and 20 s query limits fire only on the longest waits. Likely the Supabase transaction pooler queueing requests for its small pool of database connections while several test pools are busy; not confirmed. Next step: check the project's pooler pool size, and whether the test runs need fewer concurrent connections | Supabase pooler, test runs |
-| Low | The monthly summary leaves out banks and cards created on the last day of the month, because its cut-off is the start of that day. Kept as is in the Next.js port; the summary is rebuilt in v2 Phase 1 | `lib/services/reports.ts` |
+| Low | The monthly summary leaves out banks and cards created on the last day of the month, because its cut-off is the start of that day. Kept as is in the Next.js port; the summary is rebuilt in v2 Phase 1 ([v2-plan.md](v2-plan.md)) | `lib/services/reports.ts` |
 | Low | Rate-limit counters are in memory, so on Vercel each function instance counts separately | `lib/rate-limit.ts` (a shared store can replace it behind `RateLimitStore`) |
 
 ### Fixed on 2026-10-02
