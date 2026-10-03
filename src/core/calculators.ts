@@ -66,7 +66,7 @@ export function emi(principal: number, annualRate: number, months: number): EmiR
 export const perHundredMonthly = (annualRate: number) => annualRate / 12;
 export const annualFromPerHundred = (perHundredMonthly: number) => perHundredMonthly * 12;
 
-/** Total interest paid on every ₹100 borrowed, over the whole loan */
+/** Interest (or growth) on every ₹100 put in or borrowed, over the whole period */
 export const interestPerHundredBorrowed = (totalInterest: number, principal: number) =>
     principal > 0 ? round2((totalInterest / principal) * 100) : 0;
 
@@ -223,6 +223,8 @@ export interface ChitResult {
     net: number;
     /** Yearly rate implied by the cash flows: a cost when you take the prize early, a return when late */
     yearlyRate: number;
+    /** The same rate as rupees per ₹100 a month, the way chit members usually speak of it */
+    perHundredMonthly: number;
     role: 'borrower' | 'saver';
 }
 
@@ -255,6 +257,7 @@ export function chitFund(input: ChitInput): ChitResult {
         prize: round2(prize),
         net: round2(prize - totalPaid),
         yearlyRate: round2(Math.abs(yearlyRate) * 100),
+        perHundredMonthly: round2(Math.abs(monthlyRate) * 100),
         role: paidBefore < totalPaid / 2 ? 'borrower' : 'saver',
     };
 }

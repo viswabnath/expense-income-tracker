@@ -99,6 +99,12 @@ describe('chit fund', () => {
         expect(result.yearlyRate).toBeGreaterThan(0);
     });
 
+    test('the per ₹100 a month figure agrees with the yearly rate', () => {
+        const result = chitFund({ ...chit, yourMonth: 1, yourBidPct: 30 });
+        const yearlyFromMonthly = ((1 + result.perHundredMonthly / 100) ** 12 - 1) * 100;
+        expect(yearlyFromMonthly).toBeCloseTo(result.yearlyRate, 0);
+    });
+
     test('taking the prize early is borrowing: you pay back more than you received', () => {
         const result = chitFund({ ...chit, yourMonth: 1, yourBidPct: 30 });
         expect(result.role).toBe('borrower');
