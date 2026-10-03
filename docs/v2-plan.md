@@ -18,6 +18,28 @@ FinDB never moves money and never connects to a bank on its own. Outside connect
 
 This plan combines the original v2 brief (see `docs/v2-audit.md`) with everything agreed on 2026-10-03.
 
+## What makes FinDB different
+
+There are hundreds of expense trackers. Most do one of two things: they record spending, or they show investments while selling the user loans, cards and funds. FinDB's position:
+
+> **The complete, private record of your family's money, made for India.**
+
+1. **Everything an Indian family actually owns, in one place:** gold by weight and purity, chits, EPF and NPS, PPF and post office schemes, meal cards, rent, property and house construction, money lent to friends, gifts at weddings. Most apps stop at expenses, or at what they sell.
+2. **Numbers you can trust.** The ledger never double-counts or loses a rupee, transfers are not spending, an EMI shows how much was interest, and every balance can be checked against its statement.
+3. **Private by design.** No ads, no selling or sharing data, no loan or product offers. Users pay for the product, so the product works for them.
+4. **Built around family and life events:** weddings, housewarmings, trips with friends, parents' money, joint property, nominees.
+5. **It answers "Am I doing okay?"** in plain language: returns against inflation, debt health, insurance cover, and how many months the emergency fund lasts, not just a chart of last month's spending.
+6. **Little effort:** statement import, one payslip entry a month, repeating entries, sharing from the phone, and sample data to try first.
+
+**The biggest risk is complexity, not missing features.** Fourteen phases of features could make FinDB feel overwhelming, so:
+- **Simple first.** A new user sees only the modules they chose; everything else stays hidden until they turn it on.
+- **Useful within five minutes.** Import the last three months of a statement and immediately see where the money went.
+- **One clear next step on the home screen,** for example "Your HDFC card bill of ₹18,400 is due in 3 days."
+
+**Deliberately left out**
+- **Reading SMS automatically.** Google Play strictly limits which apps may read SMS, and many users distrust it. Sharing a message into FinDB (Phase 5) gives most of the benefit with the user in control.
+- **Advertising, selling data, and earning commissions** on loans, cards, insurance or funds.
+
 ## Rules for every phase
 
 **Money and data**
@@ -48,6 +70,13 @@ This plan combines the original v2 brief (see `docs/v2-audit.md`) with everythin
 - **Backups:** daily database backups, and a restore that has actually been tested.
 - **Information, not advice.** Insights, rankings, simulations and reviews are rule-based calculations and general explanations, never personal investment advice; in India that advice is regulated by SEBI. Every such screen says so and shows the thresholds it used.
 
+**Product**
+- **Simple first:** each screen shows what the user's modules need and nothing more; advanced options sit behind "More".
+- **Phone first:** every screen is designed for a phone at 360 px wide first, then widened for larger screens.
+- **Plain language** on every screen, with financial terms explained where they appear.
+- **Ready for Indian languages:** all text lives in message files from Phase 1, never written into components, so translations can be added without code changes. Amounts and dates follow Indian formats in every language.
+- **Accessible:** WCAG 2.2 AA (contrast, keyboard use, screen reader labels, text that can be enlarged), checked in the Playwright flows.
+
 **Process**
 - **Migrations:** each phase ships its database changes as numbered SQL files for the owner to apply (the decision recorded on 2026-09-30). Tests run them on the `balancetrack_test` schema first.
 - **No emoji anywhere**; names and messages are rendered as text.
@@ -63,10 +92,10 @@ This plan combines the original v2 brief (see `docs/v2-audit.md`) with everythin
 | Phase | Name | What the user gets |
 |---|---|---|
 | 1 | Foundation | Double-entry ledger with opening balances and reconciliation; new design; meal cards and wallets; module switches; transfers and other movements; categories and tags; repeating entries; two-factor login, session management, encryption, privacy, backups, database-enforced isolation |
-| 2 | Import, documents, insights and budgets | Bank and card statement import, quick and bulk entry, the document vault and receipts on any entry, category averages, subscription finder, trips, budgets, unusual-spend flags |
+| 2 | Import, documents, insights and budgets | Bank and card statement import, import from other apps, quick and bulk entry, search, the document vault and receipt reading, category averages, subscription finder, event reports, budgets, unusual-spend flags |
 | 3 | Debts and people | Loans with EMIs; gold loans and loans against FDs, insurance, securities and property; chit funds; money lent and borrowed with people; split costs; dangerous-debt ranking and payoff plans |
-| 4 | Credit cards | Shared credit lines, statements, loans on cards, cashback and reward points |
-| 5 | Public launch | Email verification and recovery, reminders by email, rate limits on every write, data export and account deletion, installable app, monitoring |
+| 4 | Credit cards | Shared credit lines, statements, loans on cards, cashback and reward points, a calendar of everything due |
+| 5 | Public launch | Email verification and recovery, reminders by email and push, rate limits on every write, data export and account deletion, phone app with offline entry and sharing, weekly summary, simple mode, first Indian languages, support, beta, plans and pricing, monitoring |
 | 6 | Investments | Physical and digital gold, Sovereign Gold Bonds, stocks, mutual funds, ETFs, bonds, REITs and InvITs, crypto, ESOPs and RSUs; SIPs; dividends; profit and loss; live prices |
 | 7 | Property, rentals and physical assets | Land and property with values and ownership shares, tenants and rent, vehicles and other assets with depreciation |
 | 8 | Savings, retirement and goals | RDs and FDs with interest, post office schemes, EPF, VPF and NPS, the payslip entry, savings pots, goals |
@@ -194,6 +223,11 @@ Phase 1 is several pull requests: the ledger and migration, then security and pr
   - **Turning it back on** shows everything again, exactly as it was.
 - **Gentle suggestions:** when the user records something a switched-off module handles (an expense called "Home loan EMI", say), FinDB offers once to turn that module on, and never asks again if they decline.
 
+**The first five minutes**
+- **Try it with sample data:** a new user can explore FinDB filled with a realistic sample family's money before entering their own, and clear it with one click. Sample data is marked everywhere and never mixes with real entries.
+- **A short setup:** add accounts with opening balances, then either import a statement (Phase 2) or add a few entries. Each step can be skipped.
+- **The home screen** shows one clear next step (a bill due, an entry to confirm, an account to reconcile) above the usual summary.
+
 **Security and privacy**
 - **Two-factor login is mandatory** (decided 2026-10-03), using time-based codes (TOTP) from any authenticator app, such as Google Authenticator or Microsoft Authenticator. It is free: no SMS, no paid service. One-time recovery codes are given at setup. New users set it up at sign-up; existing users at their next login.
 - **Sign in with Google** (Google's free OAuth) can be added later as an extra way to log in. Two-factor login still applies to password logins.
@@ -209,6 +243,7 @@ Phase 1 is several pull requests: the ledger and migration, then security and pr
 - Borders instead of shadows; no blurred panels and no gradients.
 - A chart library, bundled from npm.
 - Shared components. Every existing screen moves to the new design.
+- Phone-first layouts, and all text in message files (see the product rules).
 
 **Done when**
 - every existing balance matches after the move to the ledger, and every entry balances;
@@ -220,6 +255,8 @@ Phase 1 is several pull requests: the ledger and migration, then security and pr
 - a transfer does not change income or expenses;
 - categories are suggested;
 - repeating entries fire;
+- sample data can be explored and cleared without touching real entries;
+- no screen has text written into components instead of message files;
 - a test proves one user cannot read another user's rows even with the query's `user_id` filter removed.
 
 ## Phase 2: Import, documents, insights and budgets
@@ -231,10 +268,13 @@ Phase 1 is several pull requests: the ledger and migration, then security and pr
   - duplicates are flagged (same date, amount and description, or already entered by hand);
   - categories are suggested;
   - transfers between the user's own accounts are detected and paired.
-- Statement files are processed and discarded, not stored, unless the user chooses to keep them in the document vault (Phase 11).
+- Statement files are processed and discarded, not stored, unless the user chooses to keep them in the document vault (below).
+- **Importing from other apps and spreadsheets:** exports from popular expense and money-manager apps, Splitwise-style group expense exports, and the user's own spreadsheets, through the same column mapping and review screen. Switching to FinDB should not mean losing years of history.
 - Imported balances feed reconciliation.
 
 **Faster entry:** quick-add with just an amount, account and category; a spreadsheet-style grid for many entries at once.
+
+**Search across everything:** entries, people, events, assets and documents, by text, amount, date range, account, category, tag or event, with saved searches.
 
 **Spending insights**
 - **Category averages:** "Restaurants: ₹6,800 a month on average over 3, 6 or 12 months, up 22%."
@@ -250,7 +290,7 @@ Phase 1 is several pull requests: the ledger and migration, then security and pr
 - Files are encrypted, in private storage only, with size and type limits.
 - Each document has a type, a date and an optional financial year, so tax documents for a year can be found together.
 - Expiry dates (warranties, policies) feed reminders.
-- Photographed receipts can later be read automatically to fill in an expense; this is a candidate for a later release.
+- **Reading receipts and screenshots:** a photographed receipt or a UPI payment screenshot fills in the amount, date and merchant for the user to confirm. It ships in Phase 2 if the reading is accurate enough on Indian receipts, otherwise soon after.
 
 Data: `import_profiles`, `import_batches`, `budgets`, `documents`, `document_links`. Events and projects (Phase 1): `events`, with an `event_id` on journal entries.
 
@@ -341,6 +381,8 @@ Data: `loans`, `loan_payments`, `pledges`, `chit_funds` (organiser, registration
 - **Card comparison:** the effective cashback rate per card.
 - **Warnings:** due dates, minimum-only payments, and interest charged on a balance carried over.
 
+**Calendar of what's due:** one view of everything coming up this month and next: card bills, EMIs, chit instalments and auctions, rent to pay or collect, repeating entries, money owed by people. Later phases add SIPs, maturities, insurance renewals and tax dates. It answers "what do I need to pay this month?", with the total and which account it comes from.
+
 Data: `credit_lines`, `card_statements`, `card_rewards`.
 
 ## Phase 5: Public launch
@@ -353,7 +395,24 @@ The core (ledger, accounts, spending, import, debts and cards) is complete, so F
   - **reminders by email** as well as in the app. Reminder types grow with each phase: EMIs, card due dates, points expiring, maturities, PPF deposits, insurance renewals, rent, and money owed by people.
 - **Rate limits on every write,** with a shared store so the limits hold across server instances.
 - **Data export** (everything, as CSV or JSON) and **account deletion**, completing the data protection rights.
-- **Installable app (PWA).**
+- **The phone app (PWA)**, installable from the browser:
+  - **entries offline:** adding entries works without signal, and they sync when the phone is back online;
+  - **push notifications** for reminders, in addition to email;
+  - **share to FinDB:** share a bank SMS, a receipt photo, a UPI screenshot or a statement file from any app into FinDB, which turns it into an entry for review.
+- **Reasons to come back:**
+  - a **weekly summary** (spent, received, what's due next week, one insight), in the app and by email, which the user can turn off;
+  - a **monthly review** screen at the start of each month;
+  - **"Your year in money"** each January and at the end of each financial year: where it went, what grew, the events of the year.
+- **Simple mode** for parents and older users, or anyone who wants only the basics: larger text, fewer screens, just accounts, spending and reminders. A family member can set it up for them (with Phase 11 sharing).
+- **The first Indian languages:** Hindi and Telugu at launch, then Tamil, Kannada, Marathi and Bengali, based on who signs up. Translations are reviewed by native speakers, especially financial terms.
+- **Support:**
+  - a help centre with short guides for each feature;
+  - a feedback and bug report form in the app;
+  - a **grievance officer** with a published contact, as the data protection rules expect, and a response time;
+  - a public status page.
+- **Privacy-respecting usage analytics:** which screens are used and where people give up during setup, counted without tracking any individual, without third-party trackers, and never including amounts or names.
+- **A beta before launch:** 20 to 50 real users (friends, family, colleagues) use FinDB for at least a month before the public launch, through a short feedback loop.
+- **Plans and pricing** (see "How FinDB pays for itself").
 - **Error monitoring** and uptime alerts.
 - Updated privacy policy and terms, and a final review of the wording on every "information, not advice" screen.
 
@@ -607,6 +666,29 @@ Data: `business_books`, `invoices`, `invoice_lines`, `gst_entries`.
 - FinDB would become a Financial Information User through a licensed partner. That needs business registration and a compliance review before any build.
 - With the user's consent (renewable and revocable at any time), FinDB fetches statements and holdings and imports them through the Phase 2 review screen. Nothing is saved without the user confirming.
 
+## Later, after the phases
+
+- **Native Android and iOS apps,** for home-screen widgets, faster entry and smoother phone use. Only once the web app and PWA work well, and sharing the same API.
+- **Voice entry** ("Spent 450 on petrol from HDFC"), in English and the supported Indian languages.
+
+---
+
+## How FinDB pays for itself
+
+FinDB must cover its own costs without ads or selling data. The suggested model, to be confirmed before Phase 5:
+
+| Plan | Price (suggested) | What it includes |
+|---|---|---|
+| Free | ₹0 | Accounts, spending, income, budgets, events, statement import, debts and people, credit cards, net worth, reminders. Generous enough to be genuinely useful on its own. |
+| Premium | about ₹99 a month or ₹999 a year | Investments with live prices, property and assets, deposits and retirement, the tax centre, the financial status review, the document vault beyond a small free allowance, PDF reports |
+| Family | about ₹1,499 a year | Premium for up to 5 members of a household, with sharing and the household view (Phase 11) |
+
+- **Never:** advertising, selling or sharing data, or commissions on loans, cards, insurance or funds. This is what makes "private by design" credible.
+- **The user's own data is never held hostage.** Export always works on every plan, and data stays readable if a paid plan ends.
+- **Breaking even:** the Stage 2 costs (about ₹3,800 a month) are covered by roughly 50 yearly Premium subscribers.
+- Payments through an Indian payment gateway (for example Razorpay), with GST invoices and recurring payments under RBI's e-mandate rules. FinDB stores no card details.
+- Which features are Premium is decided before Phase 5, once the beta shows what people value most.
+
 ---
 
 ## Infrastructure, hosting and costs
@@ -666,6 +748,9 @@ _Prices are as known on 2026-10-03; check the current pricing pages before buyin
 | Phase 1 | **Decided 2026-10-03:** repeating entries default to confirm-first (one tap); users can switch any of them to automatic |
 | Phase 2 | **Decided 2026-10-03:** HDFC, ICICI, SBI, Axis and Kotak first (accounts and cards), then others on request |
 | Phase 5 | The email provider |
+| Before Phase 5 | Plans and pricing: confirm the suggested Free, Premium and Family plans, and which features are Premium |
+| Phase 5 | The first languages (suggested: Hindi and Telugu), and who reviews the translations |
+| Phase 5 | The privacy-respecting analytics tool (self-hosted or a cookieless service) |
 | Phase 6 | Price sources and any paid plans, and whether to offer broker connections |
 | Phase 7 | Default depreciation rates, and growth between property estimates |
 | Phase 8 | Which schemes ship first, and where scheme rates come from |
