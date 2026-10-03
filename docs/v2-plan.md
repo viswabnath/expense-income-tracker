@@ -267,14 +267,30 @@ Data: `import_profiles`, `import_batches`, `budgets`, `documents`, `document_lin
 **Money with people**
 - Money lent and borrowed: interest-free or with interest, an optional due date, repayments in parts, and a status of open, overdue or settled.
 - Lending and repayments are movements, not income or spending. Money owed to the user counts as an asset; money they owe counts as a liability.
-- **Split costs:** the user's share is the expense, and the others' shares become money owed to the user.
+**Shared expenses and groups (trips, flatmates, outings)**
+- **A group,** such as "Goa trip, Dec 2026" or "Flat 302", lists the people in it. They are entries in the user's People list and do not need a FinDB account.
+- **Each shared expense records who paid and who shares it.**
+  - **Who paid:** the user, or a friend.
+  - **Who shares it:** everyone, or only some members.
+  - **How it splits:** equally, by exact amounts, by percentages, or by shares (for example, a couple counts as 2).
+- **How each case is recorded:**
+  - **The user pays for everyone** (for example, all the train tickets): the full amount leaves their account. Their own share is spending, and each friend's share becomes money that friend owes the user.
+  - **A friend pays for everyone** (for example, the hotel): no money leaves the user's accounts. Their share is still spending, because they used it, and it becomes money they owe that friend.
+  - **The user pays and does not want it back** (a treat): they mark it so, and the whole amount is their spending.
+  - **The user is not part of an expense** (two friends' shopping): it is recorded for the group's balances only and does not touch the user's spending.
+- **Balances per person:** what each friend owes the user, or the user owes them, after netting everything in the group.
+  - **"Simplify debts"** shows the fewest payments that settle everyone: "Rahul pays you ₹1,000; you pay Sneha ₹2,300."
+- **Settling up:** a payment by UPI, bank or cash, in full or in part, moves real money and clears the balance. It is never income or spending.
+- **The trip's cost** shows two numbers: what the user actually spent (their share of everything) and what the whole group spent. These come with a breakdown by category (travel, stays, food).
+- **Foreign trips:** expenses in another currency, once Phase 12 adds currencies.
+- **Later:** if friends also use FinDB, a shared group they can all see and add to, with their consent.
 
 **Which debt is most dangerous**
 - Debts ranked by their true yearly cost, with a plain-language explanation of each type: credit card balance carried over, buy-now-pay-later and instant loan apps, personal and card loans, gold loans, vehicle loans, home loans.
 - **Payoff simulator:** highest-rate-first against smallest-balance-first, showing interest saved and the debt-free date.
 - **Warnings:** minimum-only payments, a high EMI-to-income ratio, gold loan margin risk, and overdue money from people.
 
-Data: `loans`, `loan_payments`, `pledges`, `chit_funds`, `chit_instalments`, `people`, `person_loans`, `person_loan_payments`, `splits`.
+Data: `loans`, `loan_payments`, `pledges`, `chit_funds`, `chit_instalments`, `people`, `person_loans`, `person_loan_payments`, `groups`, `group_members`, `shared_expenses`, `shared_expense_shares`, `settlements`.
 
 ## Phase 4: Credit cards
 
