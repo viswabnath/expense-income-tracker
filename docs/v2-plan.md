@@ -2,7 +2,7 @@
 
 _Drafted 2026-10-03. Status: **proposed, awaiting approval.** Nothing in this plan is built yet. Each phase starts only after it is approved, and each phase ends with a full test run and a reviewed pull request._
 
-v2 turns FinDB from an income-and-expense tracker into a full personal finance dashboard. It adds loans, money lent to or borrowed from people, credit lines, investments with live prices, deposits and goals, spending insights, and net worth. FinDB stays manual and private: the user enters their own data, and FinDB never connects to a bank. The only outside connections are optional price feeds, and a broker connection only if the user chooses it.
+v2 turns FinDB from an income-and-expense tracker into a full personal finance dashboard. It adds loans, money lent to or borrowed from people, credit lines with cashback and rewards, meal cards and wallets, investments (including daily and monthly SIPs) with live prices, deposits and post office schemes, retirement savings (EPF, NPS), insurance, goals, spending insights, and net worth. FinDB stays manual and private: the user enters their own data, and FinDB never connects to a bank. The only outside connections are optional price feeds, and a broker connection only if the user chooses it.
 
 This plan combines the original v2 brief (see `docs/v2-audit.md`) with the additions agreed on 2026-10-03:
 - money lent and borrowed with people, and split costs;
@@ -12,6 +12,16 @@ This plan combines the original v2 brief (see `docs/v2-audit.md`) with the addit
 - live prices;
 - spending categories and insights;
 - repeating entries, reminders, insurance, a tax tracker and an emergency fund check.
+
+And on 2026-10-03, later the same day:
+- gold bought by SIP, daily or monthly;
+- credit card cashback and reward points;
+- meal cards (Pluxee, formerly Sodexo, and similar) and wallets;
+- the National Pension System (NPS), including employer contributions;
+- the Employees' Provident Fund (EPF) and Voluntary Provident Fund (VPF);
+- term and health insurance;
+- post office and government savings schemes (PPF, Sukanya Samriddhi, NSC, KVP, MIS, SCSS, post office RD and time deposits);
+- a payslip entry that splits one salary into its parts.
 
 ## Rules for every phase
 
@@ -33,13 +43,13 @@ This plan combines the original v2 brief (see `docs/v2-audit.md`) with the addit
 
 | Phase | Name | What the user gets |
 |---|---|---|
-| 1 | Foundation | New design, module switches, transfers and other non-income money movements, expense categories and tags, repeating entries, database-enforced isolation |
+| 1 | Foundation | New design, module switches, meal cards and wallets as accounts, transfers and other non-income money movements, expense categories and tags, repeating entries (daily to yearly), database-enforced isolation |
 | 2 | Spending insights and budgets | Category averages, subscription finder, trips, budgets with alerts, unusual-spend flags |
 | 3 | Debts and people | Loans with EMIs and schedules, money lent to or borrowed from people, split costs, dangerous-debt ranking, payoff plans |
-| 4 | Credit cards | Shared credit lines, statements with billing and due dates, loans on cards, card warnings |
-| 5 | Investments | Gold, Sovereign Gold Bonds, stocks, mutual funds, crypto; buys and sells; profit and loss; allocation; live prices |
-| 6 | Savings and goals | Recurring and fixed deposits, savings pots, short-term and long-term goals |
-| 7 | Net worth and financial health | Net worth with a trend, health ratios, emergency fund check, insurance policies, tax-saving tracker |
+| 4 | Credit cards | Shared credit lines, statements with billing and due dates, loans on cards, cashback and reward points, card warnings |
+| 5 | Investments | Gold (including digital gold by daily or monthly SIP), Sovereign Gold Bonds, stocks, mutual funds, crypto; SIPs; buys and sells; profit and loss; allocation; live prices |
+| 6 | Savings, retirement and goals | Recurring and fixed deposits, post office and government schemes (PPF, SSY, NSC, KVP, MIS, SCSS), EPF and VPF, NPS with employer contributions, the payslip entry, savings pots, short-term and long-term goals |
+| 7 | Net worth, insurance and tax | Net worth with a trend, health ratios, emergency fund check, term and health insurance, tax-saving tracker (80C, 80CCD, 80D) |
 | 8 | Public launch | Email-based account recovery, reminders by email, rate limits on all writes, data export and account deletion, installable app, monitoring |
 
 Phase 2 comes early on purpose. It needs only Phase 1's categories, and it gives users value straight away.
@@ -60,6 +70,11 @@ Phase 2 comes early on purpose. It needs only Phase 1's categories, and it gives
 - In Settings, the user turns Income, Expenses, Investments, Debts and Cards on or off. This replaces the single sign-up choice (`tracking_option`), and existing users are mapped from it: income only, expenses only, or both.
 - Turned-off modules disappear from navigation and screens. The API keeps their data, and switching a module back on shows it again.
 
+**More kinds of account**
+- Besides banks, credit cards and cash: **meal cards** (Pluxee, formerly Sodexo, and similar employer food cards) and **wallets** (prepaid and UPI wallets).
+- A meal card is topped up by the employer each month. That top-up is recorded as income in a "Meal benefit" category, or it comes from the payslip entry in Phase 6. Spending from it is an ordinary expense (restaurants, groceries) paid from the card.
+- The card can carry an optional note of what it can be spent on, and an optional expiry for unspent balances.
+
 **Money movements that are not income or expenses**
 - A general "movement" record with a type:
   - transfer between own accounts;
@@ -76,15 +91,16 @@ Phase 2 comes early on purpose. It needs only Phase 1's categories, and it gives
 - **Suggested category from the title,** with a built-in keyword list (for example "Swiggy" means restaurants, "HP Petrol" means fuel) that learns from the user's own past choices.
 - **Tags** for things that cut across categories, such as "Goa trip 2026" or "Wedding".
 - Existing expenses start as "Uncategorised" and can be categorised later, in bulk.
-- Income gets simple categories too: salary, freelance, interest, refund, gift, other.
+- Income gets simple categories too: salary, freelance, interest, meal benefit, cashback and rewards, refund, gift, other.
 
 **Repeating entries**
 - Salary on the 1st, rent on the 5th, monthly SIPs.
-- A schedule (monthly, weekly or yearly, on a given day).
+- A schedule: **daily**, weekly, monthly or yearly, on a given day (daily covers a daily gold SIP).
 - Each entry is either added automatically or shown for one-tap confirmation, as the user chooses.
 
 **Data model (new tables, amounts in paise)**
 - `user_modules`
+- New account types: `wallets` (kinds: meal card, prepaid wallet)
 - `categories`
 - `tags` and `entry_tags`
 - `movements`
@@ -149,20 +165,33 @@ Data: `loans`, `loan_payments`, `people`, `person_loans`, `person_loan_payments`
 - **Credit lines:** one shared limit across several cards, matching how banks set it.
 - **Statements:** each card has a billing day and a due day. Each cycle produces a statement with the amount due, the minimum due and the due date. Payments are matched to statements.
 - **Loans on a card:** EMIs that reduce the card's available limit, built on the Phase 3 loan engine.
+- **Cashback:**
+  - Cashback credited to the card lowers its outstanding amount. Cashback credited to a bank account is a deposit into that account.
+  - Either way it is recorded as income in the "Cashback and rewards" category.
+  - It is reported per card and per year ("this card earned ₹4,820 in cashback in 2026").
+- **Reward points:**
+  - The points balance per card, points earned per statement, and points redeemed (for cashback, vouchers or air miles).
+  - An optional rupee value per point gives the balance a worth, which is shown separately and is not counted in net worth.
+  - Points nearing expiry trigger a reminder.
+- **Card comparison:** effective cashback rate per card (cashback and redeemed rewards divided by spend), to show which card actually pays back the most.
 - **Reminders and warnings:** due dates, minimum-only payments, and interest charged on a balance carried over.
 - Existing cards move into credit lines of one card each.
 
-Data: `credit_lines`, `card_statements`, plus new columns on `credit_cards`.
+Data: `credit_lines`, `card_statements`, `card_rewards` (points earned, redeemed, expiry), plus new columns on `credit_cards`.
 
 ## Phase 5: Investments
 
 - **Holdings:**
-  - gold (grams);
+  - gold: physical gold (grams, purity) and **digital gold** (grams held with a platform);
   - Sovereign Gold Bonds (units, issue price, interest rate, maturity);
   - stocks;
   - mutual funds (units, SIPs);
   - crypto.
 - Buys and sells are movements. Average cost and realised and unrealised profit and loss are calculated.
+- **SIPs for any holding,** daily, weekly or monthly. Examples: ₹100 of digital gold every day, or ₹5,000 into a mutual fund on the 5th.
+  - Each SIP is a repeating entry (Phase 1) that records a buy.
+  - The grams or units are worked out from that day's price, or entered from the platform's confirmation.
+  - Each SIP shows its total invested, current value, average buying price, and the number of instalments made or missed.
 - **Allocation:** how invested money is spread across types, as a chart.
 - **Prices:** always editable by hand, and every price shows its date and source.
   - **Live prices (optional add-on):** a scheduled server job (Vercel Cron) fetches prices once a day and stores them. The browser never calls price services directly.
@@ -178,12 +207,51 @@ Data: `credit_lines`, `card_statements`, plus new columns on `credit_cards`.
 
 Data: `holdings`, `investment_transactions`, `prices`, `price_sources`.
 
-## Phase 6: Savings and goals
+## Phase 6: Savings, retirement and goals
 
 **Deposits**
 - **Recurring deposits:** monthly instalment, rate, start date, tenure. The maturity date and value are calculated, and instalments are tracked as paid or missed.
 - **Fixed deposits:** amount, rate, compounding, maturity, and interest earned so far.
 - A reminder before a deposit matures.
+
+**Post office and government savings schemes**
+
+Each scheme has its own rules built in, with the interest rate entered per period. The government revises these rates quarterly, so the user can record a new rate when it changes.
+
+| Scheme | What is tracked |
+|---|---|
+| Public Provident Fund (PPF) | Yearly deposits within the allowed minimum and maximum, the 15-year term and extensions, interest credited yearly, when partial withdrawals and loans become allowed |
+| Sukanya Samriddhi Yojana (SSY) | Deposits for a daughter's account, the deposit years and maturity, interest credited yearly |
+| National Savings Certificate (NSC) | Purchase amount, interest compounded yearly and paid at maturity, the maturity value |
+| Kisan Vikas Patra (KVP) | Purchase amount and the date the amount doubles |
+| Post Office Monthly Income Scheme (MIS) | Deposit, monthly interest paid out to a bank account, maturity |
+| Senior Citizens' Savings Scheme (SCSS) | Deposit, quarterly interest payouts, maturity and extension |
+| Post office recurring and time deposits | As recurring and fixed deposits above, with post office terms |
+
+- Interest is shown as earned, and once credited it is recorded as income in the "Interest" category.
+
+**Retirement: EPF, VPF and NPS**
+- **Employees' Provident Fund (EPF):**
+  - the employee's and the employer's monthly contributions, and any Voluntary Provident Fund (VPF);
+  - interest credited each year at the rate the user enters;
+  - the running balance, which counts toward net worth;
+  - withdrawals and advances.
+- **National Pension System (NPS):**
+  - Tier I and Tier II accounts;
+  - the user's own contributions and the **employer's contributions**, kept apart because they count under different tax sections;
+  - units and NAV per scheme (equity, corporate bonds, government securities), with daily NAVs as a later live-price source;
+  - the current value and how it is split.
+- Both are assets in net worth, marked as locked until retirement.
+
+**Payslip entry**
+- One entry for a month's salary that splits into its parts:
+  - net pay to a bank account;
+  - EPF and VPF contributions, to the EPF account;
+  - the employer's NPS contribution, to the NPS account;
+  - the meal card top-up, to the meal card;
+  - tax deducted at source and professional tax, recorded as taxes paid.
+- Gross salary is the income. Each part goes to its account in the same transaction, so the totals always add up.
+- It can be a repeating entry, so a typical month is one confirmation.
 
 **Savings pots:** money set aside inside a bank account for a purpose, without moving it.
 
@@ -197,12 +265,12 @@ Data: `holdings`, `investment_transactions`, `prices`, `price_sources`.
   - what-ifs, such as "add ₹2,000 a month to reach it 4 months earlier".
 - A "clear this loan" goal links to a Phase 3 loan and uses the payoff simulator.
 
-Data: `deposits`, `deposit_instalments`, `pots`, `goals`, `goal_sources`.
+Data: `deposits` (including post office deposits), `deposit_instalments`, `schemes` and `scheme_rates` (PPF, SSY, NSC, KVP, MIS, SCSS), `retirement_accounts` (EPF, VPF, NPS) and `retirement_contributions`, `payslips` and `payslip_lines`, `pots`, `goals`, `goal_sources`.
 
-## Phase 7: Net worth and financial health
+## Phase 7: Net worth, insurance and tax
 
 - **Net worth** = everything owned minus everything owed:
-  - owned: banks, cash, deposits, investments, and money others owe the user;
+  - owned: banks, cash, meal cards and wallets, deposits, post office schemes, EPF, VPF and NPS, investments, and money others owe the user;
   - owed: loans, card dues, and money the user owes others.
 - A month-end snapshot builds a **trend chart**.
 - **Health ratios:**
@@ -210,15 +278,30 @@ Data: `deposits`, `deposit_instalments`, `pots`, `goals`, `goal_sources`.
   - debt-to-assets;
   - savings rate;
   - emergency fund coverage, in months of average spending.
-- **Insurance policies:** type, insurer, cover amount, premium, frequency, renewal date, and reminders.
-- **Tax-saving tracker (India):** progress toward the section 80C limit from PPF, ELSS, life insurance premiums, home loan principal and tuition fees. It applies only under the old tax regime, so it asks which regime the user follows. Information only.
+- **Insurance:**
+  - **Term life insurance:** insurer, policy number, sum assured, premium and how often it is paid, policy term, nominee, and riders.
+  - **Health insurance:**
+    - individual or family floater, and who is covered;
+    - sum insured, plus top-up or super top-up cover and its deductible;
+    - premium, renewal date, and no-claim bonus;
+    - a claims log with amounts claimed and settled;
+    - whether the employer's group cover is included.
+  - **Other policies:** vehicle, home and endowment, with the same basic fields.
+  - Premiums are expenses in the "Insurance" category. Every policy has a renewal reminder, and term and health covers show whether the cover looks adequate against simple rules of thumb (information only).
+- **Tax-saving tracker (India), information only:**
+  - **Section 80C:** EPF and VPF employee contributions, PPF, ELSS, NSC, SSY, life insurance premiums, home loan principal, tuition fees.
+  - **Section 80CCD(1B):** the user's own extra NPS contributions.
+  - **Section 80CCD(2):** the employer's NPS contribution.
+  - **Section 80D:** health insurance premiums, for self and family and for parents.
+  - Contributions recorded anywhere in FinDB count toward the limits automatically.
+  - It asks which tax regime the user follows and shows only the sections that apply to it. Limits and rules are stored per financial year and updated when the budget changes them, never hard-coded.
 
-Data: `net_worth_snapshots`, `insurance_policies`, `tax_profile`.
+Data: `net_worth_snapshots`, `insurance_policies`, `insurance_members`, `insurance_claims`, `tax_profile`, `tax_rules` (per financial year).
 
 ## Phase 8: Public launch
 
 - **Account recovery by an emailed link,** replacing the security question. Registration stops revealing whether an email is in use. Both need an email provider.
-- **Reminders by email** as well as in the app: EMIs, card due dates, deposit maturities, insurance renewals, overdue money from people.
+- **Reminders by email** as well as in the app: EMIs, card due dates, reward points expiring, deposit and scheme maturities, the yearly PPF deposit, insurance renewals, overdue money from people.
 - **Rate limits on every write,** and a shared rate-limit store so the limits hold across server instances.
 - **Data export** (every table, as CSV or JSON) and **account deletion**.
 - **Installable app (PWA).**
@@ -234,5 +317,6 @@ Data: `net_worth_snapshots`, `insurance_policies`, `tax_profile`.
 | Before Phase 1 | The test-run database stalls (STATUS): check the Supabase pooler's connection limit, or use a direct connection for tests |
 | Phase 1 | Whether repeating entries default to automatic or to confirm-first |
 | Phase 5 | Price sources and any paid plans (gold, stocks), and whether to offer broker connections |
-| Phase 7 | Whether to include the tax tracker, given the old and new regimes |
+| Phase 6 | Which schemes ship first (suggested: PPF, EPF, NPS, then the post office schemes), and where scheme interest rates come from (entered by the user, or a maintained table updated each quarter) |
+| Phase 7 | How the tax rules per financial year are kept up to date |
 | Phase 8 | The email provider |
