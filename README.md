@@ -109,6 +109,7 @@ Only production is built: merging into `master` deploys production. Preview buil
 
 - [docs/API.md](docs/API.md): API reference
 - [docs/STATUS.md](docs/STATUS.md): current status and known issues
+- [docs/v2-plan.md](docs/v2-plan.md): planned features
 
 ## License
 
