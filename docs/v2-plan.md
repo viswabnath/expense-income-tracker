@@ -8,8 +8,8 @@ v2 turns FinDB from an income-and-expense tracker into a full personal finance d
 - credit cards with cashback and rewards;
 - investments with live prices;
 - property and rents;
-- vehicles and other assets;
-- deposits, post office schemes and retirement savings;
+- vehicles, gadgets, jewellery and other valuables, whether bought, received as gifts or inherited;
+- deposits, post office schemes, retirement savings and pensions;
 - insurance, taxes and goals;
 - net worth;
 - a review of whether their finances are heading the right way compared with inflation and the market.
@@ -108,7 +108,9 @@ Phase 1 is several pull requests: the ledger and migration, then security and pr
 
 **Expense categories and tags**
 - **Default expense categories:** Rent, Groceries, Restaurants and food delivery, Fuel, Transport, Subscriptions, Movies and entertainment, Shopping, Health, Education, Travel, Bills and utilities, Insurance, Loan interest and fees, Taxes, Gifts, Personal care, Other. Users can rename them and add their own.
-- **Income categories:** salary, freelance, rental income, interest, dividends, meal benefit, cashback and rewards, refund, gift, other.
+- **Income categories:** salary, pension, freelance, rental income, interest, dividends, meal benefit, cashback and rewards, gifts received (money), refund, other.
+- **Gifts and inheritance received as things, not money** (a gold chain, a watch, a phone, a camera, a property): the item becomes an asset at its value on the day it was received. The other side of the entry is a "Gifts and inheritance" equity account, not income. Net worth goes up, but monthly income and net savings don't, because no money arrived. The giver, their relationship to the user, and the occasion are recorded (see the tax tracker in Phase 9).
+- **Gifts given:** money given is an expense in "Gifts". Giving away an asset removes it at its current value, recorded in the same "Gifts and inheritance" account.
 - **Suggested category from the title:** a keyword list ("Swiggy" means restaurants, "HP Petrol" means fuel) that learns from the user's own choices.
 - **Tags** for things that cut across categories, such as "Goa trip 2026".
 - Existing expenses start as "Uncategorised" and can be categorised in bulk.
@@ -237,7 +239,7 @@ The core (ledger, accounts, spending, import, debts and cards) is complete, so F
 ## Phase 6: Investments
 
 **What can be held**
-- **Physical gold:** each piece of jewellery, coin or bar, with its weight and purity (24, 22 or 18 carat), valued at the day's rate for that purity. Making charges and wastage are part of the cost but not the resale value. Sales and exchanges for new jewellery are recorded.
+- **Physical gold:** each piece of jewellery, coin or bar, with its weight and purity (24, 22 or 18 carat), valued at the day's rate for that purity. Making charges and wastage are part of the cost but not the resale value. Sales and exchanges for new jewellery are recorded. Gold received as a gift or inherited enters at the day's value, with the original owner's cost and date if known.
 - **Digital gold**, **gold ETFs**, and **Sovereign Gold Bonds** (units, issue price, interest, maturity).
 - **Stocks**, **mutual funds** (including SIPs and the income distribution option, IDCW) and **ETFs**.
 - **Bonds:** government securities, corporate and tax-free bonds. Coupon interest is income, and maturity is tracked.
@@ -287,13 +289,20 @@ Data: `holdings`, `holding_lots`, `investment_transactions`, `grants` and `vesti
 - **Rental yield** for each property, and reminders before agreements end or rent increases.
 - Tax deducted by a commercial tenant is recorded as tax paid.
 
-**Vehicles and other physical assets**
-- Cars, bikes, electronics, furniture and equipment, each with a purchase price, a date and an ownership share.
+**Vehicles, gadgets and other physical assets**
+- Cars, bikes, phones, laptops, cameras, watches, electronics, furniture and equipment, each with a value, a date and an ownership share.
+- **How it was acquired:** bought (purchase price), received as a gift, or inherited (value on the day received). For gifts and inheritance, the original owner's cost and purchase date can be recorded too, because Indian tax rules use them if the item is later sold.
 - **Depreciation:** reducing balance at a yearly rate (about 15% a year for a car by default, changeable), or straight-line down to a residual value. The value falls monthly, and a real resale quote can override it.
 - **On sale:** the gain or loss. A linked vehicle loan shows what is still owed.
 - Running costs (fuel, servicing, vehicle insurance) are expenses tagged to the asset.
 
-Data: `properties`, `property_valuations`, `ownership_shares`, `tenants`, `tenancies`, `rent_payments`, `physical_assets`, `asset_valuations`.
+**Valuables and collectibles**
+- **Silver ornaments, utensils and coins:** weight and purity, valued at the day's silver rate, like physical gold in Phase 6.
+- **Diamonds, gemstones, platinum, luxury watches, art and collectibles:** valued from the user's own estimate or an appraisal, each with its date. These usually hold or gain value, so by default they are not depreciated.
+- Gold jewellery received as a gift or inheritance is recorded in Phase 6 with the same "how it was acquired" details.
+- Every valuable can be linked to its bill, certificate or appraisal in the document vault (Phase 11), and to an insurance policy (Phase 9).
+
+Data: `properties`, `property_valuations`, `ownership_shares`, `tenants`, `tenancies`, `rent_payments`, `physical_assets` (with how each was acquired), `asset_valuations`, `valuables`.
 
 ## Phase 8: Savings, retirement and goals
 
@@ -324,6 +333,17 @@ The scheme rules are built in. The interest rate is recorded per period, because
 - **NPS:** Tier I and II; the user's own and the employer's contributions kept apart; units and NAV per scheme.
 - Both are assets marked as locked until retirement.
 
+**Pensions**
+- **Pension sources:**
+  - a government or employer pension;
+  - the EPS pension from EPF;
+  - an NPS annuity or other annuity;
+  - a family pension.
+- Each source records the monthly amount, who pays it, any dearness relief or yearly increases, and the bank account it is paid into.
+- **Each payment is "Pension" income.** Tax deducted is recorded as tax paid.
+- **Commuted pension:** a lump sum taken at retirement in place of part of the monthly pension. It is recorded as a one-off receipt, and the reduced monthly amount follows from it.
+- **Reminders:** the yearly life certificate that pensioners must submit to keep the pension coming (for example through Jeevan Pramaan), and a missing month's payment.
+
 **Payslip entry**
 - One month's salary split into: net pay to a bank; EPF and VPF; the employer's NPS contribution; the meal card top-up; tax deducted at source and professional tax as taxes paid.
 - Gross salary is the income, and the parts are lines of one ledger entry, so it always balances.
@@ -335,7 +355,7 @@ The scheme rules are built in. The interest rate is recorded per period, because
 - Short-term and long-term goals (a dream bike, an emergency fund, a house down payment, clearing a loan), funded by any mix of deposits, pots, investments and monthly contributions.
 - Each goal shows progress, the monthly amount still needed, whether it's on track, behind or ahead, and what-ifs.
 
-Data: `deposits`, `deposit_instalments`, `schemes`, `scheme_rates`, `retirement_accounts`, `retirement_contributions`, `payslips`, `payslip_lines`, `pots`, `goals`, `goal_sources`.
+Data: `deposits`, `deposit_instalments`, `schemes`, `scheme_rates`, `retirement_accounts`, `retirement_contributions`, `pension_sources`, `pension_payments`, `payslips`, `payslip_lines`, `pots`, `goals`, `goal_sources`.
 
 ## Phase 9: Net worth, insurance and tax
 
@@ -361,12 +381,14 @@ Data: `deposits`, `deposit_instalments`, `schemes`, `scheme_rates`, `retirement_
 - **Capital gains:** short-term and long-term gains on shares, equity funds, debt funds, gold, property and other assets.
   - Holding periods and rates are applied per financial year from the purchase lots.
   - Each year's realised gains are summarised.
+- **Pension:** a pension from an employer is taxed like salary (with the standard deduction where it applies); a family pension is taxed as other income, with its own deduction. A commuted lump sum may be partly or fully exempt depending on the pension type.
+- **Gifts received:** gifts from relatives, on marriage, or by inheritance are generally not taxed. Gifts of money or valuables from others become taxable once their total in a year passes the legal limit. FinDB adds up gifts from non-relatives, using the relationship recorded with each gift, and warns as the total nears the limit.
 - **Rent paid,** for house rent allowance (with the landlord's PAN, stored encrypted, when the rules need it).
 - **Advance tax:** an estimate of tax due on income other than salary (interest, rent, capital gains, freelance), with reminders for the quarterly due dates.
 - **Taxes paid:** tax deducted at source from every source, compared with the totals the user enters from their Annual Information Statement (AIS) or Form 26AS.
 - It asks which regime the user follows and shows only what applies. Rules, limits and rates are stored per financial year and updated when the budget changes them, never hard-coded.
 
-Data: `net_worth_snapshots`, `insurance_policies`, `insurance_members`, `insurance_claims`, `tax_profile`, `tax_rules`, `capital_gains` (computed per year), `rent_paid`.
+Data: `net_worth_snapshots`, `insurance_policies`, `insurance_members`, `insurance_claims`, `tax_profile`, `tax_rules`, `capital_gains` (computed per year), `rent_paid`, `gifts_received` (giver, relationship, occasion, value).
 
 ## Phase 10: Financial status review
 
