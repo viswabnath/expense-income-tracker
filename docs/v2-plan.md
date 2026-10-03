@@ -28,9 +28,18 @@ This plan combines the original v2 brief (see `docs/v2-audit.md`) with everythin
 - **Per-user isolation enforced by the database.** Each request runs in a transaction that sets `app.user_id`. Row level security policies on every user table allow only rows where `user_id = current_setting('app.user_id')::int` (the decision recorded on 2026-09-30). Queries also keep their own `user_id` filters.
 - **Only the user's own accounts.** Every entry checks that the accounts it uses belong to the user.
 - **Every change is logged** in the activity log, in the same transaction.
+- **Evidence and reconciliation everywhere.** Any entry can link to the documents that support it: a receipt, a certificate, a statement. Each kind of account can be checked against its source:
+  - bank and wallet balances against statements;
+  - card transactions against the card statement;
+  - investment units against the broker or fund statement;
+  - FD interest against the bank's interest certificate;
+  - loan balances against the lender's statement;
+  - taxes against Form 16, Form 26AS and the AIS.
+  A difference is shown with the entries that explain it.
 
 **Security and privacy**
-- **Sensitive values are encrypted** before they reach the database: PAN, bank account numbers, policy numbers, folio numbers, and uploaded documents. They are shown masked by default.
+- **Sensitive values are encrypted** before they reach the database: PAN, bank account numbers, demat and broker account IDs, policy numbers, folio numbers, and uploaded documents. They are shown masked by default.
+- **Store only what is needed.** For Aadhaar, at most the last four digits and whether it is linked to PAN; never the full number, which the Aadhaar Act restricts. No passwords or PINs for banks, cards or brokers, ever.
 - **India's Digital Personal Data Protection Act, 2023:**
   - a clear notice and consent at sign-up;
   - the user can see, correct, export and erase their data;
@@ -54,7 +63,7 @@ This plan combines the original v2 brief (see `docs/v2-audit.md`) with everythin
 | Phase | Name | What the user gets |
 |---|---|---|
 | 1 | Foundation | Double-entry ledger with opening balances and reconciliation; new design; meal cards and wallets; module switches; transfers and other movements; categories and tags; repeating entries; two-factor login, session management, encryption, privacy, backups, database-enforced isolation |
-| 2 | Import, insights and budgets | Bank and card statement import, quick and bulk entry, category averages, subscription finder, trips, budgets, unusual-spend flags |
+| 2 | Import, documents, insights and budgets | Bank and card statement import, quick and bulk entry, the document vault and receipts on any entry, category averages, subscription finder, trips, budgets, unusual-spend flags |
 | 3 | Debts and people | Loans with EMIs; gold loans and loans against FDs, insurance, securities and property; chit funds; money lent and borrowed with people; split costs; dangerous-debt ranking and payoff plans |
 | 4 | Credit cards | Shared credit lines, statements, loans on cards, cashback and reward points |
 | 5 | Public launch | Email verification and recovery, reminders by email, rate limits on every write, data export and account deletion, installable app, monitoring |
@@ -63,7 +72,7 @@ This plan combines the original v2 brief (see `docs/v2-audit.md`) with everythin
 | 8 | Savings, retirement and goals | RDs and FDs with interest, post office schemes, EPF, VPF and NPS, the payslip entry, savings pots, goals |
 | 9 | Net worth, insurance and tax | Net worth and its trend, health ratios, term and health insurance, tax tracker with capital gains, rent paid and advance tax |
 | 10 | Financial status review | Whether each area is heading the right way against inflation and the market, with reasons |
-| 11 | Household, estate and documents | Family sharing and joint ownership, nominees, an estate summary, a document vault |
+| 11 | Household and estate | Family sharing and joint ownership, nominees, an estate summary |
 | 12 | Multi-currency and global investments | Accounts in other currencies, US stocks bought from India, exchange rates |
 | 13 | Business and freelance income | A simple business book, invoices, GST collected and paid |
 | 14 | Account Aggregator | Consent-based bank and investment data through RBI's Account Aggregator framework |
@@ -94,10 +103,11 @@ Phase 1 is several pull requests: the ledger and migration, then security and pr
 
 **More kinds of account**
 - Banks, cash and credit cards as today, plus **meal cards** (Pluxee, formerly Sodexo, and similar employer food cards) and **wallets** (prepaid and UPI wallets).
+- Every bank account records its bank, account type (savings, current, salary, NRE or NRO) and savings interest rate. The rate gives an estimate of interest due, and lets the Phase 10 review compare idle money with inflation.
 - A meal card is topped up by the employer each month. The top-up is "Meal benefit" income, or comes from the payslip entry in Phase 8. Spending from it is an ordinary expense paid from the card. The card can also note where it may be used, and when unspent money expires.
 
 **Money movements that are not income or expenses**
-- These are ledger entries between asset and liability accounts:
+- These are ledger entries between asset and liability accounts, including everyday ones: an ATM withdrawal (bank to cash), a credit card bill payment (bank to card), moving money to an FD or a broker account. Other movements:
   - transfers between own accounts;
   - loan payouts and principal repayments;
   - investment buys and sells;
@@ -116,8 +126,22 @@ Phase 1 is several pull requests: the ledger and migration, then security and pr
 - Existing expenses start as "Uncategorised" and can be categorised in bulk.
 
 **Repeating entries**
-- Daily, weekly, monthly or yearly, on a chosen day: salary, rent, SIPs, a daily gold SIP.
+- Daily, weekly, monthly or yearly, on a chosen day, with an optional end date: salary, rent, EMIs, SIPs, a daily gold SIP, insurance premiums, school fees, electricity, internet, phone and subscriptions.
+- Each has an amount, account and category, and an optional reminder before it is due.
 - Each is either added automatically or shown for one-tap confirmation.
+
+**Reimbursements**
+- An expense paid personally but owed back by an employer or someone else (a hotel stay on a work trip, a medical bill the insurer will refund) is marked reimbursable. Its status moves from pending to received.
+- While pending, the amount is money owed to the user, not spending. When it arrives, the repayment settles it. Spending reports show only what the user actually bore.
+- A partial reimbursement leaves the rest as the user's own expense.
+
+**Essential and discretionary spending**
+- Each expense category is marked essential (rent, groceries, utilities, EMIs, insurance, school fees) or discretionary (restaurants, shopping, entertainment), with sensible defaults the user can change.
+- The emergency fund check uses average essential spending: "Essential spending averages ₹45,000 a month. Your emergency fund of ₹1,80,000 covers 4 months."
+
+**Profile**
+- Date of birth (for age-based rules such as senior citizen interest and the allocation guide), city, tax residency, and dependants: spouse, children and parents, with their dates of birth. Dependants feed insurance adequacy, goals such as children's education, and the review.
+- PAN, stored encrypted. Aadhaar, at most the last four digits. Demat and broker account IDs, encrypted.
 
 **Module switches**
 - Income, Expenses, Investments, Debts, Cards, Property, Retirement and Insurance can each be turned on or off in Settings. This replaces the sign-up choice (`tracking_option`); existing users are mapped from it.
@@ -151,7 +175,7 @@ Phase 1 is several pull requests: the ledger and migration, then security and pr
 - repeating entries fire;
 - a test proves one user cannot read another user's rows even with the query's `user_id` filter removed.
 
-## Phase 2: Import, insights and budgets
+## Phase 2: Import, documents, insights and budgets
 
 **Statement import**
 - **Upload a bank or card statement** as CSV or Excel. Columns are mapped once per bank, and the mapping is remembered. Presets cover the major Indian banks and card issuers.
@@ -173,16 +197,34 @@ Phase 1 is several pull requests: the ledger and migration, then security and pr
 - **Budgets:** a monthly limit per category, with alerts at 80% and 100%.
 - **Unusual-spend flags:** "Fuel this month is twice your average."
 
-Data: `import_profiles`, `import_batches`, `budgets`.
+**Document vault and receipts**
+- Upload statements, receipts, invoices, policy documents, loan papers, property papers, warranties, certificates and tax forms.
+- Attach them to any entry, account or asset: "FD ₹5,00,000: FD receipt, interest certificate, TDS entry, financial year."
+- Files are encrypted, in private storage only, with size and type limits.
+- Each document has a type, a date and an optional financial year, so tax documents for a year can be found together.
+- Expiry dates (warranties, policies) feed reminders.
+- Photographed receipts can later be read automatically to fill in an expense; this is a candidate for a later release.
+
+Data: `import_profiles`, `import_batches`, `budgets`, `documents`, `document_links`.
 
 ## Phase 3: Debts and people
 
 **Loans from banks and lenders**
-- Reducing-balance and flat-rate loans, with the effective yearly rate shown.
+- **What is recorded for each loan:**
+  - the lender, the original principal and the disbursement date or dates;
+  - home loans for property under construction can be paid out in stages, with interest-only "pre-EMI" until the full amount is out;
+  - the tenure, the EMI and how often it is paid;
+  - a fixed or floating rate;
+  - the processing fee, loan insurance and other charges;
+  - the terms for foreclosure or early closure.
+- **Floating rates:** each rate change is recorded with its date. The user chooses whether the bank changed the EMI or the tenure, and the schedule is recalculated.
+- Reducing-balance and flat-rate loans, with the effective yearly rate shown. Fees and charges count toward that rate.
 - A full repayment schedule.
 - EMIs recorded as full, partial or late, and missed EMIs flagged.
 - Prepayments and top-ups, with the interest saved shown.
 - An EMI splits automatically into principal (a movement) and interest (an expense in "Loan interest and fees").
+- **Per loan and per financial year:** outstanding principal, principal repaid, interest paid, and fees paid. This answers "how much debt do I really have?" and "how much interest did I pay this year?", and it checks against the lender's interest certificate for tax.
+- **Foreclosure:** the amount needed to close the loan today, including any foreclosure charge.
 - **A public EMI calculator.**
 
 **Loans backed by an asset**
@@ -239,7 +281,7 @@ The core (ledger, accounts, spending, import, debts and cards) is complete, so F
 ## Phase 6: Investments
 
 **What can be held**
-- **Physical gold:** each piece of jewellery, coin or bar, with its weight and purity (24, 22 or 18 carat), valued at the day's rate for that purity. Making charges and wastage are part of the cost but not the resale value. Sales and exchanges for new jewellery are recorded. Gold received as a gift or inherited enters at the day's value, with the original owner's cost and date if known.
+- **Physical gold:** each piece of jewellery, coin or bar, with its weight and purity (24, 22 or 18 carat), valued at the day's rate for that purity. Each piece also records the vendor, the GST paid, its form (jewellery, bar or coin), where it is kept (home, bank locker), and the invoice in the document vault. Making charges, wastage and GST are part of the cost but not the resale value. Sales and exchanges for new jewellery are recorded. Gold received as a gift or inherited enters at the day's value, with the original owner's cost and date if known.
 - **Digital gold**, **gold ETFs**, and **Sovereign Gold Bonds** (units, issue price, interest, maturity).
 - **Stocks**, **mutual funds** (including SIPs and the income distribution option, IDCW) and **ETFs**.
 - **Bonds:** government securities, corporate and tax-free bonds. Coupon interest is income, and maturity is tracked.
@@ -275,6 +317,7 @@ Data: `holdings`, `holding_lots`, `investment_transactions`, `grants` and `vesti
 
 **Land and property**
 - Type (land, flat, house, commercial), location, area, purchase price and date, and costs such as stamp duty, registration and brokerage.
+- **Improvement costs** (renovation, extensions) are added to the cost with their dates, because they reduce capital gains on a sale.
 - **Ownership share:** for example 50% owned with a spouse. Net worth counts only the user's share.
 - **Current value:**
   - the user's own estimates (a valuation, a circle rate, a recent nearby sale), each with its date and marked as an estimate;
@@ -293,6 +336,7 @@ Data: `holdings`, `holding_lots`, `investment_transactions`, `grants` and `vesti
 - Cars, bikes, phones, laptops, cameras, watches, electronics, furniture and equipment, each with a value, a date and an ownership share.
 - **How it was acquired:** bought (purchase price), received as a gift, or inherited (value on the day received). For gifts and inheritance, the original owner's cost and purchase date can be recorded too, because Indian tax rules use them if the item is later sold.
 - **Depreciation:** reducing balance at a yearly rate (about 15% a year for a car by default, changeable), or straight-line down to a residual value. The value falls monthly, and a real resale quote can override it.
+- **Vehicles** also record the registration number, the linked insurance policy, and the next renewal and pollution certificate (PUC) due dates.
 - **On sale:** the gain or loss. A linked vehicle loan shows what is still owed.
 - Running costs (fuel, servicing, vehicle insurance) are expenses tagged to the asset.
 
@@ -308,10 +352,12 @@ Data: `properties`, `property_valuations`, `ownership_shares`, `tenants`, `tenan
 
 **Deposits**
 - **Recurring deposits:** the maturity date and value are calculated, and instalments are tracked.
-- **Fixed deposits:**
+- **Fixed deposits:** bank, principal, start and maturity dates, rate, compounding, payout type, linked bank account, auto-renewal, and the expected maturity amount. The FD itself is an investment, never an expense.
   - **payout** FDs pay interest to a bank account as "Interest" income;
   - **cumulative** FDs build interest inside the FD, shown as earned each year;
-  - tax deducted at source is recorded, and premature withdrawals record the reduced rate or penalty.
+  - interest **accrued** (earned but not yet paid) and interest **received** are shown separately, because tax applies to interest as it accrues;
+  - tax deducted at source is recorded, and premature withdrawals record the reduced rate or penalty;
+  - **auto-renewal** starts a new FD on maturity with the then-current rate, linked to the old one.
 - A reminder before each maturity.
 
 **Post office and government savings schemes**
@@ -352,7 +398,9 @@ The scheme rules are built in. The interest rate is recorded per period, because
 **Savings pots:** money set aside inside an account for a purpose.
 
 **Goals**
-- Short-term and long-term goals (a dream bike, an emergency fund, a house down payment, clearing a loan), funded by any mix of deposits, pots, investments and monthly contributions.
+- Short-term and long-term goals (an emergency fund, a dream bike, a car, a vacation, marriage, a house down payment, children's education, being debt-free), funded by any mix of deposits, pots, investments and monthly contributions.
+- **Retirement goal:** from today's monthly spending, years to retirement, expected inflation and expected returns, the corpus needed at retirement and the monthly saving that reaches it. The calculation and its assumptions are shown, and are information only.
+- **Children's education goal:** the target is adjusted for education costs, which usually rise faster than general inflation (the user sets the rate).
 - Each goal shows progress, the monthly amount still needed, whether it's on track, behind or ahead, and what-ifs.
 
 Data: `deposits`, `deposit_instalments`, `schemes`, `scheme_rates`, `retirement_accounts`, `retirement_contributions`, `pension_sources`, `pension_payments`, `payslips`, `payslip_lines`, `pots`, `goals`, `goal_sources`.
@@ -366,18 +414,26 @@ Data: `deposits`, `deposit_instalments`, `schemes`, `scheme_rates`, `retirement_
 - **Health ratios:** EMI-to-income, debt-to-assets, savings rate, emergency fund coverage.
 
 **Insurance**
-- **Term life:** sum assured, premium, term, nominee, riders.
-- **Health:** floater and members, sum insured, top-ups and their deductible, renewal, no-claim bonus, claims log, employer cover.
+- **Life insurance:** insurer, policy number, type (term, endowment, money-back, ULIP, whole life), sum assured, premium and premium due date, start and maturity dates, nominee, riders.
+  - Endowment and money-back policies record expected survival and maturity benefits, which arrive as receipts.
+  - A ULIP's fund value is tracked like an investment.
+- **Health:** floater and members, sum insured, top-ups and their deductible, co-payment, waiting periods (pre-existing illness, specific treatments) with their end dates, renewal, no-claim bonus, claims log, employer cover.
 - **Other policies:** vehicle, home, endowment.
-- Premiums are expenses. Every policy gets renewal reminders and an adequacy check against rules of thumb (information only).
+- Premiums are expenses. Every policy gets renewal reminders and an adequacy check against rules of thumb, such as life cover against income and dependants (information only).
 
-**Tax tracker (India), information only**
+**Tax centre (India), information only**
+- Organised by **financial year and assessment year**. For each year it shows income by head: salary, house property, business or profession, capital gains, and other sources (interest, dividends, gifts).
+- **Taxes paid:** tax deducted at source (TDS), tax collected at source (TCS, for example on foreign remittances), advance tax, and self-assessment tax. With them, an estimate of tax payable or refund due, and the refund's status once filed.
+- **Tax documents for each year:** Form 16, Form 16A, AIS, TIS, Form 26AS, capital gains statements, bank interest certificates, loan interest certificates, broker statements and donation receipts, kept in the vault. The totals the user enters from them are compared with FinDB's records ("your recorded salary TDS differs from Form 16 by ₹2,400"), without presenting this as professional tax advice.
 - **Deductions:**
   - 80C: EPF and VPF, PPF, ELSS, NSC, SSY, life premiums, home loan principal, tuition fees;
   - 80CCD(1B): the user's own NPS;
   - 80CCD(2): the employer's NPS;
   - 80D: health premiums;
-  - home loan interest.
+  - 80G: donations, with the receipt;
+  - 80E: education loan interest;
+  - 80TTA and 80TTB: savings and deposit interest;
+  - section 24(b): home loan interest.
 - **Capital gains:** short-term and long-term gains on shares, equity funds, debt funds, gold, property and other assets.
   - Holding periods and rates are applied per financial year from the purchase lots.
   - Each year's realised gains are summarised.
@@ -387,6 +443,13 @@ Data: `deposits`, `deposit_instalments`, `schemes`, `scheme_rates`, `retirement_
 - **Advance tax:** an estimate of tax due on income other than salary (interest, rent, capital gains, freelance), with reminders for the quarterly due dates.
 - **Taxes paid:** tax deducted at source from every source, compared with the totals the user enters from their Annual Information Statement (AIS) or Form 26AS.
 - It asks which regime the user follows and shows only what applies. Rules, limits and rates are stored per financial year and updated when the budget changes them, never hard-coded.
+
+**Reports**
+- Income against expenses, and cash flow (money in, money out, by month and by financial year).
+- Net worth over time, and asset allocation.
+- Interest earned (deposits, savings, bonds) against interest paid (loans, cards) per year.
+- A tax summary per financial year.
+- Each report can be downloaded as CSV or PDF.
 
 Data: `net_worth_snapshots`, `insurance_policies`, `insurance_members`, `insurance_claims`, `tax_profile`, `tax_rules`, `capital_gains` (computed per year), `rent_paid`, `gifts_received` (giver, relationship, occasion, value).
 
@@ -413,7 +476,7 @@ Once some assets and liabilities are entered, FinDB reviews whether each area is
 
 Data: `market_data`, `status_reviews`, `allocation_targets`.
 
-## Phase 11: Household, estate and documents
+## Phase 11: Household and estate
 
 **Household**
 - Invite a spouse or family member to see a shared household view (read-only or full), while each person keeps their own private accounts.
@@ -425,12 +488,9 @@ Data: `market_data`, `status_reviews`, `allocation_targets`.
   - It can be exported as a PDF for the family, protected with two-factor confirmation.
 - Optional **trusted contact access:** a named person can request access, which is granted only after a waiting period during which the user can refuse. This needs careful design and a security review before it ships.
 
-**Document vault**
-- Upload policy documents, property papers, warranties, statements and receipts, linked to the asset they belong to.
-- Files are encrypted, private storage only, with size and type limits.
-- Expiry dates (warranties, policies) feed reminders.
+- The estate summary links each item to its documents in the vault (Phase 2).
 
-Data: `households`, `household_members`, `nominees`, `documents`, `access_requests`.
+Data: `households`, `household_members`, `nominees`, `access_requests`.
 
 ## Phase 12: Multi-currency and global investments
 
@@ -525,6 +585,7 @@ _Prices are as known on 2026-10-03; check the current pricing pages before buyin
 | Phase 8 | Which schemes ship first, and where scheme rates come from |
 | Phase 9 | How tax rules per financial year are kept up to date, and whether capital gains are calculated or only summarised |
 | Phase 10 | Sources for inflation, benchmark and rate data, and the default thresholds |
-| Phase 11 | Where documents are stored (private Vercel Blob or Supabase Storage), and whether trusted contact access is built |
+| Phase 2 | Where documents are stored (private Vercel Blob or Supabase Storage) |
+| Phase 11 | Whether trusted contact access is built |
 | Phase 12 | The exchange rate source |
 | Phase 14 | Whether to pursue Account Aggregator, the partner, and the business and compliance requirements |
