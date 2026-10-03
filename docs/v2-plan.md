@@ -26,7 +26,7 @@ There are hundreds of expense trackers. Most do one of two things: they record s
 
 1. **Everything an Indian family actually owns, in one place:** gold by weight and purity, chits, EPF and NPS, PPF and post office schemes, meal cards, rent, property and house construction, money lent to friends, gifts at weddings. Most apps stop at expenses, or at what they sell.
 2. **Numbers you can trust.** The ledger never double-counts or loses a rupee, transfers are not spending, an EMI shows how much was interest, and every balance can be checked against its statement.
-3. **Private by design.** No ads, no selling or sharing data, no loan or product offers. Users pay for the product, so the product works for them.
+3. **Free for everyone, and private by design** (decided 2026-10-03). No paid plans, no ads, no selling or sharing data, no loan or product offers. FinDB is run at the lowest possible cost so it can stay free (see "Free for everyone: keeping costs near zero").
 4. **Built around family and life events:** weddings, housewarmings, trips with friends, parents' money, joint property, nominees.
 5. **It answers "Am I doing okay?"** in plain language: returns against inflation, debt health, insurance cover, and how many months the emergency fund lasts, not just a chart of last month's spending.
 6. **Little effort:** statement import, one payslip entry a month, repeating entries, sharing from the phone, and sample data to try first.
@@ -95,7 +95,7 @@ There are hundreds of expense trackers. Most do one of two things: they record s
 | 2 | Import, documents, insights and budgets | Bank and card statement import, import from other apps, quick and bulk entry, search, the document vault and receipt reading, category averages, subscription finder, event reports, budgets, unusual-spend flags |
 | 3 | Debts and people | Loans with EMIs; gold loans and loans against FDs, insurance, securities and property; chit funds; money lent and borrowed with people; split costs; dangerous-debt ranking and payoff plans |
 | 4 | Credit cards | Shared credit lines, statements, loans on cards, cashback and reward points, a calendar of everything due |
-| 5 | Public launch | Email verification and recovery, reminders by email and push, rate limits on every write, data export and account deletion, phone app with offline entry and sharing, weekly summary, simple mode, first Indian languages, support, beta, plans and pricing, monitoring |
+| 5 | Public launch | Email verification and recovery, reminders by push and in the app, rate limits on every write, data export and account deletion, phone app with offline entry and sharing, weekly summary, simple mode, first Indian languages, support, beta, optional donations, monitoring |
 | 6 | Investments | Physical and digital gold, Sovereign Gold Bonds, stocks, mutual funds, ETFs, bonds, REITs and InvITs, crypto, ESOPs and RSUs; SIPs; dividends; profit and loss; live prices |
 | 7 | Property, rentals and physical assets | Land and property with values and ownership shares, tenants and rent, vehicles and other assets with depreciation |
 | 8 | Savings, retirement and goals | RDs and FDs with interest, post office schemes, EPF, VPF and NPS, the payslip entry, savings pots, goals |
@@ -104,7 +104,7 @@ There are hundreds of expense trackers. Most do one of two things: they record s
 | 11 | Household and estate | Family sharing and joint ownership, nominees, an estate summary |
 | 12 | Multi-currency and global investments | Accounts in other currencies, US stocks bought from India, exchange rates |
 | 13 | Business and freelance income | A simple business book, invoices, GST collected and paid |
-| 14 | Account Aggregator | Consent-based bank and investment data through RBI's Account Aggregator framework |
+| 14 | Account Aggregator | Consent-based bank and investment data through RBI's Account Aggregator framework (on hold while FinDB is free: it has per-fetch fees) |
 
 **Why this order**
 - **Phase 1 lays the ledger.** Every later feature records money through it, so it must exist first.
@@ -392,8 +392,8 @@ The core (ledger, accounts, spending, import, debts and cards) is complete, so F
 - **An email provider**, and with it:
   - **email verification at sign-up,** after which registration stops revealing whether an email is already in use;
   - **account recovery by an emailed link,** replacing the security question;
-  - **reminders by email** as well as in the app. Reminder types grow with each phase: EMIs, card due dates, points expiring, maturities, PPF deposits, insurance renewals, rent, and money owed by people.
-- **Rate limits on every write,** with a shared store so the limits hold across server instances.
+  - **reminders** in the app and by push notification (free), with email only for the opted-in weekly summary, to stay within the free email quota. Reminder types grow with each phase: EMIs, card due dates, points expiring, maturities, PPF deposits, insurance renewals, rent, and money owed by people.
+- **Rate limits on every write,** counted in a Postgres table so the limits hold across server instances at no extra cost.
 - **Data export** (everything, as CSV or JSON) and **account deletion**, completing the data protection rights.
 - **The phone app (PWA)**, installable from the browser:
   - **entries offline:** adding entries works without signal, and they sync when the phone is back online;
@@ -412,7 +412,7 @@ The core (ledger, accounts, spending, import, debts and cards) is complete, so F
   - a public status page.
 - **Privacy-respecting usage analytics:** which screens are used and where people give up during setup, counted without tracking any individual, without third-party trackers, and never including amounts or names.
 - **A beta before launch:** 20 to 50 real users (friends, family, colleagues) use FinDB for at least a month before the public launch, through a short feedback loop.
-- **Plans and pricing** (see "How FinDB pays for itself").
+- **An optional donation link** ("Support FinDB"), never required and never unlocking features.
 - **Error monitoring** and uptime alerts.
 - Updated privacy policy and terms, and a final review of the wording on every "information, not advice" screen.
 
@@ -438,7 +438,7 @@ The core (ledger, accounts, spending, import, debts and cards) is complete, so F
 
 **Prices**
 - Prices can always be entered by hand, and every price shows its date and source.
-- **Live prices (optional):** a scheduled server job fetches prices once a day; the browser never calls price services itself.
+- **Live prices (optional):** a scheduled server job fetches prices once a day; the browser never calls price services itself. To keep FinDB free, only free sources are used, each price is fetched once a day and shared by every user who holds that asset, and prices are end-of-day, not real-time.
 
   | Asset | Planned source | Note |
   |---|---|---|
@@ -673,21 +673,39 @@ Data: `business_books`, `invoices`, `invoice_lines`, `gst_entries`.
 
 ---
 
-## How FinDB pays for itself
+## Free for everyone: keeping costs near zero
 
-FinDB must cover its own costs without ads or selling data. The suggested model, to be confirmed before Phase 5:
+**Decided 2026-10-03: FinDB is free for everyone,** with no paid plans. Features may be scaled down where they would cost money. The aim is to run on free tiers for as long as possible, and to spend only on what cannot be avoided.
 
-| Plan | Price (suggested) | What it includes |
+**Why this is allowed on the free tiers**
+- Vercel's free Hobby plan is for non-commercial use. A site with no payments, no ads and no affiliate links is non-commercial, and Vercel states that **asking for donations is not commercial use**. So FinDB can stay on Hobby as long as it never charges, sells or advertises.
+- Supabase's free plan has no commercial restriction.
+
+**Compromises that keep it free**
+
+| Feature | Free approach | What is given up |
 |---|---|---|
-| Free | ₹0 | Accounts, spending, income, budgets, events, statement import, debts and people, credit cards, net worth, reminders. Generous enough to be genuinely useful on its own. |
-| Premium | about ₹99 a month or ₹999 a year | Investments with live prices, property and assets, deposits and retirement, the tax centre, the financial status review, the document vault beyond a small free allowance, PDF reports |
-| Family | about ₹1,499 a year | Premium for up to 5 members of a household, with sharing and the household view (Phase 11) |
+| Reminders | Push notifications (Web Push, free) and in-app reminders first; email only for verification, recovery and a weekly summary the user opts into | Reminder emails for every due date |
+| Email | A free tier (Brevo: about 300 a day; Resend: about 100 a day) | Large email volumes |
+| Document vault | Images compressed in the browser before upload, PDFs up to 2 MB, a small allowance per user (about 20 MB); later, the option to keep documents in the user's own Google Drive | Large files and unlimited storage |
+| Receipt reading | Runs in the user's browser (an open-source OCR library), no paid service | Some accuracy compared with paid OCR services |
+| Live prices | Free sources only (AMFI, CoinGecko, exchanges' end-of-day files), fetched once a day and shared across users | Real-time and intraday prices |
+| Rate limits across instances | A table in Postgres instead of a paid store | Nothing noticeable at this scale |
+| Usage analytics | Simple anonymous counters in our own database | Detailed product analytics |
+| Error monitoring | Sentry's free tier | Long history and high event volumes |
+| Backups | A daily `pg_dump` by a free GitHub Actions job, encrypted, kept in private storage, with a tested restore | Point-in-time recovery |
+| Account Aggregator (Phase 14) | Not pursued while FinDB is free: it needs a paid licensed partner and per-fetch fees | Automatic bank data; statement import covers most of it |
+| Domain | `findb-app.vercel.app` until a custom domain is worth it | A custom domain (the only small unavoidable cost when wanted: about ₹700 to ₹1,000 a year for a `.in` domain) |
 
-- **Never:** advertising, selling or sharing data, or commissions on loans, cards, insurance or funds. This is what makes "private by design" credible.
-- **The user's own data is never held hostage.** Export always works on every plan, and data stays readable if a paid plan ends.
-- **Breaking even:** the Stage 2 costs (about ₹3,800 a month) are covered by roughly 50 yearly Premium subscribers.
-- Payments through an Indian payment gateway (for example Razorpay), with GST invoices and recurring payments under RBI's e-mandate rules. FinDB stores no card details.
-- Which features are Premium is decided before Phase 5, once the beta shows what people value most.
+**Keeping the database small** (the free database is 500 MB, the main limit)
+- Amounts in `bigint` paise, compact rows, and only the indexes queries need.
+- The activity log is the largest table: full old and new values for 24 months, then a compact summary.
+- Accounts inactive for 24 months get an email warning and an export link, then are deleted, which the data protection rules favour anyway.
+- **Rough capacity:** about 1 MB per active user per year, so the free database holds a few hundred active users for their first year. The beta measures the real figure.
+
+**Optional donations:** a "Support FinDB" link (for example GitHub Sponsors or UPI), never required and never unlocking features. Donations do not make the site commercial under Vercel's rules.
+
+**Never:** paid plans, advertising, selling or sharing data, or commissions on loans, cards, insurance or funds. Export always works.
 
 ---
 
@@ -698,7 +716,7 @@ _Prices are as known on 2026-10-03; check the current pricing pages before buyin
 **Principles**
 - **Managed services until they stop being cheap.** Vercel runs the app and Supabase runs Postgres, so there are no servers to patch, back up or scale by hand. FinDB uses plain SQL through `pg` and standard Next.js, so it can move to self-hosting later without a rewrite.
 - **No nginx while on Vercel.** Vercel already does what nginx would: HTTPS, CDN caching, load balancing, and automatic scaling of the app per request. nginx becomes useful only if FinDB moves to its own servers (see Stage 4).
-- **Pay only when users arrive.** Every stage below is triggered by real numbers, not guesses.
+- **Free first.** FinDB is free for everyone, so every stage stays on free tiers as long as the limits allow, and pays only for what usage actually forces. Every stage below is triggered by real numbers, not guesses.
 
 **Stage 1: building (now, no real users)**
 
@@ -709,32 +727,35 @@ _Prices are as known on 2026-10-03; check the current pricing pages before buyin
 | Supabase, tests and previews (new, separate project) | Free | Free |
 
 - **A separate free Supabase project for tests and previews** ends the test-run stalls on the production database. It also replaces the `balancetrack_test` schema with a whole database that cannot reach production data.
-- Free Supabase projects pause after a week without activity, have no automatic backups, and allow a 500 MB database. That is fine while building, not for real users. Until Stage 2, a scheduled `pg_dump` (a GitHub Actions job, free) keeps a daily backup of production in private storage.
+- Free Supabase projects pause after a week without activity, have no automatic backups, and allow a 500 MB database, 1 GB of file storage and 5 GB of data transfer a month. A free account can have 2 active projects: production and tests. A scheduled `pg_dump` (a GitHub Actions job, free) keeps a daily backup of production in private storage.
 
-**Stage 2: public launch (Phase 5)**
+**Stage 2: public launch (Phase 5), still free**
 
-| Service | Plan | Approximate cost per month |
+| Service | Plan | Cost |
 |---|---|---|
-| Vercel | **Pro** (required: Hobby is for non-commercial use only, and FinDB is a product with a trademark) | about $20 |
-| Supabase, production | **Pro**: no pausing, daily backups, 8 GB database, a small dedicated compute instance | about $25 |
-| Email (verification, recovery, reminders) | A provider's free tier, for example Resend or Brevo, then paid as volume grows | Free at first |
-| Rate-limit store | Upstash Redis free tier, through the Vercel Marketplace | Free at first |
-| Error monitoring | Sentry free tier | Free at first |
-| **Total** | | **about $45 (roughly ₹3,800)** |
+| Vercel | Hobby (allowed: no payments, ads or affiliate links; donations are fine). About 1,000,000 function calls, 4 hours of active CPU and 100 GB of transfer a month | Free |
+| Supabase, production | Free, in a new project in the Mumbai region | Free |
+| Supabase, tests | Free (the second free project) | Free |
+| Email | Brevo or Resend free tier | Free |
+| Error monitoring | Sentry free tier | Free |
+| Backups | Daily `pg_dump` through GitHub Actions | Free |
+| **Total** | | **₹0** (plus a domain, if wanted) |
 
-- **Move production to Supabase's Mumbai region, and Vercel functions to `bom1` (Mumbai), before launch.** Users are in India: requests get faster, and data stays in India. Today the database is in Sydney. Moving means a new project and a data copy, which is easiest before there are real users.
+- **Move production to Supabase's Mumbai region and Vercel functions to `bom1` (Mumbai) before launch.** Users are in India: requests get faster, and data stays in India. Today the database is in Sydney. Moving means a new free project and a data copy, which is easiest before there are real users.
+- **Real users keep the free project from pausing.** A light scheduled check also keeps it awake during quiet weeks.
+- **Watch the limits:** a weekly job reports database size, storage, data transfer and Vercel usage against the free limits, and warns at 70%.
 
-**Stage 3: growth (thousands of users)**
-- Upgrade the Supabase compute size as connections and query time grow. Add a read replica for heavy reports (the status review, insights) if needed.
-- Use Supabase's point-in-time recovery add-on once the data is valuable enough to need restores to the minute.
-- Vercel scales the app automatically and bills by use. Watch function time and set spend alerts.
-- Move email to a paid plan when reminders exceed the free quota.
-- Expected range: roughly $60 to $250 a month, depending on users and usage.
+**Stage 3: when a free limit is reached (the first real cost)**
+- **The database is almost always the first limit** (500 MB, or the shared CPU). The cheapest options, in order:
+  1. Supabase Pro, about $25 a month (roughly ₹2,100): an 8 GB database, daily backups, no pausing. Simplest.
+  2. Postgres on Oracle Cloud's Always Free servers: free, but FinDB then patches, backs up and monitors the database itself.
+- **If Vercel's free limits are reached:** first make requests cheaper (caching, fewer calls per screen). Then move the app to Cloudflare Workers' free plan, which allows commercial use, or to Vercel Pro (about $20 a month).
+- **Expected:** free for the first few hundred active users, then about ₹2,000 to ₹4,000 a month for the first few thousand. Donations may cover this.
 
 **Stage 4: large scale, only if managed costs become high**
 - Run the app as a standalone Next.js build in containers on cloud servers (for example AWS, DigitalOcean or Hetzner), behind **nginx** or a cloud load balancer for HTTPS, caching and spreading traffic across several app instances. Keep Postgres managed: Supabase, or another provider such as AWS RDS or Neon.
 - This is cheaper per unit of computing, but adds operational work: security updates, monitoring, scaling, and on-call.
-- Consider it only when the managed bill is consistently above roughly $500 a month, or when a specific need appears.
+- Consider it only when the managed bill is consistently above roughly $500 a month, or when a specific need appears. Oracle Cloud's Always Free servers can host this at no cost for a modest load, at the price of running everything yourself.
 
 ---
 
@@ -748,10 +769,10 @@ _Prices are as known on 2026-10-03; check the current pricing pages before buyin
 | Phase 1 | **Decided 2026-10-03:** repeating entries default to confirm-first (one tap); users can switch any of them to automatic |
 | Phase 2 | **Decided 2026-10-03:** HDFC, ICICI, SBI, Axis and Kotak first (accounts and cards), then others on request |
 | Phase 5 | The email provider |
-| Before Phase 5 | Plans and pricing: confirm the suggested Free, Premium and Family plans, and which features are Premium |
+| Before Phase 5 | **Decided 2026-10-03:** FinDB is free for everyone, with no paid plans; features are scaled down where they would cost money (see "Free for everyone"). Optional donations only. |
 | Phase 5 | The first languages (suggested: Hindi and Telugu), and who reviews the translations |
-| Phase 5 | The privacy-respecting analytics tool (self-hosted or a cookieless service) |
-| Phase 6 | Price sources and any paid plans, and whether to offer broker connections |
+| Phase 5 | **Decided 2026-10-03:** analytics are simple anonymous counters in FinDB's own database (free) |
+| Phase 6 | The free price sources, and whether to offer broker connections |
 | Phase 7 | Default depreciation rates, and growth between property estimates |
 | Phase 8 | Which schemes ship first, and where scheme rates come from |
 | Phase 9 | How tax rules per financial year are kept up to date, and whether capital gains are calculated or only summarised |
@@ -759,4 +780,4 @@ _Prices are as known on 2026-10-03; check the current pricing pages before buyin
 | Phase 2 | Where documents are stored (private Vercel Blob or Supabase Storage) |
 | Phase 11 | Whether trusted contact access is built |
 | Phase 12 | The exchange rate source |
-| Phase 14 | Whether to pursue Account Aggregator, the partner, and the business and compliance requirements |
+| Phase 14 | Not pursued while FinDB is free (a paid partner and per-fetch fees). Revisit only if FinDB gets funding. |
