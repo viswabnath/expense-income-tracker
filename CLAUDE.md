@@ -41,7 +41,9 @@ DB_PORT=5432
 SESSION_SECRET=your-secure-secret
 ```
 
-The Supabase database in `.env` is also production. Production data is in the `public` schema; tests run in `balancetrack_test`.
+The Supabase database in `.env` is production (project `findb-production`, Sydney); its data is in the `public` schema.
+Tests use a separate free Supabase project, `findb-test` (Mumbai, project ref `kcxjthhbclcgwdnenqsy`), whose connection settings are in the git-ignored `.env.test`. `scripts/use-test-env.js` loads `.env.test` over `.env` for `npm test`, `npm run test:e2e`, `setup-test-db` and `reset-test-db`, and each run prints which database it uses. It connects as the role `findb_test_app` (no superuser) through the Mumbai pooler, and the tests still use the `balancetrack_test` schema there. Without `.env.test`, tests fall back to the `balancetrack_test` schema of the database in `.env`.
+- Vercel builds production only (`ignoreCommand` in `vercel.json` skips every preview build). The Preview environment's variables point at `findb-test` with `REQUIRE_TEST_SCHEMA=true`, for a preview deployed by hand. Keep CI light: no GitHub Actions workflow runs the test suites; run them locally.
 - `tests/env.js` forces `DB_SCHEMA=balancetrack_test` in Jest; `clearTestData`, `deleteTestUser` and `reset-test-db.js` refuse to delete outside a `*_test` schema.
 - Every server a test starts (`scripts/run-api-tests.js`, `playwright.config.js`) gets `DB_SCHEMA=balancetrack_test` and `REQUIRE_TEST_SCHEMA=true`; with that flag `lib/db.ts` refuses any other schema. It also gets `DISABLE_RATE_LIMIT=true`.
 - Never weaken those guards. A server without `DB_SCHEMA` reads and writes production data.

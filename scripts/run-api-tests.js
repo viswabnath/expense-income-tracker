@@ -12,6 +12,8 @@
  *
  * The server's output goes to a log file named in the run's output, so a 500 can be traced.
  */
+// The test database settings from .env.test, before anything starts or connects
+const { useTestEnv } = require('./use-test-env');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const os = require('os');
@@ -60,6 +62,9 @@ async function startServer() {
 }
 
 async function main() {
+    console.log(useTestEnv()
+        ? 'Using the separate test database from .env.test'
+        : 'Warning: .env.test not found; tests use the balancetrack_test schema of the database in .env');
     let server = null;
     let baseUrl = process.env.API_BASE_URL;
     if (!baseUrl) {

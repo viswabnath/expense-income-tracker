@@ -1,5 +1,7 @@
 // @ts-check
 const { defineConfig, devices } = require('@playwright/test');
+// The separate test database from .env.test, when it is set up; the server below inherits it
+require('./scripts/use-test-env');
 
 const PORT = Number(process.env.E2E_PORT || 3100);
 
@@ -33,6 +35,8 @@ module.exports = defineConfig({
         timeout: 240_000,
         // Test schema only (the pool refuses any other), and no request limits
         env: {
+            // Includes the .env.test connection settings loaded above
+            .../** @type {Record<string, string>} */ (process.env),
             DB_SCHEMA: 'balancetrack_test',
             REQUIRE_TEST_SCHEMA: 'true',
             DISABLE_RATE_LIMIT: 'true',
