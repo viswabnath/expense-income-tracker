@@ -35,7 +35,7 @@ export function SiteFooter() {
                     <div className="footer-col">
                         <h4>Resources</h4>
                         <ul className="footer-links">
-                            <li><Link href="/about">About OneMark</Link></li>
+                            <li><Link href="/about">About FinDB</Link></li>
                             <li><Link href="/security">Security Policy</Link></li>
                             <li><Link href="/privacy">Privacy Guide</Link></li>
                             <li><Link href="/terms">Terms of Service</Link></li>
@@ -46,7 +46,7 @@ export function SiteFooter() {
                         <h4>Contact Support</h4>
                         <ul className="footer-links">
                             <li><a href="mailto:support@onemark.co.in">support@onemark.co.in</a></li>
-                            <li><a href="https://onemark.co.in/contact" target="_blank" rel="noopener noreferrer">Contact Form</a></li>
+                            <li><a href="https://www.onemark.co.in/contact" target="_blank" rel="noopener noreferrer">Contact Form</a></li>
                             <li><a href="#">Help Center</a></li>
                         </ul>
                     </div>
@@ -56,7 +56,7 @@ export function SiteFooter() {
                     <div className="copyright">&copy; 2026 FinDB. All rights reserved.</div>
                     <div className="footer-credits">
                         Crafted with <Heart className="icon-danger" /> by{' '}
-                        <a href="https://onemark.co.in" target="_blank" rel="noopener noreferrer">Team OneMark</a>
+                        <a href="https://www.onemark.co.in" target="_blank" rel="noopener noreferrer">OneMark</a>
                     </div>
                 </div>
             </div>

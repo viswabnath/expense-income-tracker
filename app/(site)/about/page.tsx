@@ -78,7 +78,9 @@ export default function AboutPage() {
                     <div className="prose reveal">
                         <h2>Powered by OneMark</h2>
                         <p>
-                            FinDB is built in India by Team OneMark. Questions, ideas and feedback are always welcome at{' '}
+                            FinDB is built in India by{' '}
+                            <a href="https://www.onemark.co.in" target="_blank" rel="noopener noreferrer">OneMark</a>. Questions,
+                            ideas and feedback are always welcome at{' '}
                             <strong>support@onemark.co.in</strong>.
                         </p>
                         <p>

@@ -47,7 +47,10 @@ export function MarketingFooter() {
             </div>
 
             <div className="wrap footer-bottom">
-                <p>&copy; 2026 FinDB. Made in India by Team OneMark.</p>
+                <p>
+                    &copy; 2026 FinDB. Made in India by{' '}
+                    <a href="https://www.onemark.co.in" target="_blank" rel="noopener noreferrer">OneMark</a>.
+                </p>
                 <p className="footer-note">
                     FinDB shows information, not financial advice. It never moves money and never connects to your
                     bank on its own.

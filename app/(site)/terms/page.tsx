@@ -55,7 +55,7 @@ export default function TermsPage() {
 
                         <h2>Limitation of Liability</h2>
                         <p>
-                            While we strive for complete accuracy, FinDB and Team OneMark are not liable for financial decisions
+                            While we strive for complete accuracy, FinDB and OneMark are not liable for financial decisions
                             made based on the information in the app. Please cross-check important figures with your official
                             bank and lender statements.
                         </p>
