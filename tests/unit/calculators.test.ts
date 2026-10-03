@@ -2,7 +2,10 @@
  * The website's money calculators (src/core/calculators.ts), checked against figures
  * worked out independently with the standard formulas.
  */
-import { chitFund, emi, fixedDeposit, goldValue, inflation, irr, payoff, recurringDeposit, sip } from '../../src/core/calculators';
+import {
+    annualFromPerHundred, chitFund, emi, fixedDeposit, goldValue, inflation, interestPerHundredBorrowed, irr, payoff,
+    perHundredMonthly, recurringDeposit, sip,
+} from '../../src/core/calculators';
 
 describe('emi', () => {
     test('₹10,00,000 at 8.5% for 20 years is ₹8,678.23 a month', () => {
@@ -107,4 +110,21 @@ describe('chit fund', () => {
 
 test('irr finds the rate that makes the cash flows worth nothing today', () => {
     expect(irr([-100, 110])).toBeCloseTo(0.1, 6);
+});
+
+describe('interest per ₹100', () => {
+    test('₹1 per ₹100 a month is 12% a year, and back', () => {
+        expect(annualFromPerHundred(1)).toBe(12);
+        expect(perHundredMonthly(12)).toBe(1);
+        expect(perHundredMonthly(8.9)).toBeCloseTo(0.7417, 4);
+        expect(annualFromPerHundred(perHundredMonthly(8.9))).toBeCloseTo(8.9, 10);
+    });
+
+    test('total interest on every ₹100 borrowed', () => {
+        // ₹5,00,000 at 8.9% for 1 year: ₹24,431 of interest, so ₹4.89 on every ₹100
+        const result = emi(500000, 8.9, 12);
+        expect(result.totalInterest).toBeCloseTo(24431, -1);
+        expect(interestPerHundredBorrowed(result.totalInterest, 500000)).toBeCloseTo(4.89, 2);
+        expect(interestPerHundredBorrowed(100, 0)).toBe(0);
+    });
 });

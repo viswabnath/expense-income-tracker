@@ -3,22 +3,43 @@
 import { useMemo, useState } from 'react';
 import { CircleCheck, Plus, TriangleAlert, X } from 'lucide-react';
 import {
-    chitFund, emi, fixedDeposit, goldValue, inflation, payoff, recurringDeposit, sip, type Karat, type LoanInput,
+    annualFromPerHundred, chitFund, emi, fixedDeposit, goldValue, inflation, interestPerHundredBorrowed, payoff,
+    perHundredMonthly, recurringDeposit, sip, type Karat, type LoanInput,
 } from '@/src/core/calculators';
 import { NumberField, Row, SplitBar, rupees } from './fields';
 
 /* Each calculator opens with realistic sample values, so it shows what it does before any typing. */
 
+/** ₹0.74, for amounts per ₹100 */
+const paise = (amount: number) => `₹${amount.toFixed(2)}`;
+
 export function EmiCalculator() {
     const [amount, setAmount] = useState(2500000);
     const [rate, setRate] = useState(8.5);
     const [years, setYears] = useState(20);
+    // How the rate is typed: as a yearly percentage, or as rupees per ₹100 a month
+    const [rateUnit, setRateUnit] = useState<'year' | 'hundred'>('year');
     const result = useMemo(() => emi(amount, rate, Math.max(1, Math.round(years * 12))), [amount, rate, years]);
+    const perHundred = perHundredMonthly(rate);
     return (
         <div className="calc">
             <div className="calc-form">
                 <NumberField label="Loan amount (₹)" value={amount} onChange={setAmount} min={50000} max={20000000} step={50000} />
-                <NumberField label="Interest rate (% a year)" value={rate} onChange={setRate} min={1} max={30} step={0.05} unit="%" />
+                <div className="field">
+                    <span style={{ fontWeight: 600 }} id="rate-unit-label">Enter the interest as</span>
+                    <div className="segmented" role="group" aria-labelledby="rate-unit-label">
+                        <button type="button" aria-pressed={rateUnit === 'year'} onClick={() => setRateUnit('year')}>% a year</button>
+                        <button type="button" aria-pressed={rateUnit === 'hundred'} onClick={() => setRateUnit('hundred')}>₹ per ₹100 a month</button>
+                    </div>
+                </div>
+                {rateUnit === 'year' ? (
+                    <NumberField key="year" label="Interest rate (% a year)" value={rate} onChange={setRate} min={1} max={30} step={0.05} unit="%"
+                        help={`Same as ${paise(perHundred)} per ₹100 a month.`} />
+                ) : (
+                    <NumberField key="hundred" label="Interest (₹ per ₹100 a month)" value={Number(perHundred.toFixed(2))}
+                        onChange={value => setRate(annualFromPerHundred(value))} min={0.1} max={3} step={0.05} unit="rupees"
+                        help={`Same as ${Number(rate.toFixed(2))}% a year. ₹1 per ₹100 a month is 12% a year.`} />
+                )}
                 <NumberField label="Tenure (years)" value={years} onChange={setYears} min={1} max={30} step={1} unit="years" />
             </div>
             <div className="calc-result result" aria-live="polite">
@@ -26,8 +47,16 @@ export function EmiCalculator() {
                     <span className="label">Your monthly EMI</span>
                     <span className="value">{rupees(result.emi)}</span>
                 </div>
+                <div className="verdict-box">
+                    <span>
+                        {Number(rate.toFixed(2))}% a year is <strong>{paise(perHundred)} per ₹100 a month</strong>. Over the whole loan you pay{' '}
+                        <strong>{paise(interestPerHundredBorrowed(result.totalInterest, amount))}</strong> of interest on every ₹100 borrowed.
+                    </span>
+                </div>
                 <SplitBar a={amount} b={result.totalInterest} labelA="Loan" labelB="Interest" />
                 <div className="result-rows">
+                    <Row label="Interest per ₹100 a month" value={paise(perHundred)} />
+                    <Row label="Interest on every ₹100 borrowed, in total" value={paise(interestPerHundredBorrowed(result.totalInterest, amount))} />
                     <Row label="Total interest" value={rupees(result.totalInterest)} />
                     <Row label="Total you pay" value={rupees(result.totalPaid)} />
                     <Row label="Interest in year 1" value={rupees(result.years[0]?.interestPaid ?? 0)} />
