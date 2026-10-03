@@ -2,7 +2,7 @@
 
 _Drafted 2026-10-03. Status: **proposed, awaiting approval.** Nothing in this plan is built yet. Each phase starts only after it is approved, and each phase ends with a full test run and a reviewed pull request._
 
-v2 turns FinDB from an income-and-expense tracker into a full personal finance dashboard. It adds loans, money lent to or borrowed from people, credit lines with cashback and rewards, meal cards and wallets, investments (including daily and monthly SIPs) with live prices, deposits and post office schemes, retirement savings (EPF, NPS), insurance, goals, spending insights, and net worth. FinDB stays manual and private: the user enters their own data, and FinDB never connects to a bank. The only outside connections are optional price feeds, and a broker connection only if the user chooses it.
+v2 turns FinDB from an income-and-expense tracker into a full personal finance dashboard. It adds loans, money lent to or borrowed from people, credit lines with cashback and rewards, meal cards and wallets, investments (including daily and monthly SIPs) with live prices, deposits and post office schemes, retirement savings (EPF, NPS), land, property and rentals, vehicles and other physical assets, insurance, goals, spending insights, net worth, and a review of whether the user's finances are heading the right way against inflation and the market. FinDB stays manual and private: the user enters their own data, and FinDB never connects to a bank. The only outside connections are optional price feeds, and a broker connection only if the user chooses it.
 
 This plan combines the original v2 brief (see `docs/v2-audit.md`) with the additions agreed on 2026-10-03:
 - money lent and borrowed with people, and split costs;
@@ -22,6 +22,13 @@ And on 2026-10-03, later the same day:
 - term and health insurance;
 - post office and government savings schemes (PPF, Sukanya Samriddhi, NSC, KVP, MIS, SCSS, post office RD and time deposits);
 - a payslip entry that splits one salary into its parts.
+
+And, also on 2026-10-03:
+- physical gold valued by weight and purity at the day's rate;
+- land and property, with rents from homes and commercial property as income;
+- fixed deposit interest as income, paid out or accumulated;
+- vehicles and other physical assets that lose value over time (depreciation);
+- a financial status review: whether each part of the user's finances is heading the right way compared with inflation and the market.
 
 ## Rules for every phase
 
@@ -47,10 +54,12 @@ And on 2026-10-03, later the same day:
 | 2 | Spending insights and budgets | Category averages, subscription finder, trips, budgets with alerts, unusual-spend flags |
 | 3 | Debts and people | Loans with EMIs and schedules, money lent to or borrowed from people, split costs, dangerous-debt ranking, payoff plans |
 | 4 | Credit cards | Shared credit lines, statements with billing and due dates, loans on cards, cashback and reward points, card warnings |
-| 5 | Investments | Gold (including digital gold by daily or monthly SIP), Sovereign Gold Bonds, stocks, mutual funds, crypto; SIPs; buys and sells; profit and loss; allocation; live prices |
-| 6 | Savings, retirement and goals | Recurring and fixed deposits, post office and government schemes (PPF, SSY, NSC, KVP, MIS, SCSS), EPF and VPF, NPS with employer contributions, the payslip entry, savings pots, short-term and long-term goals |
-| 7 | Net worth, insurance and tax | Net worth with a trend, health ratios, emergency fund check, term and health insurance, tax-saving tracker (80C, 80CCD, 80D) |
-| 8 | Public launch | Email-based account recovery, reminders by email, rate limits on all writes, data export and account deletion, installable app, monitoring |
+| 5 | Investments | Physical gold by weight and purity, digital gold (including daily or monthly SIP), Sovereign Gold Bonds, stocks, mutual funds, crypto; SIPs; buys and sells; profit and loss; allocation; live prices |
+| 6 | Property, rentals and physical assets | Land, houses and commercial property with their value over time; tenants and rent as income; vehicles and other assets with depreciation |
+| 7 | Savings, retirement and goals | Recurring and fixed deposits, post office and government schemes (PPF, SSY, NSC, KVP, MIS, SCSS), EPF and VPF, NPS with employer contributions, the payslip entry, savings pots, short-term and long-term goals |
+| 8 | Net worth, insurance and tax | Net worth with a trend, health ratios, emergency fund check, term and health insurance, tax-saving tracker (80C, 80CCD, 80D) |
+| 9 | Financial status review | Whether each part of the user's finances is heading the right way: returns against inflation, net worth growth after inflation, allocation, liquidity, debt, insurance and rental yield, with clear reasons |
+| 10 | Public launch | Email-based account recovery, reminders by email, rate limits on all writes, data export and account deletion, installable app, monitoring |
 
 Phase 2 comes early on purpose. It needs only Phase 1's categories, and it gives users value straight away.
 
@@ -72,7 +81,7 @@ Phase 2 comes early on purpose. It needs only Phase 1's categories, and it gives
 
 **More kinds of account**
 - Besides banks, credit cards and cash: **meal cards** (Pluxee, formerly Sodexo, and similar employer food cards) and **wallets** (prepaid and UPI wallets).
-- A meal card is topped up by the employer each month. That top-up is recorded as income in a "Meal benefit" category, or it comes from the payslip entry in Phase 6. Spending from it is an ordinary expense (restaurants, groceries) paid from the card.
+- A meal card is topped up by the employer each month. That top-up is recorded as income in a "Meal benefit" category, or it comes from the payslip entry in Phase 7. Spending from it is an ordinary expense (restaurants, groceries) paid from the card.
 - The card can carry an optional note of what it can be spent on, and an optional expiry for unspent balances.
 
 **Money movements that are not income or expenses**
@@ -91,7 +100,7 @@ Phase 2 comes early on purpose. It needs only Phase 1's categories, and it gives
 - **Suggested category from the title,** with a built-in keyword list (for example "Swiggy" means restaurants, "HP Petrol" means fuel) that learns from the user's own past choices.
 - **Tags** for things that cut across categories, such as "Goa trip 2026" or "Wedding".
 - Existing expenses start as "Uncategorised" and can be categorised later, in bulk.
-- Income gets simple categories too: salary, freelance, interest, meal benefit, cashback and rewards, refund, gift, other.
+- Income gets simple categories too: salary, freelance, rental income, interest, meal benefit, cashback and rewards, refund, gift, other.
 
 **Repeating entries**
 - Salary on the 1st, rent on the 5th, monthly SIPs.
@@ -182,7 +191,10 @@ Data: `credit_lines`, `card_statements`, `card_rewards` (points earned, redeemed
 ## Phase 5: Investments
 
 - **Holdings:**
-  - gold: physical gold (grams, purity) and **digital gold** (grams held with a platform);
+  - **physical gold:** each piece of jewellery, coin or bar, with its weight in grams and purity (24, 22 or 18 carat). It is valued at the day's rate for that purity, so its value moves with the gold price.
+    - The purchase price, date and making charges are kept. Making charges and wastage are part of the cost but not of the resale value, so the profit or loss shows that honestly.
+    - Sales and exchanges for new jewellery are recorded too.
+  - **digital gold:** grams held with a platform;
   - Sovereign Gold Bonds (units, issue price, interest rate, maturity);
   - stocks;
   - mutual funds (units, SIPs);
@@ -207,11 +219,41 @@ Data: `credit_lines`, `card_statements`, `card_rewards` (points earned, redeemed
 
 Data: `holdings`, `investment_transactions`, `prices`, `price_sources`.
 
-## Phase 6: Savings, retirement and goals
+## Phase 6: Property, rentals and physical assets
+
+**Land and property**
+- Each property: type (land, flat, house, commercial), location, area, purchase price and date, and costs such as stamp duty, registration and brokerage.
+- **Current value:** entered by the user when they have an estimate (a valuation, a circle rate, a recent nearby sale). Between estimates it can grow at an assumed yearly rate the user sets. Every value shows its date and whether it is an estimate.
+- A linked home loan (Phase 3) shows the equity: value minus what is still owed.
+- Running costs (property tax, maintenance, repairs, society charges) are expenses tagged to the property.
+
+**Rents**
+- Tenants per property: residential or commercial, rent, due day, agreement start and end, and yearly increase.
+- **Rent received is income** in the "Rental income" category, into the chosen account. Missed and late rents are flagged.
+- A **security deposit** held from a tenant is money owed back, so it counts as a liability until it is returned.
+- For each property: **rental yield**, meaning yearly rent less running costs as a percentage of its value, and the total earned over time.
+- A reminder when an agreement is about to end or the yearly increase is due.
+
+**Vehicles and other physical assets**
+- Cars, bikes, and other things of lasting value (electronics, furniture, equipment): purchase price, date, and a **depreciation method**:
+  - **reducing balance** at a yearly rate, with sensible defaults (for example about 15% a year for a car) that the user can change;
+  - or **straight-line** over a number of years, down to a residual value.
+- The value goes down each month on that schedule. The user can override it with a real quote, for example a resale offer.
+- When the asset is sold, the sale price is recorded and the gain or loss shown. A linked vehicle loan (Phase 3) shows what is still owed against it.
+- Running costs (fuel, servicing, vehicle insurance) are expenses tagged to the asset.
+
+Data: `properties`, `property_valuations`, `tenants`, `tenancies`, `rent_payments`, `physical_assets`, `asset_valuations`.
+
+## Phase 7: Savings, retirement and goals
 
 **Deposits**
 - **Recurring deposits:** monthly instalment, rate, start date, tenure. The maturity date and value are calculated, and instalments are tracked as paid or missed.
 - **Fixed deposits:** amount, rate, compounding, maturity, and interest earned so far.
+  - **Interest as income:**
+    - with a **payout** FD (monthly or quarterly), each payout is "Interest" income into the chosen account;
+    - with a **cumulative** FD, interest builds up inside the FD and shows as earned each year, and the full maturity amount goes to the bank on maturity;
+    - tax deducted at source on the interest is recorded as tax paid.
+  - Premature withdrawal records the reduced rate or penalty.
 - A reminder before a deposit matures.
 
 **Post office and government savings schemes**
@@ -267,11 +309,12 @@ Each scheme has its own rules built in, with the interest rate entered per perio
 
 Data: `deposits` (including post office deposits), `deposit_instalments`, `schemes` and `scheme_rates` (PPF, SSY, NSC, KVP, MIS, SCSS), `retirement_accounts` (EPF, VPF, NPS) and `retirement_contributions`, `payslips` and `payslip_lines`, `pots`, `goals`, `goal_sources`.
 
-## Phase 7: Net worth, insurance and tax
+## Phase 8: Net worth, insurance and tax
 
 - **Net worth** = everything owned minus everything owed:
-  - owned: banks, cash, meal cards and wallets, deposits, post office schemes, EPF, VPF and NPS, investments, and money others owe the user;
-  - owed: loans, card dues, and money the user owes others.
+  - owned: banks, cash, meal cards and wallets, deposits, post office schemes, EPF, VPF and NPS, investments (including physical gold at the day's rate), land and property at their latest value, vehicles and other assets at their depreciated value, and money others owe the user;
+  - owed: loans, card dues, security deposits held from tenants, and money the user owes others.
+- Net worth can also be shown **excluding the home the user lives in and locked retirement savings**, to show what is actually available.
 - A month-end snapshot builds a **trend chart**.
 - **Health ratios:**
   - EMI-to-income;
@@ -298,10 +341,33 @@ Data: `deposits` (including post office deposits), `deposit_instalments`, `schem
 
 Data: `net_worth_snapshots`, `insurance_policies`, `insurance_members`, `insurance_claims`, `tax_profile`, `tax_rules` (per financial year).
 
-## Phase 8: Public launch
+## Phase 9: Financial status review
+
+Once the user has entered some assets and liabilities, FinDB reviews whether their finances are **heading the right way or the wrong way**, compared with inflation and the market. Each area gets a status (on track, needs attention, or off track), the numbers behind it, and a plain-language reason.
+
+| Area | What is compared |
+|---|---|
+| Returns against inflation | Each asset's yearly return (FDs, savings accounts, PPF, EPF, mutual funds, stocks, gold, property) against consumer price inflation, giving the **real return**. For example, an FD earning 7% when inflation is 5% is +2% a year in real terms; a savings account at 3% is losing value. |
+| Returns against the market | Mutual funds and stocks against a benchmark index (for example the Nifty 50), gold against the gold price, and property against the user's own growth assumption |
+| Net worth | Growth over 1, 3 and 5 years, before and after inflation |
+| Allocation | How wealth is spread (cash, deposits, equity, gold, property, retirement), compared with a target the user sets or a simple age-based guide. It flags concentration, such as most wealth in one illiquid property. |
+| Liquidity | Money available quickly against months of spending (the emergency fund) |
+| Debt | EMI-to-income, high-cost debt present, loans on assets that lose value (a car loan larger than the car's value) |
+| Protection | Term cover as a multiple of yearly income, and health cover against family size |
+| Rental property | Rental yield against what the same money would earn in an FD, after costs |
+| Depreciating assets | How much of total wealth sits in things that lose value |
+| Savings | The savings rate over time, and whether goals are on track |
+
+- **Market and inflation data:** consumer price inflation (published monthly), benchmark index values, gold rates, and current FD and small-savings rates. These are stored in a table with their dates and sources, updated by a scheduled job where a source with suitable terms exists, and editable otherwise.
+- A **review page** with the overall picture and each area's status. It is refreshed each month, and its history shows whether things are improving.
+- Every review is clearly marked as rule-based information, not personal financial advice. Thresholds, such as what counts as a healthy EMI-to-income ratio, are shown alongside each result and can be adjusted.
+
+Data: `market_data` (inflation, benchmarks, rates, with dates and sources), `status_reviews` (monthly results per area), `allocation_targets`.
+
+## Phase 10: Public launch
 
 - **Account recovery by an emailed link,** replacing the security question. Registration stops revealing whether an email is in use. Both need an email provider.
-- **Reminders by email** as well as in the app: EMIs, card due dates, reward points expiring, deposit and scheme maturities, the yearly PPF deposit, insurance renewals, overdue money from people.
+- **Reminders by email** as well as in the app: EMIs, card due dates, reward points expiring, deposit and scheme maturities, the yearly PPF deposit, insurance renewals, rent due and tenancy renewals, overdue money from people.
 - **Rate limits on every write,** and a shared rate-limit store so the limits hold across server instances.
 - **Data export** (every table, as CSV or JSON) and **account deletion**.
 - **Installable app (PWA).**
@@ -317,6 +383,8 @@ Data: `net_worth_snapshots`, `insurance_policies`, `insurance_members`, `insuran
 | Before Phase 1 | The test-run database stalls (STATUS): check the Supabase pooler's connection limit, or use a direct connection for tests |
 | Phase 1 | Whether repeating entries default to automatic or to confirm-first |
 | Phase 5 | Price sources and any paid plans (gold, stocks), and whether to offer broker connections |
-| Phase 6 | Which schemes ship first (suggested: PPF, EPF, NPS, then the post office schemes), and where scheme interest rates come from (entered by the user, or a maintained table updated each quarter) |
-| Phase 7 | How the tax rules per financial year are kept up to date |
-| Phase 8 | The email provider |
+| Phase 7 | Which schemes ship first (suggested: PPF, EPF, NPS, then the post office schemes), and where scheme interest rates come from (entered by the user, or a maintained table updated each quarter) |
+| Phase 6 | Default depreciation rates per asset type, and whether property values grow on an assumed rate between the user's own estimates |
+| Phase 8 | How the tax rules per financial year are kept up to date |
+| Phase 9 | Sources for inflation, benchmark and rate data, and the default thresholds for each status |
+| Phase 10 | The email provider |
