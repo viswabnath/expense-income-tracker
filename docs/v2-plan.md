@@ -122,10 +122,11 @@ Phase 1 is several pull requests: the ledger and migration, then security and pr
 - Turned-off modules disappear from the screens. Their data stays, and switching a module back on shows it again.
 
 **Security and privacy**
-- **Two-factor login** with an authenticator app (TOTP), plus one-time recovery codes. It is optional but encouraged, and required for sensitive actions such as export and deletion once it is set up.
+- **Two-factor login is mandatory** (decided 2026-10-03), using time-based codes (TOTP) from any authenticator app, such as Google Authenticator or Microsoft Authenticator. It is free: no SMS, no paid service. One-time recovery codes are given at setup. New users set it up at sign-up; existing users at their next login.
+- **Sign in with Google** (Google's free OAuth) can be added later as an extra way to log in. Two-factor login still applies to password logins.
 - **Sessions:** a list of active sessions (device, browser, last seen), with "sign out" for each and "sign out everywhere". Login history.
 - **Passwords:** allow long passphrases (well beyond today's 16-character limit), and refuse common and known-breached passwords.
-- **Encryption** of sensitive fields, as described in the rules: application-level encryption with a key held outside the database, and masked display.
+- **Encryption** of sensitive fields, as described in the rules: AES-256-GCM in the application, with the key in an environment secret (decided 2026-10-03: free, and Vercel encrypts environment variables at rest). Each value records its key version, so the key can be rotated without downtime. Values are shown masked.
 - **Privacy:** the sign-up notice and consent, and the data inventory that export and erasure (Phase 5) are built on.
 - **Backups:** daily backups confirmed, and a restore rehearsed and documented.
 
@@ -440,15 +441,62 @@ Data: `business_books`, `invoices`, `invoice_lines`, `gst_entries`.
 
 ---
 
+## Infrastructure, hosting and costs
+
+_Prices are as known on 2026-10-03; check the current pricing pages before buying._
+
+**Principles**
+- **Managed services until they stop being cheap.** Vercel runs the app and Supabase runs Postgres, so there are no servers to patch, back up or scale by hand. FinDB uses plain SQL through `pg` and standard Next.js, so it can move to self-hosting later without a rewrite.
+- **No nginx while on Vercel.** Vercel already does what nginx would: HTTPS, CDN caching, load balancing, and automatic scaling of the app per request. nginx becomes useful only if FinDB moves to its own servers (see Stage 4).
+- **Pay only when users arrive.** Every stage below is triggered by real numbers, not guesses.
+
+**Stage 1: building (now, no real users)**
+
+| Service | Plan | Cost |
+|---|---|---|
+| Vercel | Hobby | Free |
+| Supabase, production | Free | Free |
+| Supabase, tests and previews (new, separate project) | Free | Free |
+
+- **A separate free Supabase project for tests and previews** ends the test-run stalls on the production database. It also replaces the `balancetrack_test` schema with a whole database that cannot reach production data.
+- Free Supabase projects pause after a week without activity, have no automatic backups, and allow a 500 MB database. That is fine while building, not for real users. Until Stage 2, a scheduled `pg_dump` (a GitHub Actions job, free) keeps a daily backup of production in private storage.
+
+**Stage 2: public launch (Phase 5)**
+
+| Service | Plan | Approximate cost per month |
+|---|---|---|
+| Vercel | **Pro** (required: Hobby is for non-commercial use only, and FinDB is a product with a trademark) | about $20 |
+| Supabase, production | **Pro**: no pausing, daily backups, 8 GB database, a small dedicated compute instance | about $25 |
+| Email (verification, recovery, reminders) | A provider's free tier, for example Resend or Brevo, then paid as volume grows | Free at first |
+| Rate-limit store | Upstash Redis free tier, through the Vercel Marketplace | Free at first |
+| Error monitoring | Sentry free tier | Free at first |
+| **Total** | | **about $45 (roughly ₹3,800)** |
+
+- **Move production to Supabase's Mumbai region, and Vercel functions to `bom1` (Mumbai), before launch.** Users are in India: requests get faster, and data stays in India. Today the database is in Sydney. Moving means a new project and a data copy, which is easiest before there are real users.
+
+**Stage 3: growth (thousands of users)**
+- Upgrade the Supabase compute size as connections and query time grow. Add a read replica for heavy reports (the status review, insights) if needed.
+- Use Supabase's point-in-time recovery add-on once the data is valuable enough to need restores to the minute.
+- Vercel scales the app automatically and bills by use. Watch function time and set spend alerts.
+- Move email to a paid plan when reminders exceed the free quota.
+- Expected range: roughly $60 to $250 a month, depending on users and usage.
+
+**Stage 4: large scale, only if managed costs become high**
+- Run the app as a standalone Next.js build in containers on cloud servers (for example AWS, DigitalOcean or Hetzner), behind **nginx** or a cloud load balancer for HTTPS, caching and spreading traffic across several app instances. Keep Postgres managed: Supabase, or another provider such as AWS RDS or Neon.
+- This is cheaper per unit of computing, but adds operational work: security updates, monitoring, scaling, and on-call.
+- Consider it only when the managed bill is consistently above roughly $500 a month, or when a specific need appears.
+
+---
+
 ## Decisions needed before or during the phases
 
 | When | Decision |
 |---|---|
-| Before Phase 1 | Approve this plan, the default categories, and the module mapping from `tracking_option` |
-| Before Phase 1 | The test-run database stalls (STATUS): check the Supabase pooler's connection limit, or use a direct connection for tests |
-| Phase 1 | Where the encryption key lives (an environment secret or a managed key service), and whether two-factor login becomes mandatory |
-| Phase 1 | Whether repeating entries default to automatic or to confirm-first |
-| Phase 2 | Which banks and card issuers get import presets first |
+| Before Phase 1 | **Decided 2026-10-03:** the default categories as listed in Phase 1. Module mapping from `tracking_option`: "income" turns on Income; "expenses" turns on Expenses and Cards; "both" turns on Income, Expenses and Cards. Other modules start off, and users turn them on. |
+| Before Phase 1 | **Decided 2026-10-03:** tests and previews move to a separate free Supabase project (see Infrastructure), so test load never touches the production database |
+| Phase 1 | **Decided 2026-10-03:** the key lives in an environment secret, with versioning for rotation; two-factor login is mandatory, with any authenticator app |
+| Phase 1 | **Decided 2026-10-03:** repeating entries default to confirm-first (one tap); users can switch any of them to automatic |
+| Phase 2 | **Decided 2026-10-03:** HDFC, ICICI, SBI, Axis and Kotak first (accounts and cards), then others on request |
 | Phase 5 | The email provider |
 | Phase 6 | Price sources and any paid plans, and whether to offer broker connections |
 | Phase 7 | Default depreciation rates, and growth between property estimates |
