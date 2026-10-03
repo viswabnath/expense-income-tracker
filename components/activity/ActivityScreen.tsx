@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import {
     Banknote, Clock, CreditCard, History, KeyRound, Landmark, Loader2, MapPin, Pencil, Plus, RefreshCw,
-    Search, ShieldAlert, Trash2, TrendingDown, TrendingUp, type LucideIcon,
+    Search, ShieldAlert, Trash2, TrendingDown, TrendingUp, X, type LucideIcon,
 } from 'lucide-react';
 import { apiGet, redirectIfUnauthorized } from '@/lib/api-client';
 import { describeActivity, pageLinks, type ActivityIcon } from '@/lib/activity';
@@ -47,18 +47,16 @@ function ActivityItem({ activity }: { activity: Activity }) {
     const time = date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
     return (
         <div className={`activity-item ${label.className}`}>
-            <div className="activity-icon"><Icon /></div>
+            <div className="activity-icon" aria-hidden="true"><Icon /></div>
             <div className="activity-content">
-                <div className="activity-header-row">
-                    <span className="activity-action">{label.text}</span>
-                    <span className="activity-amount">{activity.amount ? formatRupees(activity.amount) : '—'}</span>
-                </div>
+                <div className="activity-action">{label.text}</div>
                 <div className="activity-description">{activity.description || 'System operation'}</div>
                 <div className="activity-meta">
-                    <span className="activity-account"><MapPin /> {activity.account_info || 'System'}</span>
-                    <span className="activity-timestamp"><Clock /> {day} at {time}</span>
+                    <span className="activity-account"><MapPin aria-hidden="true" /> {activity.account_info || 'System'}</span>
+                    <span className="activity-timestamp"><Clock aria-hidden="true" /> {day} at {time}</span>
                 </div>
             </div>
+            <span className="activity-amount">{activity.amount ? formatRupees(activity.amount) : '—'}</span>
         </div>
     );
 }
@@ -117,72 +115,73 @@ export function ActivityScreen() {
     } else if (shown.data.activities.length === 0) {
         feed = <div className="no-activities">No activities found</div>;
     } else {
-        const { activities, currentPage, totalPages, totalItems } = shown.data;
+        const { activities, currentPage, totalPages } = shown.data;
         const goTo = (page: number) => { if (page !== currentPage) load(applied, page); };
         feed = (
             <div className="activity-feed">
-                <div className="activity-header">
-                    <h3><History /> Activity Feed</h3>
-                    <div className="activity-stats">
-                        <span className="stat-item">{totalItems} Actions</span>
-                    </div>
-                </div>
                 <div className="activity-items">
                     {activities.map(activity => <ActivityItem key={activity.id} activity={activity} />)}
                 </div>
                 {totalPages > 1 ? (
-                    <div className="pagination">
-                        {currentPage > 1 ? <button type="button" className="pagination-btn" data-page={currentPage - 1} onClick={() => goTo(currentPage - 1)}>« Previous</button> : null}
+                    <nav className="pagination" aria-label="Pages">
+                        {currentPage > 1 ? <button type="button" className="pagination-btn" data-page={currentPage - 1} onClick={() => goTo(currentPage - 1)}>Previous</button> : null}
                         {pageLinks(currentPage, totalPages).map((link, index) => (link === 'dots'
                             ? <span key={`dots-${index}`} className="pagination-dots">...</span>
                             : (
                                 <button key={link} type="button" className={`pagination-btn${link === currentPage ? ' active' : ''}`} data-page={link}
-                                    onClick={() => goTo(link)}>
+                                    aria-current={link === currentPage ? 'page' : undefined} onClick={() => goTo(link)}>
                                     {link}
                                 </button>
                             )))}
-                        {currentPage < totalPages ? <button type="button" className="pagination-btn" data-page={currentPage + 1} onClick={() => goTo(currentPage + 1)}>Next »</button> : null}
-                    </div>
+                        {currentPage < totalPages ? <button type="button" className="pagination-btn" data-page={currentPage + 1} onClick={() => goTo(currentPage + 1)}>Next</button> : null}
+                    </nav>
                 ) : null}
             </div>
         );
     }
 
+    const total = shown.kind === 'page' ? shown.data.totalItems : 0;
     return (
         <div id="activity-section">
-            <h2>Activity Log</h2>
-            <div className="activity-filters">
-                <div className="form-group">
-                    <label htmlFor="activity-month">Month</label>
-                    <select id="activity-month" value={year ? month : ''} disabled={!year} title={year ? undefined : 'Choose a year to filter by month'}
-                        onChange={event => setMonth(event.target.value)}>
-                        <option value="">All Months</option>
-                        {MONTH_NAMES.map((name, index) => <option key={name} value={index + 1}>{name}</option>)}
-                    </select>
+            <div className="page-header">
+                <div>
+                    <h2>Activity</h2>
+                    <p>Every change to your accounts and entries, with the old and new values.</p>
                 </div>
-                <div className="form-group">
-                    <label htmlFor="activity-year">Year</label>
-                    <select id="activity-year" value={year} onChange={event => setYear(event.target.value)}>
-                        <option value="">All Years</option>
-                        {filterYears().map(option => <option key={option} value={option}>{option}</option>)}
-                    </select>
+            </div>
+            <section className="card" aria-labelledby="activity-title">
+                <div className="card-head">
+                    <h3 id="activity-title"><span className="icon-tile t-bank" aria-hidden="true"><History /></span>Activity log</h3>
+                    <span className="meta">{total} {total === 1 ? 'change' : 'changes'}</span>
                 </div>
-                <div className="form-group activity-button-group">
-                    <button type="button" data-action="filterActivity" className={`activity-filter-btn activity-load-btn${busy === 'load' ? ' loading' : ''}`}
+                <div className="filters activity-filters">
+                    <div className="field">
+                        <label htmlFor="activity-year">Year</label>
+                        <select id="activity-year" value={year} onChange={event => setYear(event.target.value)}>
+                            <option value="">All Years</option>
+                            {filterYears().map(option => <option key={option} value={option}>{option}</option>)}
+                        </select>
+                    </div>
+                    <div className="field">
+                        <label htmlFor="activity-month">Month</label>
+                        <select id="activity-month" value={year ? month : ''} disabled={!year} title={year ? undefined : 'Choose a year to filter by month'}
+                            onChange={event => setMonth(event.target.value)}>
+                            <option value="">All Months</option>
+                            {MONTH_NAMES.map((name, index) => <option key={name} value={index + 1}>{name}</option>)}
+                        </select>
+                    </div>
+                    <button type="button" data-action="filterActivity" className="btn btn-primary" disabled={busy !== null}
                         onClick={() => run('load', { month: year ? month : '', year })}>
-                        <span className="btn-icon">{busy === 'load' ? <Loader2 className="spin" /> : <Search />}</span>
-                        <span className="btn-text">Load</span>
+                        {busy === 'load' ? <Loader2 className="spin" aria-hidden="true" /> : <Search aria-hidden="true" />} Show
                     </button>
-                    <button type="button" data-action="clearActivityFilters" className={`activity-filter-btn activity-clear-btn${busy === 'clear' ? ' loading' : ''}`}
-                        onClick={clearFilters}>
-                        <span className="btn-icon">{busy === 'clear' ? <Loader2 className="spin" /> : <Trash2 />}</span>
-                        <span className="btn-text">Clear</span>
+                    <button type="button" data-action="clearActivityFilters" className="btn btn-secondary" disabled={busy !== null} onClick={clearFilters}>
+                        {busy === 'clear' ? <Loader2 className="spin" aria-hidden="true" /> : <X aria-hidden="true" />} Clear
                     </button>
                 </div>
-            </div>
-            <div id="activity-feed">
-                <div id="activity-list">{feed}</div>
-            </div>
+                <div id="activity-feed">
+                    <div id="activity-list">{feed}</div>
+                </div>
+            </section>
         </div>
     );
 }

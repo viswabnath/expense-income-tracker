@@ -6,10 +6,10 @@
 const { test, expect } = require('@playwright/test');
 
 const AUTH_PAGES = [
-    { path: '/login', form: '#login-form', heading: 'Login to Your Account' },
-    { path: '/register', form: '#register-form', heading: 'Create New Account' },
-    { path: '/forgot-username', form: '#forgot-username-form', heading: 'Find Your Username' },
-    { path: '/forgot-password', form: '#forgot-password-form', heading: 'Reset Your Password' },
+    { path: '/login', form: '#login-form', heading: 'Welcome back' },
+    { path: '/register', form: '#register-form', heading: 'Create your free account' },
+    { path: '/forgot-username', form: '#forgot-username-form', heading: 'Find your username' },
+    { path: '/forgot-password', form: '#forgot-password-form', heading: 'Reset your password' },
 ];
 
 async function watchForProblems(page) {
@@ -34,7 +34,7 @@ for (const { path, form, heading } of AUTH_PAGES) {
         expect(response?.status()).toBe(200);
         expect(response?.headers()['content-security-policy'] || '').toMatch(/'nonce-[A-Za-z0-9+/=]+' 'strict-dynamic'/);
         await expect(page.locator(form)).toBeVisible();
-        await expect(page.locator(`${form} h3`)).toHaveText(heading);
+        await expect(page.locator(`${form} h1`)).toHaveText(heading);
 
         expect(problems).toEqual([]);
     });

@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import { FEATURES } from './content';
+import { FEATURES, TOOLS } from './content';
 import { Logo } from './Logo';
 
-/** The website footer: product, company and legal links */
+/** The website footer: features, tools, company and legal links */
 export function MarketingFooter() {
     return (
         <footer className="site-footer">
@@ -10,18 +10,27 @@ export function MarketingFooter() {
                 <div className="footer-brand">
                     <Logo />
                     <p>
-                        The complete, private record of your family&apos;s money, made for India. Free for everyone,
-                        with no ads and no selling your data.
+                        Track every rupee your family owns and owes. Free for everyone, with no ads and no selling your
+                        data.
                     </p>
                 </div>
 
                 <nav className="footer-col" aria-label="Features">
                     <h2>Features</h2>
                     <ul>
-                        {FEATURES.slice(0, 7).map(feature => (
+                        {FEATURES.filter(feature => feature.status !== 'planned').slice(0, 6).map(feature => (
                             <li key={feature.slug}><Link href={`/features/${feature.slug}`}>{feature.name}</Link></li>
                         ))}
                         <li><Link href="/features">All features</Link></li>
+                    </ul>
+                </nav>
+
+                <nav className="footer-col" aria-label="Free tools">
+                    <h2>Free tools</h2>
+                    <ul>
+                        {TOOLS.map(tool => (
+                            <li key={tool.slug}><Link href={`/tools/${tool.slug}`}>{tool.name}</Link></li>
+                        ))}
                     </ul>
                 </nav>
 

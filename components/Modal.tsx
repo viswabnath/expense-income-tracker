@@ -1,12 +1,12 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 
 interface ModalProps {
     id: string;
     title: string;
     open: boolean;
-    /** data-action of the close (x) button, kept from the legacy markup */
+    /** data-action of the close (x) button, kept from the former app's markup */
     closeAction: string;
     onClose: () => void;
     footer: ReactNode;
@@ -14,8 +14,19 @@ interface ModalProps {
     children: ReactNode;
 }
 
-/** Legacy modal markup (modal-overlay / modal-content / header / body / footer) */
+/** A dialog over the page: closes with the x button, a click outside it, or Escape */
 export function Modal({ id, title, open, closeAction, onClose, footer, small, children }: ModalProps) {
+    useEffect(() => {
+        if (!open) return;
+        const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+        document.addEventListener('keydown', onKey);
+        document.body.classList.add('no-scroll');
+        return () => {
+            document.removeEventListener('keydown', onKey);
+            document.body.classList.remove('no-scroll');
+        };
+    }, [open, onClose]);
+
     return (
         <div
             id={id}

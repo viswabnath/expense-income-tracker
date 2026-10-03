@@ -55,7 +55,7 @@ describe('Integration Tests - Server Endpoints', () => {
             const response = await request(target()).get('/');
 
             expect(response.status).toBe(200);
-            expect(response.text).toContain('One honest picture');
+            expect(response.text).toContain('Track every rupee your family owns and owes');
         });
 
         test('GET /?section=... (an old app link) sends a logged-out visitor to /login', async () => {

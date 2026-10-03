@@ -19,9 +19,21 @@ export interface Term {
     meaning: string;
 }
 
+/** The five groups features are shown in, in the menu and on the features page */
+export type FeatureGroup = 'track' | 'borrow' | 'grow' | 'protect' | 'family';
+
+export const GROUPS: { id: FeatureGroup; name: string; text: string }[] = [
+    { id: 'track', name: 'Track', text: 'Accounts, spending and where the money goes' },
+    { id: 'borrow', name: 'Borrow and lend', text: 'Loans, chits, cards and money with people' },
+    { id: 'grow', name: 'Save and grow', text: 'Gold, investments, deposits and property' },
+    { id: 'protect', name: 'Protect', text: 'Insurance, tax and your money health' },
+    { id: 'family', name: 'Family', text: 'Your household, together' },
+];
+
 export interface Feature {
     slug: string;
     name: string;
+    group: FeatureGroup;
     icon: FeatureIconName;
     status: FeatureStatus;
     /** One line for cards and lists */
@@ -47,6 +59,7 @@ export const STATUS_LABELS: Record<FeatureStatus, string> = {
 export const FEATURES: Feature[] = [
     {
         slug: 'accounts',
+        group: 'track',
         name: 'Accounts and balances',
         icon: 'wallet',
         status: 'available',
@@ -79,6 +92,7 @@ export const FEATURES: Feature[] = [
     },
     {
         slug: 'spending',
+        group: 'track',
         name: 'Spending and income',
         icon: 'receipt',
         status: 'available',
@@ -108,6 +122,7 @@ export const FEATURES: Feature[] = [
     },
     {
         slug: 'import',
+        group: 'track',
         name: 'Statement import',
         icon: 'upload',
         status: 'building',
@@ -137,6 +152,7 @@ export const FEATURES: Feature[] = [
     },
     {
         slug: 'insights',
+        group: 'track',
         name: 'Insights and budgets',
         icon: 'chart',
         status: 'building',
@@ -161,6 +177,7 @@ export const FEATURES: Feature[] = [
     },
     {
         slug: 'events',
+        group: 'track',
         name: 'Events, trips and projects',
         icon: 'calendar',
         status: 'building',
@@ -184,6 +201,7 @@ export const FEATURES: Feature[] = [
     },
     {
         slug: 'people',
+        group: 'borrow',
         name: 'Money with friends and family',
         icon: 'people',
         status: 'building',
@@ -208,6 +226,7 @@ export const FEATURES: Feature[] = [
     },
     {
         slug: 'loans',
+        group: 'borrow',
         name: 'Loans and chit funds',
         icon: 'loan',
         status: 'building',
@@ -237,6 +256,7 @@ export const FEATURES: Feature[] = [
     },
     {
         slug: 'credit-cards',
+        group: 'borrow',
         name: 'Credit cards, cashback and rewards',
         icon: 'card',
         status: 'building',
@@ -262,6 +282,7 @@ export const FEATURES: Feature[] = [
     },
     {
         slug: 'investments',
+        group: 'grow',
         name: 'Gold and investments',
         icon: 'gold',
         status: 'planned',
@@ -290,6 +311,7 @@ export const FEATURES: Feature[] = [
     },
     {
         slug: 'property',
+        group: 'grow',
         name: 'Property, rent and valuables',
         icon: 'home',
         status: 'planned',
@@ -317,6 +339,7 @@ export const FEATURES: Feature[] = [
     },
     {
         slug: 'savings',
+        group: 'grow',
         name: 'Deposits, retirement and goals',
         icon: 'piggy',
         status: 'planned',
@@ -346,6 +369,7 @@ export const FEATURES: Feature[] = [
     },
     {
         slug: 'insurance-tax',
+        group: 'protect',
         name: 'Insurance and tax',
         icon: 'umbrella',
         status: 'planned',
@@ -374,6 +398,7 @@ export const FEATURES: Feature[] = [
     },
     {
         slug: 'health-check',
+        group: 'protect',
         name: 'Net worth and money health check',
         icon: 'gauge',
         status: 'planned',
@@ -402,6 +427,7 @@ export const FEATURES: Feature[] = [
     },
     {
         slug: 'family',
+        group: 'family',
         name: 'Family and estate',
         icon: 'family',
         status: 'planned',
@@ -428,6 +454,34 @@ export const FEATURES: Feature[] = [
 
 export function featureBySlug(slug: string): Feature | undefined {
     return FEATURES.find(feature => feature.slug === slug);
+}
+
+export type ToolIconName = 'emi' | 'payoff' | 'fd' | 'rd' | 'sip' | 'gold' | 'chit' | 'inflation';
+
+export interface Tool {
+    slug: string;
+    name: string;
+    icon: ToolIconName;
+    /** One line for cards */
+    short: string;
+    /** The question the tool answers, used as the page heading */
+    question: string;
+}
+
+/** The free calculators at /tools; each one runs entirely in the browser */
+export const TOOLS: Tool[] = [
+    { slug: 'emi-calculator', name: 'EMI calculator', icon: 'emi', short: 'Your monthly EMI, and how much of it is interest, year by year.', question: 'How much will my loan cost every month?' },
+    { slug: 'loan-payoff', name: 'Which loan first?', icon: 'payoff', short: 'Have extra money each month? See which loan to clear first, and what you save.', question: 'Which loan should I close first?' },
+    { slug: 'fd-calculator', name: 'FD calculator', icon: 'fd', short: 'What your fixed deposit will be worth when it matures.', question: 'What will my fixed deposit be worth?' },
+    { slug: 'rd-calculator', name: 'RD calculator', icon: 'rd', short: 'How a monthly recurring deposit adds up, for a bike, a trip or a fee.', question: 'How much will my recurring deposit grow to?' },
+    { slug: 'sip-calculator', name: 'SIP calculator', icon: 'sip', short: 'What a monthly SIP could grow to over the years.', question: 'What could my SIP grow to?' },
+    { slug: 'gold-value', name: 'Gold value', icon: 'gold', short: 'What your jewellery or coins are worth, by weight and purity.', question: 'How much is my gold worth today?' },
+    { slug: 'chit-fund', name: 'Chit fund return', icon: 'chit', short: 'Is your chit saving you money or costing you? See the real yearly rate.', question: 'Is my chit fund a good deal?' },
+    { slug: 'inflation', name: 'Inflation', icon: 'inflation', short: 'What today\'s money will buy in the future, and what things will cost.', question: 'What will inflation do to my money?' },
+];
+
+export function toolBySlug(slug: string): Tool | undefined {
+    return TOOLS.find(tool => tool.slug === slug);
 }
 
 export interface Question {

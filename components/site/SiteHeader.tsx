@@ -1,89 +1,157 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X } from 'lucide-react';
+import { ArrowRight, ChevronDown, Menu, X } from 'lucide-react';
+import { FEATURES, GROUPS, STATUS_LABELS } from './content';
+import { FeatureIcon } from './FeatureIcon';
 import { Logo } from './Logo';
 
 export const NAV_LINKS = [
-    { href: '/features', label: 'Features' },
+    { href: '/tools', label: 'Free tools' },
     { href: '/security', label: 'Security' },
     { href: '/roadmap', label: 'Roadmap' },
     { href: '/download', label: 'Get the app' },
-    { href: '/faq', label: 'Questions' },
 ];
 
 /**
- * The website's top bar. On phones the links fold into a menu panel. `signedIn` (from the
- * session cookie) swaps "Log in" and "Start free" for a single "Open FinDB".
+ * The website's top bar: a Features menu grouped by category, the other links, and the sign-in
+ * actions. On phones the links fold into a full-screen menu, and "Start free" moves to a bar fixed
+ * to the bottom of the screen. `signedIn` (from the session cookie) shows "Open FinDB" instead.
  */
 export function SiteHeader({ signedIn }: { signedIn: boolean }) {
     const pathname = usePathname();
-    const [open, setOpen] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [featuresOpen, setFeaturesOpen] = useState(false);
+    const featuresRef = useRef<HTMLDivElement>(null);
 
-    // Close the menu on navigation and on Escape, and stop the page scrolling behind it
-    useEffect(() => setOpen(false), [pathname]);
+    // Close everything on navigation
     useEffect(() => {
-        if (!open) return;
-        const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false); };
+        setMenuOpen(false);
+        setFeaturesOpen(false);
+    }, [pathname]);
+
+    // Escape closes either menu; a click outside closes the Features menu
+    useEffect(() => {
+        if (!menuOpen && !featuresOpen) return;
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setMenuOpen(false);
+                setFeaturesOpen(false);
+            }
+        };
+        const onClick = (event: MouseEvent) => {
+            if (featuresRef.current && !featuresRef.current.contains(event.target as Node)) setFeaturesOpen(false);
+        };
         document.addEventListener('keydown', onKey);
-        document.body.classList.add('menu-open');
+        document.addEventListener('mousedown', onClick);
+        if (menuOpen) document.body.classList.add('menu-open');
         return () => {
             document.removeEventListener('keydown', onKey);
+            document.removeEventListener('mousedown', onClick);
             document.body.classList.remove('menu-open');
         };
-    }, [open]);
+    }, [menuOpen, featuresOpen]);
 
     const isCurrent = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+    const primary = signedIn
+        ? { href: '/setup', label: 'Open FinDB' }
+        : { href: '/register', label: 'Start free' };
 
     return (
-        <header className="site-header">
-            <div className="site-header-inner">
-                <Link href="/" className="home-link" aria-label="FinDB home">
-                    <Logo />
-                </Link>
+        <>
+            <header className="site-header">
+                <div className="site-header-inner">
+                    <Link href="/" className="home-link" aria-label="FinDB home">
+                        <Logo />
+                    </Link>
 
-                <nav className="site-nav" aria-label="Main">
-                    {NAV_LINKS.map(link => (
-                        <Link key={link.href} href={link.href} aria-current={isCurrent(link.href) ? 'page' : undefined}>
-                            {link.label}
-                        </Link>
-                    ))}
-                </nav>
+                    <nav className="site-nav" aria-label="Main">
+                        <div className="nav-item" ref={featuresRef}>
+                            <button
+                                type="button"
+                                className={`nav-trigger${isCurrent('/features') ? ' current' : ''}`}
+                                aria-expanded={featuresOpen}
+                                aria-controls="features-menu"
+                                onClick={() => setFeaturesOpen(value => !value)}
+                            >
+                                Features <ChevronDown size={16} aria-hidden="true" />
+                            </button>
+                            {featuresOpen && (
+                                <div id="features-menu" className="mega">
+                                    {GROUPS.filter(group => group.id !== 'family').map(group => (
+                                        <div key={group.id} className="mega-group">
+                                            <h3>{group.name}</h3>
+                                            {FEATURES.filter(feature => feature.group === group.id || (group.id === 'protect' && feature.group === 'family')).map(feature => (
+                                                <Link key={feature.slug} href={`/features/${feature.slug}`}>
+                                                    <FeatureIcon name={feature.icon} size={18} tile="sm" />
+                                                    <span>
+                                                        <b>{feature.name}</b>
+                                                        <small>{feature.status === 'available' ? 'Available now' : STATUS_LABELS[feature.status]}</small>
+                                                    </span>
+                                                </Link>
+                                            ))}
+                                        </div>
+                                    ))}
+                                    <div className="mega-foot">
+                                        <span className="soon">Every feature page says whether it is available now, in development or planned.</span>
+                                        <Link className="text-link" href="/features">All features <ArrowRight size={16} /></Link>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        {NAV_LINKS.map(link => (
+                            <Link key={link.href} href={link.href} aria-current={isCurrent(link.href) ? 'page' : undefined}>
+                                {link.label}
+                            </Link>
+                        ))}
+                    </nav>
 
-                <div className="header-actions">
-                    {signedIn ? (
-                        <a className="btn btn-primary btn-sm" href="/setup">Open FinDB</a>
-                    ) : (
-                        <>
-                            <a className="btn btn-ghost btn-sm hide-narrow" href="/login">Log in</a>
-                            <a className="btn btn-primary btn-sm" href="/register">Start free</a>
-                        </>
-                    )}
-                    <button
-                        type="button"
-                        className="menu-button"
-                        aria-expanded={open}
-                        aria-controls="mobile-menu"
-                        aria-label={open ? 'Close menu' : 'Open menu'}
-                        onClick={() => setOpen(value => !value)}
-                    >
-                        {open ? <X size={22} /> : <Menu size={22} />}
-                    </button>
+                    <div className="header-actions">
+                        {!signedIn && <a className="btn btn-ghost btn-sm" href="/login">Log in</a>}
+                        <a className="btn btn-primary btn-sm" href={primary.href}>{primary.label}</a>
+                        <button
+                            type="button"
+                            className="menu-button"
+                            aria-expanded={menuOpen}
+                            aria-controls="mobile-menu"
+                            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+                            onClick={() => setMenuOpen(value => !value)}
+                        >
+                            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            <div id="mobile-menu" className="mobile-menu" data-open={open} hidden={!open}>
-                <nav aria-label="Main, mobile">
-                    {NAV_LINKS.map(link => (
-                        <Link key={link.href} href={link.href} aria-current={isCurrent(link.href) ? 'page' : undefined}>
-                            {link.label}
-                        </Link>
-                    ))}
-                    {!signedIn && <a href="/login">Log in</a>}
-                </nav>
+                <div id="mobile-menu" className="mobile-menu" hidden={!menuOpen}>
+                    <nav aria-label="Main, mobile">
+                        {NAV_LINKS.map(link => (
+                            <Link key={link.href} href={link.href} aria-current={isCurrent(link.href) ? 'page' : undefined}>
+                                {link.label}
+                            </Link>
+                        ))}
+                        <Link href="/faq" aria-current={isCurrent('/faq') ? 'page' : undefined}>Questions</Link>
+                        {!signedIn && <a href="/login">Log in</a>}
+                        {GROUPS.map(group => (
+                            <div key={group.id}>
+                                <h3>{group.name}</h3>
+                                {FEATURES.filter(feature => feature.group === group.id).map(feature => (
+                                    <Link key={feature.slug} href={`/features/${feature.slug}`} aria-current={isCurrent(`/features/${feature.slug}`) ? 'page' : undefined}>
+                                        <FeatureIcon name={feature.icon} size={16} tile="sm" />
+                                        {feature.name}
+                                    </Link>
+                                ))}
+                            </div>
+                        ))}
+                    </nav>
+                </div>
+            </header>
+
+            <div className="bottom-bar">
+                {!signedIn && <a className="btn btn-ghost" href="/login">Log in</a>}
+                <a className="btn btn-primary" href={primary.href}>{primary.label}</a>
             </div>
-        </header>
+        </>
     );
 }

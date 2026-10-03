@@ -4,7 +4,7 @@ FinDB (Finance Dashboard) is a personal finance tracker for people in India. You
 
 ## Features
 
-**Website.** The official FinDB website is part of the same app: the home page, a page for every feature (marked available now, in development or planned), the roadmap, how to install the app, questions, security, privacy, terms and about.
+**Website.** The official FinDB website is part of the same app: the home page, a page for every feature (marked available now, in development or planned), free calculators (EMI, which loan to close first, FD, RD, SIP, gold value, chit fund return, inflation), the roadmap, how to install the app, questions, security, privacy, terms and about.
 
 **App.**
 - **Accounts:** bank accounts with a starting balance, credit cards with a limit and the amount used, and cash.

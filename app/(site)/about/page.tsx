@@ -64,7 +64,7 @@ export default function AboutPage() {
                     </div>
                     <div className="feature-grid">
                         {PRINCIPLES.map(principle => (
-                            <div key={principle.title} className="compare-item reveal">
+                            <div key={principle.title} className="feature-card reveal">
                                 <h3>{principle.title}</h3>
                                 <p>{principle.text}</p>
                             </div>

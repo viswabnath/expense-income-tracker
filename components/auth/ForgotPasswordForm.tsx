@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AuthButton, AuthShell, HelpedInput, type AuthMessage } from './AuthShell';
+import { AuthButton, AuthForm, AuthHead, AuthShell, Field, PasswordField, PasswordRules, type AuthMessage } from './AuthShell';
 import { useToast } from '@/components/Toast';
 import { apiError, apiPost } from '@/lib/api-client';
 import { isValidEmail, isValidUsername, passwordProblem, requireValue, securityQuestionText } from '@/lib/auth-validation';
@@ -81,74 +81,70 @@ export function ForgotPasswordForm() {
     }
 
     const backToLogin = (
-        <AuthButton action="showLogin" className="secondary-button" onClick={() => router.push('/login')}>Back to Login</AuthButton>
+        <p className="auth-alt">
+            Remembered it?{' '}
+            <AuthButton action="showLogin" className="btn-link" onClick={() => router.push('/login')}>Back to log in</AuthButton>
+        </p>
     );
 
     return (
         <AuthShell message={message}>
             {target === null ? (
-                <div id="forgot-password-form" className="auth-form">
-                    <h3>Reset Your Password</h3>
-                    <p>Enter your username or email address to reset your password</p>
-                    <div className="form-group">
-                        <HelpedInput
-                            id="forgot-username-email"
-                            type="text"
-                            required
-                            placeholder="Enter username or email"
-                            value={identifier}
-                            onChange={event => setIdentifier(event.target.value)}
-                            help={<>Username: letters, numbers, and underscores only<br />Email: valid email address format</>}
-                        />
-                    </div>
-                    <AuthButton action="requestPasswordReset" onClick={requestReset}>Continue</AuthButton>
+                <AuthForm id="forgot-password-form" onSubmit={requestReset}>
+                    <AuthHead step="Step 1 of 2" title="Reset your password">Enter your username or the email you signed up with.</AuthHead>
+                    <Field
+                        id="forgot-username-email"
+                        label="Username or email"
+                        type="text"
+                        autoComplete="username"
+                        autoCapitalize="none"
+                        required
+                        value={identifier}
+                        onChange={event => setIdentifier(event.target.value)}
+                        help="A username uses letters, numbers and underscores"
+                    />
+                    <AuthButton action="requestPasswordReset" submit className="btn btn-primary btn-block">Continue</AuthButton>
                     {backToLogin}
-                </div>
+                </AuthForm>
             ) : (
-                <div id="reset-password-form" className="auth-form">
-                    <h3>Create New Password</h3>
-                    <p><strong>Security Question</strong> <span id="reset-security-question">{target.question}</span></p>
-                    <div className="form-group">
-                        <label htmlFor="reset-security-answer">Security Answer</label>
-                        <input
+                <AuthForm id="reset-password-form" onSubmit={resetPassword}>
+                    <AuthHead step="Step 2 of 2" title="Choose a new password">Answer your security question, then set a new password.</AuthHead>
+                    <div className="question-box">
+                        <small>Security question</small>
+                        <span id="reset-security-question">{target.question}</span>
+                    </div>
+                    <div className="form-grid">
+                        <Field
                             id="reset-security-answer"
+                            label="Your answer"
                             type="text"
+                            autoComplete="off"
                             required
-                            placeholder="Enter your security answer"
                             value={answer}
                             onChange={event => setAnswer(event.target.value)}
                         />
+                        <PasswordField
+                            id="reset-new-password"
+                            label="New password"
+                            autoComplete="new-password"
+                            required
+                            value={newPassword}
+                            onChange={event => setNewPassword(event.target.value)}
+                        >
+                            <PasswordRules password={newPassword} />
+                        </PasswordField>
+                        <PasswordField
+                            id="reset-confirm-password"
+                            label="Confirm new password"
+                            autoComplete="new-password"
+                            required
+                            value={confirmPassword}
+                            onChange={event => setConfirmPassword(event.target.value)}
+                        />
                     </div>
-                    <div className="form-group">
-                        <label htmlFor="reset-new-password">New Password</label>
-                        <div className="password-container">
-                            <HelpedInput
-                                id="reset-new-password"
-                                type="password"
-                                required
-                                placeholder="Create a new password"
-                                value={newPassword}
-                                onChange={event => setNewPassword(event.target.value)}
-                                help="8-16 characters with at least one uppercase, one lowercase, one number, and one special character (_, -, @, :, or &)"
-                            />
-                        </div>
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="reset-confirm-password">Confirm New Password</label>
-                        <div className="password-container">
-                            <input
-                                id="reset-confirm-password"
-                                type="password"
-                                required
-                                placeholder="Confirm your new password"
-                                value={confirmPassword}
-                                onChange={event => setConfirmPassword(event.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <AuthButton action="resetPassword" onClick={resetPassword}>Reset Password</AuthButton>
+                    <AuthButton action="resetPassword" submit className="btn btn-primary btn-block">Reset password</AuthButton>
                     {backToLogin}
-                </div>
+                </AuthForm>
             )}
         </AuthShell>
     );

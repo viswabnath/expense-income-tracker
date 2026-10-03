@@ -9,13 +9,13 @@ const fs = require('fs');
 const path = require('path');
 const { chromium } = require('@playwright/test');
 
-const INK = '#1b1f4b';
+const GREEN = '#0f8a5f';
 const GOLD = '#e8a531';
 const root = path.join(__dirname, '..');
 
 /** The mark on a 64-unit grid. `bleed` fills the square; `scale` shrinks the glyph into a safe zone. */
 function markSvg({ bleed = false, scale = 1 } = {}) {
-    const tile = bleed ? `<rect width="64" height="64" fill="${INK}"/>` : `<rect width="64" height="64" rx="15" fill="${INK}"/>`;
+    const tile = bleed ? `<rect width="64" height="64" fill="${GREEN}"/>` : `<rect width="64" height="64" rx="15" fill="${GREEN}"/>`;
     const offset = 32 * (1 - scale);
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">${tile}`
         + `<g transform="translate(${offset} ${offset}) scale(${scale})">`

@@ -53,6 +53,8 @@ export const config = {
         '/',
         '/features',
         '/features/:slug',
+        '/tools',
+        '/tools/:slug',
         '/roadmap',
         '/download',
         '/faq',

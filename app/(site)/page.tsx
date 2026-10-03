@@ -1,138 +1,108 @@
-import type { ReactNode } from 'react';
 import Link from 'next/link';
 import {
-    ArrowRight, Ban, ChartNoAxesCombined, CircleCheck, EyeOff, FileSpreadsheet, KeyRound, Languages,
-    LockKeyhole, Monitor, ServerOff, ShieldCheck, Smartphone, Sparkles, Tablet, X,
+    ArrowRight, Ban, ChartColumn, CircleCheck, History, KeyRound, LockKeyhole, ServerOff, ShieldCheck, Wallet, Receipt,
 } from 'lucide-react';
-import { FEATURES, FAQ } from '@/components/site/content';
-import { FeatureIcon } from '@/components/site/FeatureIcon';
-import { StatusBadge } from '@/components/site/StatusBadge';
-import { HeroShowcase } from '@/components/site/HeroShowcase';
+import { FAQ, FEATURES, GROUPS, TOOLS } from '@/components/site/content';
+import { FeatureIcon, ToolIcon } from '@/components/site/FeatureIcon';
+import { HeroPhones } from '@/components/site/HeroPhones';
 import { ScenarioExplorer } from '@/components/site/ScenarioExplorer';
 import { FaqList } from '@/components/site/FaqList';
+import { QrCode } from '@/components/site/QrCode';
+import { InstallButton } from '@/components/site/InstallButton';
+import { StoreBadges } from '@/components/site/StoreBadges';
+import { SITE_URL } from '@/lib/site-url';
 
-/** A half-circle gauge for the health check preview */
-function Gauge({ share, tone, label }: { share: number; tone: 'good' | 'watch' | 'act'; label: string }) {
-    const length = Math.PI * 50;
-    return (
-        <svg className="gauge" viewBox="0 0 120 70" aria-hidden="true">
-            <path className="track" d="M10 62 A50 50 0 0 1 110 62" />
-            <path className={`fill ${tone}`} d="M10 62 A50 50 0 0 1 110 62" strokeDasharray={`${length * share} ${length}`} />
-            <text x="60" y="58" textAnchor="middle">{label}</text>
-        </svg>
-    );
-}
-
-const HEALTH = [
-    { title: 'Emergency fund', share: 0.66, tone: 'good', label: '4 months', verdict: 'Healthy', text: 'Covers 4 months of essential spending of ₹45,000.' },
-    { title: 'Savings vs inflation', share: 0.35, tone: 'act', label: '2.7%', verdict: 'Losing value', text: '₹4,00,000 earns 2.7% while prices rise about 5% a year.' },
-    { title: 'EMIs vs income', share: 0.38, tone: 'good', label: '38%', verdict: 'Within limits', text: 'EMIs take ₹32,000 of ₹85,000 take-home pay.' },
-    { title: 'Life cover', share: 0.5, tone: 'watch', label: '5x', verdict: 'Worth a look', text: 'Cover is 5 times yearly income; a common guide is 10 times.' },
-] as const;
+/** What works in the app today, in the words a new user would use */
+const TODAY = [
+    { icon: Wallet, colour: 'c-income', title: 'All your accounts', text: 'Banks, credit cards and cash with today\'s balance, always up to date.', href: '/features/accounts' },
+    { icon: Receipt, colour: 'c-food', title: 'Income and spending', text: 'Add what comes in and goes out. Every balance updates by itself.', href: '/features/spending' },
+    { icon: ChartColumn, colour: 'c-bill', title: 'Your month at a glance', text: 'What you earned, spent and saved, and where each account ended.', href: '/features/spending' },
+    { icon: History, colour: 'c-loan', title: 'Every change recorded', text: 'An activity log with the old and new value of each change, and CSV export.', href: '/features/accounts' },
+];
 
 export default function HomePage() {
+    const coming = FEATURES.filter(feature => feature.status !== 'available');
     return (
         <>
             <section className="hero">
                 <div className="wrap hero-grid">
                     <div className="hero-copy">
-                        <span className="eyebrow rise">Personal finance dashboard for India</span>
-                        <h1 className="rise rise-2">All your family&apos;s money. <em>One honest picture.</em></h1>
+                        <span className="eyebrow rise">Free personal finance app for India</span>
+                        <h1 className="rise rise-2">Track every rupee your family owns and owes. <span className="accent">Free.</span></h1>
                         <p className="lede rise rise-3">
-                            FinDB keeps track of your bank accounts, cards, cash, loans, gold, property and savings, and
-                            explains it all in plain language. Free for everyone, with no ads and no selling your data.
+                            Bank accounts, cards, cash, loans, gold and savings in one place, explained in plain words.
+                            No ads, and your data is never sold.
                         </p>
                         <div className="hero-actions rise rise-4">
-                            <a className="btn btn-primary btn-lg" href="/register">Start free <ArrowRight size={18} /></a>
-                            <Link className="btn btn-ghost btn-lg" href="/features">See what it does</Link>
+                            <a className="btn btn-primary btn-lg" href="/register">Start free <ArrowRight size={18} className="go" /></a>
+                            <Link className="btn btn-ghost btn-lg" href="/tools/emi-calculator">Try the EMI calculator</Link>
                         </div>
-                        <ul className="trust-row rise rise-5">
-                            <li><CircleCheck size={18} />Free for everyone</li>
-                            <li><CircleCheck size={18} />No ads, ever</li>
-                            <li><CircleCheck size={18} />Never connects to your bank on its own</li>
+                        <ul className="badges rise rise-5" aria-label="Promises">
+                            <li><CircleCheck size={17} />Free for everyone</li>
+                            <li><CircleCheck size={17} />No ads, ever</li>
+                            <li><CircleCheck size={17} />No bank passwords</li>
+                            <li><CircleCheck size={17} />Made in India</li>
                         </ul>
                     </div>
-                    <HeroShowcase />
+                    <HeroPhones />
                 </div>
             </section>
 
-            <section className="section section-alt" aria-labelledby="problem-title">
+            <section className="section-tight" aria-labelledby="today-title">
                 <div className="wrap">
-                    <div className="section-head reveal">
-                        <span className="eyebrow">Why FinDB</span>
-                        <h2 id="problem-title">Most money apps only see half the picture.</h2>
-                        <p className="lede">
-                            An Indian family&apos;s money is more than a bank balance. It is gold in the locker, a chit with
-                            relatives, PF from work, a loan to a cousin, and a house being built slowly over years.
-                        </p>
+                    <div className="section-head-row">
+                        <div className="section-head">
+                            <span className="eyebrow">Ready today</span>
+                            <h2 id="today-title">Start with the basics in two minutes.</h2>
+                        </div>
+                        <a className="text-link" href="/register">Create your free account <ArrowRight size={16} /></a>
                     </div>
-                    <div className="compare">
-                        <div className="compare-item reveal">
-                            <span className="x"><X size={18} />Spending trackers</span>
-                            <h3>Record what you spend, and stop there.</h3>
-                            <p>They count an ATM withdrawal as spending, and know nothing about your gold, loans or PF.</p>
-                        </div>
-                        <div className="compare-item reveal">
-                            <span className="x"><X size={18} />Investment apps</span>
-                            <h3>Show your funds, then sell you more.</h3>
-                            <p>Their business is loans, cards and products. Your data is how they choose what to sell you.</p>
-                        </div>
-                        <div className="compare-item reveal">
-                            <span className="x"><X size={18} />Spreadsheets</span>
-                            <h3>Flexible, until a formula breaks.</h3>
-                            <p>Hours of upkeep, nothing on your phone, and no reminder when a bill or renewal is due.</p>
-                        </div>
-                    </div>
-                    <div className="compare-answer reveal">
-                        <Sparkles size={22} />
-                        <p>
-                            <strong>FinDB is the complete, private record of your family&apos;s money, made for India.</strong>{' '}
-                            Everything you own and owe in one place, recorded the way an accountant would, explained the way a
-                            friend would.
-                        </p>
+                    <div className="today-grid">
+                        {TODAY.map(item => {
+                            const Icon = item.icon;
+                            return (
+                                <Link key={item.title} href={item.href} className="today-card reveal">
+                                    <span className={`icon-tile ${item.colour}`} aria-hidden="true"><Icon size={22} /></span>
+                                    <h3>{item.title}</h3>
+                                    <p>{item.text}</p>
+                                </Link>
+                            );
+                        })}
                     </div>
                 </div>
             </section>
 
-            <section className="section" aria-labelledby="features-title">
+            <section className="section section-alt" aria-labelledby="tools-title">
                 <div className="wrap">
-                    <div className="section-head reveal">
-                        <span className="eyebrow">Everything you own and owe</span>
-                        <h2 id="features-title">One place for every part of your money.</h2>
-                        <p className="lede">
-                            Turn on only what you need. Start with your spending today and add gold, loans or property
-                            whenever you are ready.
-                        </p>
-                        <div className="legend">
-                            <StatusBadge status="available" /> in the app today
-                            <StatusBadge status="building" /> being built now
-                            <StatusBadge status="planned" /> coming later
+                    <div className="section-head-row">
+                        <div className="section-head">
+                            <span className="eyebrow">Free tools, no sign-up</span>
+                            <h2 id="tools-title">Money calculators made for India.</h2>
+                            <p className="lede">EMIs, deposits, SIPs, gold and chits. Everything runs in your browser; nothing you type is sent anywhere.</p>
                         </div>
+                        <Link className="text-link" href="/tools">All tools <ArrowRight size={16} /></Link>
                     </div>
-                    <div className="feature-grid home">
-                        {FEATURES.map(feature => (
-                            <Link key={feature.slug} href={`/features/${feature.slug}`} className={`feature-card reveal${feature.status === 'available' ? ' wide' : ''}`}>
-                                <div className="feature-card-top">
-                                    <FeatureIcon name={feature.icon} />
-                                    <StatusBadge status={feature.status} />
-                                </div>
-                                <h3>{feature.name}</h3>
-                                <p>{feature.short}</p>
-                                <span className="more">Learn more <ArrowRight size={16} /></span>
+                    <div className="tool-grid">
+                        {TOOLS.map(tool => (
+                            <Link key={tool.slug} href={`/tools/${tool.slug}`} className="tool-card reveal">
+                                <ToolIcon name={tool.icon} />
+                                <h3>{tool.name}</h3>
+                                <p>{tool.short}</p>
+                                <span className="more">Open <ArrowRight size={15} /></span>
                             </Link>
                         ))}
                     </div>
                 </div>
             </section>
 
-            <section className="section section-alt" aria-labelledby="explorer-title">
+            <section className="section" aria-labelledby="explorer-title">
                 <div className="wrap">
-                    <div className="section-head reveal">
-                        <span className="eyebrow">Real life, recorded correctly</span>
+                    <div className="section-head">
+                        <span className="eyebrow">Recorded correctly</span>
                         <h2 id="explorer-title">Every rupee goes somewhere. FinDB shows where.</h2>
                         <p className="lede">
-                            Pick a situation. FinDB records where the money came from and where it went, so your spending
-                            and your net worth are always right.
+                            Withdrawing cash is not spending. Gold for your family is not spent money. Pick a situation and
+                            see how FinDB keeps your numbers right.
                         </p>
                     </div>
                     <div className="reveal">
@@ -141,178 +111,111 @@ export default function HomePage() {
                 </div>
             </section>
 
-            <section className="section" aria-labelledby="steps-title">
+            <section className="section section-alt" aria-labelledby="soon-title">
                 <div className="wrap">
-                    <div className="section-head reveal">
-                        <span className="eyebrow">How it works</span>
-                        <h2 id="steps-title">Useful in five minutes.</h2>
-                    </div>
-                    <div className="steps">
-                        <div className="step reveal">
-                            <span className="step-num">1</span>
-                            <h3>Choose what to track</h3>
-                            <p>Just your spending, your spending and savings, or everything. Change your mind any time.</p>
+                    <div className="section-head-row">
+                        <div className="section-head">
+                            <span className="eyebrow">Coming soon</span>
+                            <h2 id="soon-title">One place for everything your money touches.</h2>
+                            <p className="lede">Statement import, loans and chits, gold, deposits, tax and more are on the way, free for everyone.</p>
                         </div>
-                        <div className="step reveal">
-                            <span className="step-num">2</span>
-                            <h3>Add your accounts</h3>
-                            <p>Your banks, cards and cash with today&apos;s balance. Soon: upload a statement instead of typing.</p>
-                        </div>
-                        <div className="step reveal">
-                            <span className="step-num">3</span>
-                            <h3>See the full picture</h3>
-                            <p>Where the money went, what is due next, and how your month compares with the last.</p>
-                        </div>
+                        <Link className="text-link" href="/roadmap">See the roadmap <ArrowRight size={16} /></Link>
                     </div>
-                </div>
-            </section>
-
-            <section className="section section-alt" aria-labelledby="health-title">
-                <div className="wrap health">
-                    <div className="section-head reveal" style={{ marginBottom: 0 }}>
-                        <span className="eyebrow">The money health check</span>
-                        <h2 id="health-title">Not just charts. An answer to &ldquo;Am I doing okay?&rdquo;</h2>
-                        <p className="lede">
-                            FinDB checks your money against inflation, your income and simple, well-known rules, and tells
-                            you in plain words what is healthy and what needs a look.
-                        </p>
-                        <ul className="check-list">
-                            <li><CircleCheck size={20} /><span>Shows the rule it used every time, so you can judge for yourself</span></li>
-                            <li><CircleCheck size={20} /><span>Leaves one-off events like a wedding out of your averages</span></li>
-                            <li><CircleCheck size={20} /><span>Information to help you decide, never advice to buy or sell</span></li>
-                        </ul>
-                        <p><StatusBadge status="planned" /></p>
-                    </div>
-                    <div className="health-cards" role="img" aria-label="Example health check with sample data">
-                        {HEALTH.map(item => (
-                            <div className="health-card reveal" key={item.title}>
-                                <span className="mock-label">{item.title}</span>
-                                <Gauge share={item.share} tone={item.tone} label={item.label} />
-                                <span className={`verdict ${item.tone}`}>{item.verdict}</span>
-                                <p>{item.text}</p>
-                            </div>
-                        ))}
+                    <div className="soon-groups">
+                        {GROUPS.map(group => {
+                            const items = coming.filter(feature => feature.group === group.id);
+                            if (items.length === 0) return null;
+                            return (
+                                <div key={group.id} className="soon-group reveal">
+                                    <h3>{group.name}</h3>
+                                    <ul>
+                                        {items.map(feature => (
+                                            <li key={feature.slug}>
+                                                <Link href={`/features/${feature.slug}`}>
+                                                    <FeatureIcon name={feature.icon} size={16} tile="sm" />
+                                                    {feature.name}
+                                                </Link>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </section>
 
             <section className="section band" aria-labelledby="privacy-title">
                 <div className="wrap">
-                    <div className="section-head reveal">
+                    <div className="section-head">
                         <span className="eyebrow">Private by design</span>
                         <h2 id="privacy-title">Your money is personal. FinDB keeps it that way.</h2>
-                        <p className="lede">
-                            FinDB is free and has nothing to sell you, so it has no reason to look at your data. Here is how
-                            it is protected.
-                        </p>
+                        <p className="lede">FinDB is free and sells nothing, so it has no reason to look at your data.</p>
                     </div>
-                    <div className="band-grid">
-                        <div className="band-item reveal">
+                    <div className="trust-grid">
+                        <div className="trust-item reveal">
                             <ServerOff size={26} />
                             <h3>No bank passwords</h3>
-                            <p>FinDB never asks for net banking passwords, PINs or OTPs, and never moves money.</p>
+                            <p>Never asks for net banking passwords, PINs or OTPs, and never moves money.</p>
                         </div>
-                        <div className="band-item reveal">
+                        <div className="trust-item reveal">
                             <LockKeyhole size={26} />
                             <h3>Only you see your data</h3>
-                            <p>Every request is limited to your own records, and the database itself blocks anyone else&apos;s.</p>
+                            <p>Every request is limited to your own records, and the database blocks everyone else.</p>
                         </div>
-                        <div className="band-item reveal">
+                        <div className="trust-item reveal">
                             <KeyRound size={26} />
-                            <h3>Two-step login</h3>
-                            <p>Coming next: a code from an authenticator app at every login, free, with no SMS needed.</p>
+                            <h3>Two-step login, next</h3>
+                            <p>A code from an authenticator app at every login. Free, with no SMS needed.</p>
                         </div>
-                        <div className="band-item reveal">
-                            <EyeOff size={26} />
-                            <h3>Sensitive details encrypted</h3>
-                            <p>PAN, account and policy numbers will be encrypted and shown masked. Aadhaar: last 4 digits at most.</p>
-                        </div>
-                        <div className="band-item reveal">
-                            <FileSpreadsheet size={26} />
-                            <h3>Your data, your choice</h3>
-                            <p>Export it whenever you like. Delete your account and your data goes with it.</p>
-                        </div>
-                        <div className="band-item reveal">
+                        <div className="trust-item reveal">
                             <ShieldCheck size={26} />
-                            <h3>Every change logged</h3>
-                            <p>An activity log keeps the old and new value of every change you make.</p>
+                            <h3>Yours to take or delete</h3>
+                            <p>Export your data whenever you like, and delete it with your account.</p>
                         </div>
                     </div>
-                    <ul className="never reveal" aria-label="What FinDB will never do">
+                    <ul className="never" aria-label="What FinDB will never do">
                         <li><Ban size={16} />No ads</li>
-                        <li><Ban size={16} />No selling or sharing data</li>
+                        <li><Ban size={16} />No selling data</li>
                         <li><Ban size={16} />No loan or card offers</li>
-                        <li><Ban size={16} />No commissions on funds or insurance</li>
+                        <li><Ban size={16} />No commissions</li>
                     </ul>
-                    <p style={{ marginTop: 28 }}>
-                        <Link className="btn btn-on-band btn-ghost" href="/security">How FinDB protects you <ArrowRight size={18} /></Link>
+                    <p style={{ marginTop: 26 }}>
+                        <Link className="btn btn-on-band" href="/security">How FinDB protects you <ArrowRight size={18} className="go" /></Link>
                     </p>
                 </div>
             </section>
 
-            <section className="section" aria-labelledby="devices-title">
-                <div className="wrap">
-                    <div className="section-head reveal">
-                        <span className="eyebrow">On every screen</span>
-                        <h2 id="devices-title">Your phone, your tablet, your computer.</h2>
+            <section className="section" aria-labelledby="app-title">
+                <div className="wrap get-app">
+                    <div className="section-head" style={{ marginBottom: 0 }}>
+                        <span className="eyebrow">Phone, tablet and computer</span>
+                        <h2 id="app-title">Install FinDB from your browser.</h2>
                         <p className="lede">
-                            FinDB runs in your browser and can be added to your home screen, where it opens like an app.
-                            Apps for iPhone and Android are planned.
+                            No app store needed. Add FinDB to your home screen and it opens like any other app. Apps for
+                            iPhone and Android are coming.
                         </p>
-                    </div>
-                    <div className="devices">
-                        <div className="device reveal">
-                            <FeatureIconTile><Smartphone size={26} strokeWidth={1.75} /></FeatureIconTile>
-                            <h3>Phone</h3>
-                            <p>Add an expense in seconds, wherever you are. Designed for the phone first.</p>
+                        <div className="hero-actions">
+                            <InstallButton />
+                            <Link className="btn btn-ghost" href="/download">How to install</Link>
                         </div>
-                        <div className="device reveal">
-                            <FeatureIconTile><Tablet size={26} strokeWidth={1.75} /></FeatureIconTile>
-                            <h3>Tablet</h3>
-                            <p>The month at a glance, with room for charts and your full list of accounts.</p>
-                        </div>
-                        <div className="device reveal">
-                            <FeatureIconTile><Monitor size={26} strokeWidth={1.75} /></FeatureIconTile>
-                            <h3>Computer</h3>
-                            <p>Import statements, review entries in bulk, and prepare for tax season.</p>
-                        </div>
+                        <StoreBadges />
                     </div>
-                    <p style={{ marginTop: 28 }}>
-                        <Link className="text-link" href="/download">Add FinDB to your home screen <ArrowRight size={16} /></Link>
-                    </p>
-                </div>
-            </section>
-
-            <section className="section section-alt" aria-labelledby="free-title">
-                <div className="wrap split">
-                    <div className="section-head reveal" style={{ marginBottom: 0 }}>
-                        <span className="eyebrow">Free for everyone</span>
-                        <h2 id="free-title">No plans, no paywall, no catch.</h2>
-                        <p className="lede">
-                            FinDB is built to cost almost nothing to run, so it can stay free for everyone. Every feature
-                            is for everyone. It earns nothing from your data, because it never sells or shares it.
-                        </p>
-                    </div>
-                    <div className="panel reveal">
-                        <h3>Built for India, from the start</h3>
-                        <ul>
-                            <li><ChartNoAxesCombined size={18} /><span>Amounts in lakhs and crores, written the Indian way</span></li>
-                            <li><CircleCheck size={18} /><span>Gold by weight and purity, chits, PF, NPS, PPF and post office schemes</span></li>
-                            <li><CircleCheck size={18} /><span>Meal cards, UPI wallets, and statements from Indian banks</span></li>
-                            <li><Languages size={18} /><span>Hindi and Telugu first, then Tamil, Kannada, Marathi and Bengali</span></li>
-                        </ul>
+                    <div className="qr-card reveal">
+                        <QrCode text={SITE_URL} label="QR code to open FinDB on your phone" />
+                        <p><b>On a computer?</b> Scan this with your phone camera to open FinDB there, then add it to your home screen.</p>
                     </div>
                 </div>
             </section>
 
-            <section className="section" aria-labelledby="faq-title">
+            <section className="section-tight" aria-labelledby="faq-title">
                 <div className="wrap narrow">
-                    <div className="section-head center reveal">
+                    <div className="section-head center">
                         <span className="eyebrow">Questions</span>
-                        <h2 id="faq-title">Good questions to ask about a money app.</h2>
+                        <h2 id="faq-title">Fair questions about a money app.</h2>
                     </div>
                     <FaqList items={FAQ.slice(0, 5)} />
-                    <p style={{ marginTop: 24, textAlign: 'center' }}>
+                    <p style={{ marginTop: 22, textAlign: 'center' }}>
                         <Link className="text-link" href="/faq">All questions <ArrowRight size={16} /></Link>
                     </p>
                 </div>
@@ -321,20 +224,15 @@ export default function HomePage() {
             <section className="section-tight">
                 <div className="wrap">
                     <div className="cta reveal">
-                        <span className="eyebrow">Start today</span>
                         <h2>See where your money really stands.</h2>
-                        <p>Free for everyone. It takes a minute to sign up, and nothing is connected to your bank.</p>
+                        <p>Free for everyone. Sign up in a minute; nothing is connected to your bank.</p>
                         <div className="hero-actions">
-                            <a className="btn btn-gold btn-lg" href="/register">Create your free account <ArrowRight size={18} /></a>
-                            <Link className="btn btn-ghost btn-on-band btn-lg" href="/roadmap">See the roadmap</Link>
+                            <a className="btn btn-light btn-lg" href="/register">Create your free account <ArrowRight size={18} className="go" /></a>
+                            <Link className="btn btn-outline-light btn-lg" href="/tools">Try the free tools</Link>
                         </div>
                     </div>
                 </div>
             </section>
         </>
     );
-}
-
-function FeatureIconTile({ children }: { children: ReactNode }) {
-    return <span className="feature-icon" aria-hidden="true">{children}</span>;
 }

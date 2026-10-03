@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Pencil, Save, Search, Trash2, TrendingDown, TrendingUp, X } from 'lucide-react';
+import { ArrowLeftRight, Pencil, Plus, Search, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
 import { Modal } from '@/components/Modal';
 import { useToast } from '@/components/Toast';
 import { useFormMessage } from '@/components/useFormMessage';
@@ -52,11 +52,15 @@ function AccountOptions({ banks, cards }: { banks: Account[]; cards?: Account[] 
 
 function EmptyRow({ text }: { text: string }) {
     return (
-        <tr>
-            <td colSpan={5} style={{ textAlign: 'center', color: '#666', fontStyle: 'italic', padding: 20 }}>{text}</td>
+        <tr className="empty-row">
+            <td colSpan={5}>{text}</td>
         </tr>
     );
 }
+
+/** An entry's date as "3 Oct 2026" */
+const shortDate = (date: string) => new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+const sum = (rows: { amount: string }[]) => rows.reduce((total, row) => total + (parseFloat(row.amount) || 0), 0);
 
 export function TransactionsScreen() {
     const toast = useToast();
@@ -224,222 +228,266 @@ export function TransactionsScreen() {
 
     const showIncome = trackingOption !== 'expenses';
     const showExpenses = trackingOption !== 'income';
+    const incomeTotal = sum(incomes);
+    const expenseTotal = sum(expenses);
+    const periodName = `${MONTH_NAMES[period.month - 1]} ${period.year}`;
     const modalButtons = (saveAction: string, closeAction: string, onSave: () => void, onClose: () => void) => (
         <>
-            <button type="button" data-action={saveAction} className="primary-button" onClick={onSave}>
-                <span className="icon-enhanced"><Save /></span>Save Changes
-            </button>
-            <button type="button" data-action={closeAction} className="secondary-button" onClick={onClose}>
-                <span className="icon-enhanced"><X /></span>Cancel
-            </button>
+            <button type="button" data-action={closeAction} className="btn btn-secondary" onClick={onClose}>Cancel</button>
+            <button type="button" data-action={saveAction} className="btn btn-primary" onClick={onSave}>Save changes</button>
         </>
     );
     const rowActions = (type: 'income' | 'expense', id: number) => (
-        <div className="action-buttons">
-            <button type="button" className="action-btn edit-btn" data-action={`edit-${type}`} data-id={id}
+        <span className="row-actions">
+            <button type="button" className="icon-btn" data-action={`edit-${type}`} data-id={id}
                 onClick={() => (type === 'income' ? startEditIncome(id) : startEditExpense(id))}>
-                <Pencil /> Edit
+                <Pencil aria-hidden="true" /> Edit
             </button>
-            <button type="button" className="action-btn delete-btn" data-action={`delete-${type}`} data-id={id}
+            <button type="button" className="icon-btn danger" data-action={`delete-${type}`} data-id={id}
                 onClick={() => startDelete(type, id)}>
-                <Trash2 /> Delete
+                <Trash2 aria-hidden="true" /> Delete
             </button>
-        </div>
+        </span>
     );
 
     return (
         <div id="transactions-section">
-            <h2>Transactions</h2>
-
-            <div className="transaction-filters">
-                <div className="form-group">
-                    <label htmlFor="transaction-month">Filter by Month</label>
-                    <select id="transaction-month" value={filterMonth} onChange={event => setFilterMonth(Number(event.target.value))}>
-                        {MONTH_NAMES.map((name, index) => <option key={name} value={index + 1}>{name}</option>)}
-                    </select>
+            <div className="page-header">
+                <div>
+                    <h2>Transactions</h2>
+                    <p>Add what comes in and goes out. Showing {periodName}.</p>
                 </div>
-                <div className="form-group">
-                    <label htmlFor="transaction-year">Filter by Year</label>
-                    <select id="transaction-year" value={filterYear} onChange={event => setFilterYear(Number(event.target.value))}>
-                        {filterYears().map(year => <option key={year} value={year}>{year}</option>)}
-                    </select>
-                </div>
-                <div className="form-group">
-                    <button type="button" id="filter-transactions" data-action="filterTransactions" onClick={filterTransactions}>
-                        <span className="icon-enhanced"><Search /></span>Filter Transactions
+                <div className="period-picker transaction-filters">
+                    <div className="field">
+                        <label htmlFor="transaction-month">Month</label>
+                        <select id="transaction-month" value={filterMonth} onChange={event => setFilterMonth(Number(event.target.value))}>
+                            {MONTH_NAMES.map((name, index) => <option key={name} value={index + 1}>{name}</option>)}
+                        </select>
+                    </div>
+                    <div className="field">
+                        <label htmlFor="transaction-year">Year</label>
+                        <select id="transaction-year" value={filterYear} onChange={event => setFilterYear(Number(event.target.value))}>
+                            {filterYears().map(year => <option key={year} value={year}>{year}</option>)}
+                        </select>
+                    </div>
+                    <button type="button" id="filter-transactions" className="btn btn-secondary" data-action="filterTransactions" onClick={filterTransactions}>
+                        <Search aria-hidden="true" /> Show
                     </button>
                 </div>
             </div>
 
-            <div id="forms-wrapper">
-                <div id="income-form" className={showIncome ? undefined : 'hidden'}>
-                    <h3>Add Income</h3>
-                    <div className="form-group">
-                        <label htmlFor="income-source">Source</label>
-                        <input type="text" id="income-source" placeholder="Salary, Freelance, etc." value={incomeForm.source}
-                            onChange={event => setIncomeForm(form => ({ ...form, source: event.target.value }))} />
-                        <label htmlFor="income-amount">Amount</label>
-                        <input type="number" id="income-amount" placeholder="0.00" step="0.01" value={incomeForm.amount}
-                            onChange={event => setIncomeForm(form => ({ ...form, amount: event.target.value }))} />
-                        <label htmlFor="income-credited-to">Credited To</label>
-                        <select id="income-credited-to" value={incomeForm.creditedTo}
-                            onChange={event => setIncomeForm(form => ({ ...form, creditedTo: event.target.value }))}>
-                            <AccountOptions banks={banks} />
-                        </select>
-                        <label htmlFor="income-date">Date</label>
-                        <input type="date" id="income-date" value={incomeForm.date}
-                            onChange={event => setIncomeForm(form => ({ ...form, date: event.target.value }))} />
-                        <button type="button" data-action="addIncome" onClick={addIncome}>
-                            <span className="icon-enhanced"><TrendingUp /></span>Add Income
-                        </button>
+            <div className={`stats ${showIncome && showExpenses ? 'three' : 'two'}`}>
+                {showIncome ? (
+                    <div className="stat">
+                        <span className="stat-top"><span className="icon-tile t-income" aria-hidden="true"><TrendingUp /></span> Money in</span>
+                        <span className="stat-value">{formatRupees(incomeTotal)}</span>
+                        <span className="stat-note">{incomes.length} {incomes.length === 1 ? 'entry' : 'entries'} in {periodName}</span>
                     </div>
-                </div>
-                <div id="expense-form" className={showExpenses ? undefined : 'hidden'}>
-                    <h3>Add Expense</h3>
-                    <div className="form-group">
-                        <label htmlFor="expense-title">Title</label>
-                        <input type="text" id="expense-title" placeholder="Groceries, Rent, etc." value={expenseForm.title}
-                            onChange={event => setExpenseForm(form => ({ ...form, title: event.target.value }))} />
-                        <label htmlFor="expense-amount">Amount</label>
-                        <input type="number" id="expense-amount" placeholder="0.00" step="0.01" value={expenseForm.amount}
-                            onChange={event => setExpenseForm(form => ({ ...form, amount: event.target.value }))} />
-                        <label htmlFor="expense-payment-method">Payment Method</label>
-                        <select id="expense-payment-method" value={expenseForm.paymentMethod}
-                            onChange={event => setExpenseForm(form => ({ ...form, paymentMethod: event.target.value }))}>
-                            <AccountOptions banks={banks} cards={cards} />
-                        </select>
-                        <label htmlFor="expense-date">Date</label>
-                        <input type="date" id="expense-date" value={expenseForm.date}
-                            onChange={event => setExpenseForm(form => ({ ...form, date: event.target.value }))} />
-                        <button type="button" data-action="addExpense" onClick={addExpense}>
-                            <span className="icon-enhanced"><TrendingDown /></span>Add Expense
-                        </button>
+                ) : null}
+                {showExpenses ? (
+                    <div className="stat">
+                        <span className="stat-top"><span className="icon-tile t-expense" aria-hidden="true"><TrendingDown /></span> Money out</span>
+                        <span className="stat-value">{formatRupees(expenseTotal)}</span>
+                        <span className="stat-note">{expenses.length} {expenses.length === 1 ? 'entry' : 'entries'} in {periodName}</span>
                     </div>
-                </div>
+                ) : null}
+                {showIncome && showExpenses ? (
+                    <div className="stat hero">
+                        <span className="stat-top"><ArrowLeftRight size={18} aria-hidden="true" /> Difference</span>
+                        <span className="stat-value">{formatRupees(incomeTotal - expenseTotal)}</span>
+                        <span className="stat-note">{incomeTotal >= expenseTotal ? 'More came in than went out' : 'More went out than came in'}</span>
+                    </div>
+                ) : null}
             </div>
-            <div id="transactions-message" className={formMessage.message?.kind ?? 'error'}>{formMessage.message?.text ?? ''}</div>
 
-            <div id="transactions-history">
-                <div id="income-history" style={{ display: showIncome ? 'block' : 'none' }}>
-                    <h3>Income History</h3>
-                    <div className="scrollable-table">
-                        <table>
+            <div id="forms-wrapper" className={`entry-forms${showIncome && showExpenses ? '' : ' one'}`}>
+                <form id="income-form" className={`card entry-form${showIncome ? '' : ' hidden'}`} onSubmit={event => { event.preventDefault(); addIncome(); }}>
+                    <h3><span className="icon-tile t-income" aria-hidden="true"><TrendingUp /></span>Add income</h3>
+                    <div className="form-grid two">
+                        <div className="field">
+                            <label htmlFor="income-source">Source</label>
+                            <input type="text" id="income-source" placeholder="Salary, freelance..." value={incomeForm.source}
+                                onChange={event => setIncomeForm(form => ({ ...form, source: event.target.value }))} />
+                        </div>
+                        <div className="field">
+                            <label htmlFor="income-amount">Amount (₹)</label>
+                            <input type="number" id="income-amount" inputMode="decimal" placeholder="0.00" step="0.01" value={incomeForm.amount}
+                                onChange={event => setIncomeForm(form => ({ ...form, amount: event.target.value }))} />
+                        </div>
+                        <div className="field">
+                            <label htmlFor="income-credited-to">Received in</label>
+                            <select id="income-credited-to" value={incomeForm.creditedTo}
+                                onChange={event => setIncomeForm(form => ({ ...form, creditedTo: event.target.value }))}>
+                                <AccountOptions banks={banks} />
+                            </select>
+                        </div>
+                        <div className="field">
+                            <label htmlFor="income-date">Date</label>
+                            <input type="date" id="income-date" value={incomeForm.date}
+                                onChange={event => setIncomeForm(form => ({ ...form, date: event.target.value }))} />
+                        </div>
+                    </div>
+                    <button type="submit" className="btn btn-primary" data-action="addIncome"><Plus aria-hidden="true" /> Add income</button>
+                </form>
+                <form id="expense-form" className={`card entry-form expense${showExpenses ? '' : ' hidden'}`} onSubmit={event => { event.preventDefault(); addExpense(); }}>
+                    <h3><span className="icon-tile t-expense" aria-hidden="true"><TrendingDown /></span>Add expense</h3>
+                    <div className="form-grid two">
+                        <div className="field">
+                            <label htmlFor="expense-title">What for</label>
+                            <input type="text" id="expense-title" placeholder="Groceries, rent..." value={expenseForm.title}
+                                onChange={event => setExpenseForm(form => ({ ...form, title: event.target.value }))} />
+                        </div>
+                        <div className="field">
+                            <label htmlFor="expense-amount">Amount (₹)</label>
+                            <input type="number" id="expense-amount" inputMode="decimal" placeholder="0.00" step="0.01" value={expenseForm.amount}
+                                onChange={event => setExpenseForm(form => ({ ...form, amount: event.target.value }))} />
+                        </div>
+                        <div className="field">
+                            <label htmlFor="expense-payment-method">Paid from</label>
+                            <select id="expense-payment-method" value={expenseForm.paymentMethod}
+                                onChange={event => setExpenseForm(form => ({ ...form, paymentMethod: event.target.value }))}>
+                                <AccountOptions banks={banks} cards={cards} />
+                            </select>
+                        </div>
+                        <div className="field">
+                            <label htmlFor="expense-date">Date</label>
+                            <input type="date" id="expense-date" value={expenseForm.date}
+                                onChange={event => setExpenseForm(form => ({ ...form, date: event.target.value }))} />
+                        </div>
+                    </div>
+                    <button type="submit" className="btn btn-primary" data-action="addExpense"><Plus aria-hidden="true" /> Add expense</button>
+                </form>
+            </div>
+            <div id="transactions-message" className={formMessage.message?.kind ?? 'error'} role="status">{formMessage.message?.text ?? ''}</div>
+
+            <div id="transactions-history" className="histories">
+                <section id="income-history" className="card" style={{ display: showIncome ? undefined : 'none' }} aria-labelledby="income-history-title">
+                    <div className="card-head">
+                        <h3 id="income-history-title">Income</h3>
+                        <span className="meta">{periodName}</span>
+                    </div>
+                    <div className="table-wrap scrollable-table">
+                        <table className="data-table stackable">
                             <thead>
-                                <tr><th>Date</th><th>Source</th><th>Amount</th><th>Credited To</th><th>Actions</th></tr>
+                                <tr><th scope="col">Date</th><th scope="col">Source</th><th scope="col" className="amount">Amount</th><th scope="col">Received in</th><th scope="col" className="actions"><span className="sr-only">Actions</span></th></tr>
                             </thead>
                             <tbody id="income-table-body">
                                 {incomes.length === 0 ? <EmptyRow text="No income transactions found for this period" /> : incomes.map(income => (
                                     <tr key={income.id}>
-                                        <td>{new Date(income.date).toLocaleDateString()}</td>
-                                        <td>{income.source}</td>
-                                        <td>{formatRupees(income.amount)}</td>
-                                        <td>{income.credited_to_name || 'Unknown'}</td>
-                                        <td>{rowActions('income', income.id)}</td>
+                                        <td className="sub" data-label="Date">{shortDate(income.date)}</td>
+                                        <td className="name">{income.source}</td>
+                                        <td className="amount in" data-label="Amount">{formatRupees(income.amount)}</td>
+                                        <td className="sub" data-label="Received in">{income.credited_to_name || 'Unknown'}</td>
+                                        <td className="actions">{rowActions('income', income.id)}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
-                </div>
-                <div id="expense-history" style={{ display: showExpenses ? 'block' : 'none' }}>
-                    <h3>Expense History</h3>
-                    <div className="scrollable-table">
-                        <table>
+                </section>
+                <section id="expense-history" className="card" style={{ display: showExpenses ? undefined : 'none' }} aria-labelledby="expense-history-title">
+                    <div className="card-head">
+                        <h3 id="expense-history-title">Expenses</h3>
+                        <span className="meta">{periodName}</span>
+                    </div>
+                    <div className="table-wrap scrollable-table">
+                        <table className="data-table stackable">
                             <thead>
-                                <tr><th>Date</th><th>Title</th><th>Amount</th><th>Payment Method</th><th>Actions</th></tr>
+                                <tr><th scope="col">Date</th><th scope="col">What for</th><th scope="col" className="amount">Amount</th><th scope="col">Paid from</th><th scope="col" className="actions"><span className="sr-only">Actions</span></th></tr>
                             </thead>
                             <tbody id="expense-table-body">
                                 {expenses.length === 0 ? <EmptyRow text="No expense transactions found for this period" /> : expenses.map(expense => (
                                     <tr key={expense.id}>
-                                        <td>{new Date(expense.date).toLocaleDateString()}</td>
-                                        <td>{expense.title}</td>
-                                        <td>{formatRupees(expense.amount)}</td>
-                                        <td>{expense.payment_source_name || 'Unknown'}</td>
-                                        <td>{rowActions('expense', expense.id)}</td>
+                                        <td className="sub" data-label="Date">{shortDate(expense.date)}</td>
+                                        <td className="name">{expense.title}</td>
+                                        <td className="amount out" data-label="Amount">{formatRupees(expense.amount)}</td>
+                                        <td className="sub" data-label="Paid from">{expense.payment_source_name || 'Unknown'}</td>
+                                        <td className="actions">{rowActions('expense', expense.id)}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </section>
             </div>
 
-            <Modal id="edit-income-modal" title="Edit Income Transaction" open={editIncome !== null} closeAction="close-edit-income"
+            <Modal id="edit-income-modal" title="Edit income" open={editIncome !== null} closeAction="close-edit-income"
                 onClose={() => setEditIncome(null)}
                 footer={modalButtons('save-income-edit', 'close-edit-income', saveIncome, () => setEditIncome(null))}>
-                <div className="form-group">
-                    <label htmlFor="edit-income-source">Income Source</label>
-                    <input type="text" id="edit-income-source" required placeholder="Enter income source" value={editIncome?.source ?? ''}
-                        onChange={event => setEditIncome(draft => draft && { ...draft, source: event.target.value })} />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="edit-income-amount">Amount (₹)</label>
-                    <input type="number" id="edit-income-amount" step="0.01" min="0" required placeholder="0.00" value={editIncome?.amount ?? ''}
-                        onChange={event => setEditIncome(draft => draft && { ...draft, amount: event.target.value })} />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="edit-income-credited-to">Credited To</label>
-                    <select id="edit-income-credited-to" required value={editIncome?.creditedTo ?? 'cash'}
-                        onChange={event => setEditIncome(draft => draft && { ...draft, creditedTo: event.target.value })}>
-                        <AccountOptions banks={banks} />
-                    </select>
-                </div>
-                <div className="form-group">
-                    <label htmlFor="edit-income-date">Date</label>
-                    <input type="date" id="edit-income-date" required value={editIncome?.date ?? ''}
-                        onChange={event => setEditIncome(draft => draft && { ...draft, date: event.target.value })} />
+                <div className="form-grid">
+                    <div className="field">
+                        <label htmlFor="edit-income-source">Source</label>
+                        <input type="text" id="edit-income-source" required value={editIncome?.source ?? ''}
+                            onChange={event => setEditIncome(draft => draft && { ...draft, source: event.target.value })} />
+                    </div>
+                    <div className="field">
+                        <label htmlFor="edit-income-amount">Amount (₹)</label>
+                        <input type="number" id="edit-income-amount" inputMode="decimal" step="0.01" min="0" required value={editIncome?.amount ?? ''}
+                            onChange={event => setEditIncome(draft => draft && { ...draft, amount: event.target.value })} />
+                    </div>
+                    <div className="field">
+                        <label htmlFor="edit-income-credited-to">Received in</label>
+                        <select id="edit-income-credited-to" required value={editIncome?.creditedTo ?? 'cash'}
+                            onChange={event => setEditIncome(draft => draft && { ...draft, creditedTo: event.target.value })}>
+                            <AccountOptions banks={banks} />
+                        </select>
+                    </div>
+                    <div className="field">
+                        <label htmlFor="edit-income-date">Date</label>
+                        <input type="date" id="edit-income-date" required value={editIncome?.date ?? ''}
+                            onChange={event => setEditIncome(draft => draft && { ...draft, date: event.target.value })} />
+                    </div>
                 </div>
             </Modal>
 
-            <Modal id="edit-expense-modal" title="Edit Expense Transaction" open={editExpense !== null} closeAction="close-edit-expense"
+            <Modal id="edit-expense-modal" title="Edit expense" open={editExpense !== null} closeAction="close-edit-expense"
                 onClose={() => setEditExpense(null)}
                 footer={modalButtons('save-expense-edit', 'close-edit-expense', saveExpense, () => setEditExpense(null))}>
-                <div className="form-group">
-                    <label htmlFor="edit-expense-title">Expense Title</label>
-                    <input type="text" id="edit-expense-title" required placeholder="Enter expense title" value={editExpense?.title ?? ''}
-                        onChange={event => setEditExpense(draft => draft && { ...draft, title: event.target.value })} />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="edit-expense-amount">Amount (₹)</label>
-                    <input type="number" id="edit-expense-amount" step="0.01" min="0" required placeholder="0.00" value={editExpense?.amount ?? ''}
-                        onChange={event => setEditExpense(draft => draft && { ...draft, amount: event.target.value })} />
-                </div>
-                <div className="form-group">
-                    <label htmlFor="edit-expense-payment-method">Payment Method</label>
-                    <select id="edit-expense-payment-method" required value={editExpense?.paymentMethod ?? 'cash'}
-                        onChange={event => setEditExpense(draft => draft && { ...draft, paymentMethod: event.target.value })}>
-                        <AccountOptions banks={banks} cards={cards} />
-                    </select>
-                </div>
-                <div className="form-group">
-                    <label htmlFor="edit-expense-date">Date</label>
-                    <input type="date" id="edit-expense-date" required value={editExpense?.date ?? ''}
-                        onChange={event => setEditExpense(draft => draft && { ...draft, date: event.target.value })} />
+                <div className="form-grid">
+                    <div className="field">
+                        <label htmlFor="edit-expense-title">What for</label>
+                        <input type="text" id="edit-expense-title" required value={editExpense?.title ?? ''}
+                            onChange={event => setEditExpense(draft => draft && { ...draft, title: event.target.value })} />
+                    </div>
+                    <div className="field">
+                        <label htmlFor="edit-expense-amount">Amount (₹)</label>
+                        <input type="number" id="edit-expense-amount" inputMode="decimal" step="0.01" min="0" required value={editExpense?.amount ?? ''}
+                            onChange={event => setEditExpense(draft => draft && { ...draft, amount: event.target.value })} />
+                    </div>
+                    <div className="field">
+                        <label htmlFor="edit-expense-payment-method">Paid from</label>
+                        <select id="edit-expense-payment-method" required value={editExpense?.paymentMethod ?? 'cash'}
+                            onChange={event => setEditExpense(draft => draft && { ...draft, paymentMethod: event.target.value })}>
+                            <AccountOptions banks={banks} cards={cards} />
+                        </select>
+                    </div>
+                    <div className="field">
+                        <label htmlFor="edit-expense-date">Date</label>
+                        <input type="date" id="edit-expense-date" required value={editExpense?.date ?? ''}
+                            onChange={event => setEditExpense(draft => draft && { ...draft, date: event.target.value })} />
+                    </div>
                 </div>
             </Modal>
 
-            <Modal id="delete-confirmation-modal" title="Confirm Delete" small open={pendingDelete !== null} closeAction="close-delete"
+            <Modal id="delete-confirmation-modal" title="Delete this entry?" small open={pendingDelete !== null} closeAction="close-delete"
                 onClose={() => setPendingDelete(null)}
                 footer={(
                     <>
-                        <button type="button" data-action="confirm-delete" className="danger-button" onClick={confirmDelete}>
-                            <span className="icon-enhanced"><Trash2 /></span>Delete
-                        </button>
-                        <button type="button" data-action="close-delete" className="secondary-button" onClick={() => setPendingDelete(null)}>
-                            <span className="icon-enhanced"><X /></span>Cancel
+                        <button type="button" data-action="close-delete" className="btn btn-secondary" onClick={() => setPendingDelete(null)}>Cancel</button>
+                        <button type="button" data-action="confirm-delete" className="btn btn-danger" onClick={confirmDelete}>
+                            <Trash2 aria-hidden="true" /> Delete
                         </button>
                     </>
                 )}>
-                <p id="delete-confirmation-message">
+                <p id="delete-confirmation-message" className="lead">
                     {pendingDelete ? (
                         <>
-                            Are you sure you want to delete this {pendingDelete.type} transaction?<br /><br />
-                            {pendingDelete.label}: {pendingDelete.name}<br />
-                            Amount: {formatRupees(pendingDelete.amount)}
+                            Are you sure you want to delete this {pendingDelete.type} transaction?<br />
+                            <span className="sub">{pendingDelete.label}: {pendingDelete.name}<br />Amount: {formatRupees(pendingDelete.amount)}</span>
                         </>
                     ) : 'Are you sure you want to delete this transaction?'}
                 </p>
-                <p className="warning-text">This action cannot be undone.</p>
+                <p>This cannot be undone. The account balance is adjusted back.</p>
             </Modal>
         </div>
     );

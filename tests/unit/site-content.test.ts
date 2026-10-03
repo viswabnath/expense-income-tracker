@@ -4,7 +4,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { FAQ, FEATURES, ROADMAP, featureBySlug } from '../../components/site/content';
+import { FAQ, FEATURES, GROUPS, ROADMAP, TOOLS, featureBySlug, toolBySlug } from '../../components/site/content';
 import { SCENARIOS } from '../../components/site/ScenarioExplorer';
 import sitemap from '../../app/sitemap';
 
@@ -39,6 +39,21 @@ describe('features', () => {
     });
 });
 
+describe('groups and tools', () => {
+    test('every feature is in a known group, and every group has a feature', () => {
+        const ids = GROUPS.map(group => group.id);
+        for (const feature of FEATURES) expect(ids).toContain(feature.group);
+        for (const id of ids) expect(FEATURES.some(feature => feature.group === id)).toBe(true);
+    });
+
+    test('tool slugs are unique and every tool has a page question', () => {
+        expect(new Set(TOOLS.map(tool => tool.slug)).size).toBe(TOOLS.length);
+        for (const tool of TOOLS) expect(tool.question).toMatch(/\?$/);
+        expect(toolBySlug('emi-calculator')?.name).toBe('EMI calculator');
+        expect(toolBySlug('constructor')).toBeUndefined();
+    });
+});
+
 describe('scenario explorer', () => {
     test.each(SCENARIOS.map(scenario => [scenario.id, scenario]))('%s: money in equals money out', (_id, scenario) => {
         const from = scenario.from.reduce((sum, line) => sum + line.amount, 0);
@@ -64,6 +79,7 @@ describe('sitemap', () => {
     test('lists every website page and every feature', () => {
         const paths = sitemap().map(entry => new URL(entry.url).pathname);
         for (const feature of FEATURES) expect(paths).toContain(`/features/${feature.slug}`);
+        for (const tool of TOOLS) expect(paths).toContain(`/tools/${tool.slug}`);
 
         const siteDir = path.join(root, 'app', '(site)');
         const staticPages = fs.readdirSync(siteDir, { withFileTypes: true })

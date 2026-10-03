@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { BarChart3, CreditCard, ListTodo, Loader2, LogOut, Settings, X, type LucideIcon } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { ArrowLeftRight, ChartColumn, History, LogOut, Wallet, type LucideIcon } from 'lucide-react';
 import { Modal } from '@/components/Modal';
-import { apiPost, onActiveRequestsChange } from '@/lib/api-client';
+import { Logo } from '@/components/site/Logo';
+import { apiGet, apiPost, onActiveRequestsChange } from '@/lib/api-client';
 
 interface NavItem {
     section: string;
@@ -13,35 +15,31 @@ interface NavItem {
 }
 
 /**
- * Every screen is a Next.js page. Links are full page loads so each screen fetches fresh data
- * (the legacy app reloaded each section's data the same way).
+ * Every screen is a Next.js page. Links are full page loads so each screen fetches fresh data.
+ * The section names and data-action hooks are the former app's (the end-to-end tests use them).
  */
 const NAV_ITEMS: NavItem[] = [
-    { section: 'setup', label: 'Setup', icon: Settings, href: '/setup' },
-    { section: 'transactions', label: 'Transactions', icon: CreditCard, href: '/transactions' },
-    { section: 'summary', label: 'Summary', icon: BarChart3, href: '/summary' },
-    { section: 'activity', label: 'Activity', icon: ListTodo, href: '/activity' },
+    { section: 'setup', label: 'Accounts', icon: Wallet, href: '/setup' },
+    { section: 'transactions', label: 'Transactions', icon: ArrowLeftRight, href: '/transactions' },
+    { section: 'summary', label: 'Summary', icon: ChartColumn, href: '/summary' },
+    { section: 'activity', label: 'Activity', icon: History, href: '/activity' },
 ];
 
-/** The legacy logged-in frame: nav bar, mobile sidebar, logout confirmation and the loading overlay */
+/**
+ * The logged-in frame: a sidebar on larger screens, a top bar and a bottom tab bar on phones,
+ * the logout confirmation, and a thin progress bar while requests run.
+ */
 export function AppShell({ children }: { children: ReactNode }) {
-    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const pathname = usePathname();
     const [logoutOpen, setLogoutOpen] = useState(false);
     const [busy, setBusy] = useState(false);
-
-    // The legacy CSS slides the sidebar in when body has "sidebar-open"
-    useEffect(() => {
-        document.body.classList.toggle('sidebar-open', sidebarOpen);
-        document.body.style.overflow = sidebarOpen ? 'hidden' : 'auto';
-    }, [sidebarOpen]);
+    const [name, setName] = useState('');
 
     useEffect(() => {
-        const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setSidebarOpen(false); };
-        document.addEventListener('keydown', onKey);
-        return () => document.removeEventListener('keydown', onKey);
+        apiGet<{ name?: string }>('/api/user').then(result => { if (result.ok) setName(result.data.name ?? ''); });
     }, []);
 
-    // Same timing as the legacy loader: show while requests run, hide shortly after the last one
+    // Show the progress bar while requests run, and hide it shortly after the last one
     useEffect(() => {
         let hideTimer: ReturnType<typeof setTimeout> | undefined;
         return onActiveRequestsChange(active => {
@@ -52,89 +50,95 @@ export function AppShell({ children }: { children: ReactNode }) {
     }, []);
 
     async function logout() {
-        // Like the legacy app: go to login even if the request fails
+        // Go to login even if the request fails
         await apiPost('/api/logout', {}).catch(() => undefined);
         window.location.assign('/login');
     }
 
     const openLogout = (event: React.MouseEvent) => {
         event.preventDefault();
-        setSidebarOpen(false);
         setLogoutOpen(true);
     };
 
+    const firstName = name.trim().split(/\s+/)[0] ?? '';
+
     return (
         <>
-            <div className="container">
-                <div id="main-app">
-                    <div id="nav-bar" style={{ display: 'flex' }}>
-                        <div className="nav-mobile">
-                            <button type="button" className="hamburger-button" data-action="toggleSidebar" aria-label="Menu" onClick={() => setSidebarOpen(open => !open)}>
-                                <div className="hamburger-icon"><span></span><span></span><span></span></div>
-                            </button>
-                        </div>
-                        <div className="nav-brand">
-                            <h1><a href="/setup" data-action="showSection" data-section="setup" style={{ color: 'inherit', textDecoration: 'none' }}>FinDB</a></h1>
-                        </div>
-                        <div className="nav-desktop">
-                            {NAV_ITEMS.map(({ section, label, icon: Icon, href }) => (
-                                <a key={section} href={href} className="nav-link" data-action="showSection" data-section={section}>
-                                    <span><Icon /></span>{label}
-                                </a>
-                            ))}
-                            <a href="#" className="nav-link logout-link" data-action="logout" onClick={openLogout}>
-                                <span><LogOut /></span>Logout
-                            </a>
-                        </div>
-                    </div>
-
-                    <div id="mobile-sidebar">
-                        <div className="mobile-brand">
-                            <h1><a href="/setup" style={{ color: 'inherit', textDecoration: 'none' }}>FinDB</a></h1>
-                        </div>
-                        {NAV_ITEMS.map(({ section, label, icon: Icon, href }) => (
-                            <a key={section} href={href} data-action="showSection" data-section={section} data-close-sidebar="true">
-                                <span className="icon-enhanced"><Icon /></span>{label}
-                            </a>
-                        ))}
-                        <a href="#" className="logout-link" data-action="logout" data-close-sidebar="true" onClick={openLogout}>
-                            <span className="icon-enhanced"><LogOut /></span>Logout
+            <div id="main-app">
+                <nav id="nav-bar" aria-label="Main">
+                    <a href="/setup" className="sidebar-brand" aria-label="FinDB, accounts"><Logo /></a>
+                    <span className="sidebar-label">Your money</span>
+                    {NAV_ITEMS.map(({ section, label, icon: Icon, href }) => (
+                        <a key={section} href={href} className="nav-link" data-action="showSection" data-section={section}
+                            aria-current={pathname === href ? 'page' : undefined}>
+                            <Icon aria-hidden="true" />{label}
                         </a>
-                    </div>
-                    <div id="sidebar-overlay" data-action="closeSidebar" onClick={() => setSidebarOpen(false)}></div>
+                    ))}
+                    <span className="sidebar-spacer" />
+                    {name ? (
+                        <div className="sidebar-user">
+                            <span className="avatar" aria-hidden="true">{firstName.charAt(0).toUpperCase()}</span>
+                            <span>{name}<small>Signed in</small></span>
+                        </div>
+                    ) : null}
+                    <a href="#" className="nav-link logout-link" data-action="logout" onClick={openLogout}>
+                        <LogOut aria-hidden="true" />Log out
+                    </a>
+                </nav>
 
-                    {children}
+                <div className="app-main">
+                    <header className="app-topbar">
+                        <a href="/setup" aria-label="FinDB, accounts"><Logo /></a>
+                        <button type="button" className="btn btn-secondary btn-sm logout-link" data-action="logout" onClick={openLogout}>
+                            <LogOut aria-hidden="true" /> Log out
+                        </button>
+                    </header>
+
+                    <main className="app-content">{children}</main>
+
+                    <footer className="app-footer">
+                        <nav aria-label="FinDB">
+                            <a href="/">FinDB home</a>
+                            <a href="/tools">Free tools</a>
+                            <a href="/security">Security</a>
+                            <a href="/privacy">Privacy</a>
+                            <a href="/terms">Terms</a>
+                        </nav>
+                        <span>Information, not financial advice.</span>
+                    </footer>
                 </div>
+
+                <nav className="tabbar" aria-label="Main, mobile">
+                    {NAV_ITEMS.map(({ section, label, icon: Icon, href }) => (
+                        <a key={section} href={href} data-section={section} aria-current={pathname === href ? 'page' : undefined}>
+                            <Icon aria-hidden="true" />{label}
+                        </a>
+                    ))}
+                </nav>
             </div>
 
             <Modal
                 id="logout-confirmation-modal"
-                title="Confirm Logout"
+                title="Log out of FinDB?"
                 open={logoutOpen}
                 small
                 closeAction="close-logout-confirmation"
                 onClose={() => setLogoutOpen(false)}
                 footer={(
                     <>
-                        <button type="button" data-action="confirm-logout" className="danger-button" onClick={logout}>
-                            <span className="icon-enhanced"><LogOut /></span>Logout
+                        <button type="button" data-action="close-logout-confirmation" className="btn btn-secondary" onClick={() => setLogoutOpen(false)}>
+                            Cancel
                         </button>
-                        <button type="button" data-action="close-logout-confirmation" className="secondary-button" onClick={() => setLogoutOpen(false)}>
-                            <span className="icon-enhanced"><X /></span>Cancel
+                        <button type="button" data-action="confirm-logout" className="btn btn-primary" onClick={logout}>
+                            <LogOut aria-hidden="true" /> Log out
                         </button>
                     </>
                 )}
             >
-                <p id="logout-confirmation-message">Are you sure you want to log out?</p>
-                <p className="info-text">You will need to log in again to access your account.</p>
+                <p id="logout-confirmation-message">You will need to log in again to see your accounts.</p>
             </Modal>
 
-            <div id="global-loader" className={`loader-overlay${busy ? '' : ' hidden'}`}>
-                <div className="loader-content">
-                    <div className="loader-spinner-box"><Loader2 /></div>
-                    <div className="loader-text">Processing...</div>
-                </div>
-            </div>
+            <div id="global-loader" className={`loader-overlay${busy ? '' : ' hidden'}`} role="progressbar" aria-label="Loading" aria-hidden={!busy} />
         </>
     );
 }

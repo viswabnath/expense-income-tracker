@@ -1,16 +1,24 @@
 import type { ReactNode } from 'react';
+import type { Viewport } from 'next';
 import { headers } from 'next/headers';
-import { Inter } from 'next/font/google';
+import { Poppins, Source_Sans_3 } from 'next/font/google';
 import { ToastProvider } from '@/components/Toast';
-// Shared with the legacy app until the redesign, so ported pages look the same
-import '../fintech-theme.css';
+import './app.css';
 
 // Self-hosted at build time (no request to Google at runtime, so CSP font-src 'self' is enough)
-const inter = Inter({ subsets: ['latin'], weight: ['300', '400', '500', '600', '700', '800'] });
+const head = Poppins({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-head' });
+const body = Source_Sans_3({ subsets: ['latin'], variable: '--font-body' });
 
 export const metadata = {
     title: 'FinDB',
     description: 'A personal finance dashboard for India',
+};
+
+export const viewport: Viewport = {
+    themeColor: [
+        { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+        { media: '(prefers-color-scheme: dark)', color: '#07130e' },
+    ],
 };
 
 /**
@@ -24,8 +32,8 @@ export const metadata = {
 export default async function RootLayout({ children }: { children: ReactNode }) {
     await headers();
     return (
-        <html lang="en">
-            <body className={inter.className}>
+        <html lang="en-IN" className={`${head.variable} ${body.variable}`}>
+            <body>
                 <ToastProvider>{children}</ToastProvider>
             </body>
         </html>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Banknote, CreditCard, Landmark, Pencil, Save, Trash2, X } from 'lucide-react';
+import { Banknote, CreditCard, Landmark, Pencil, Plus, Trash2, Wallet } from 'lucide-react';
 import { Modal } from '@/components/Modal';
 import { useToast } from '@/components/Toast';
 import { apiDelete, apiGet, apiPost, apiPut, httpError, redirectIfUnauthorized } from '@/lib/api-client';
@@ -15,11 +15,11 @@ interface Cash { initial_balance?: string | number }
 /** The legacy number checks: empty is allowed where the legacy form allowed it */
 const isNegativeOrInvalid = (value: string) => value !== '' && (isNaN(Number(value)) || parseFloat(value) < 0);
 
-/** Inline form message (#bank-message etc.): hidden when empty, like the legacy setup screen */
+/** Inline form message (#bank-message etc.), hidden when empty */
 function FormMessage({ id, message }: { id: string; message: FormMessageState | null }) {
     return (
-        <div id={id} className={message ? message.kind : 'error-msg'} style={{ display: message ? 'block' : 'none' }}>
-            {message?.text ?? ''}
+        <div className="card-message" hidden={!message}>
+            <div id={id} className={message ? message.kind : 'error'} role="status">{message?.text ?? ''}</div>
         </div>
     );
 }
@@ -167,58 +167,88 @@ export function SetupScreen() {
     }
 
     const initialCash = parseFloat(String(cash.initial_balance ?? 0)) || 0;
+    const inBanks = banks.reduce((sum, bank) => sum + (parseFloat(bank.current_balance) || 0), 0);
+    const cardDues = cards.reduce((sum, card) => sum + (parseFloat(card.used_limit) || 0), 0);
+    const showCards = trackingOption !== 'income';
     const modalButtons = (saveAction: string, closeAction: string, onSave: () => void, onClose: () => void) => (
         <>
-            <button type="button" data-action={saveAction} className="primary-button" onClick={onSave}>
-                <span className="icon-enhanced"><Save /></span>Save Changes
-            </button>
-            <button type="button" data-action={closeAction} className="secondary-button" onClick={onClose}>
-                <span className="icon-enhanced"><X /></span>Cancel
-            </button>
+            <button type="button" data-action={closeAction} className="btn btn-secondary" onClick={onClose}>Cancel</button>
+            <button type="button" data-action={saveAction} className="btn btn-primary" onClick={onSave}>Save changes</button>
         </>
     );
 
     return (
         <div id="setup-section">
-            <h2>Account Setup</h2>
+            <div className="page-header">
+                <div>
+                    <h2>Accounts</h2>
+                    <p>Your banks, cards and cash, with today&apos;s balances.</p>
+                </div>
+            </div>
 
-            <div id="bank-setup" className="setup-card">
-                <h3>Bank Setup</h3>
-                <div className="setup-body">
-                    <div className="setup-left">
-                        <div className="form-field">
-                            <label htmlFor="bank-name">Bank Name</label>
-                            <input type="text" id="bank-name" placeholder="e.g., HDFC, ICICI" value={bankName}
+            <div className={`stats ${showCards ? 'three' : 'two'}`}>
+                <div className="stat hero">
+                    <span className="stat-top"><Landmark size={18} aria-hidden="true" /> In your banks</span>
+                    <span className="stat-value">{formatRupees(inBanks)}</span>
+                    <span className="stat-note">{banks.length} {banks.length === 1 ? 'account' : 'accounts'}</span>
+                </div>
+                <div className="stat">
+                    <span className="stat-top"><span className="icon-tile t-cash" aria-hidden="true"><Banknote /></span> Cash in hand</span>
+                    <span className="stat-value">{formatRupees(initialCash)}</span>
+                </div>
+                {showCards ? (
+                    <div className="stat">
+                        <span className="stat-top"><span className="icon-tile t-card" aria-hidden="true"><CreditCard /></span> Card dues</span>
+                        <span className="stat-value">{formatRupees(cardDues)}</span>
+                        <span className="stat-note">{cards.length} {cards.length === 1 ? 'card' : 'cards'}</span>
+                    </div>
+                ) : null}
+            </div>
+
+            <div className="setup-grid">
+                <section id="bank-setup" className="card" aria-labelledby="bank-setup-title">
+                    <div className="card-head">
+                        <h3 id="bank-setup-title"><span className="icon-tile t-bank" aria-hidden="true"><Landmark /></span>Bank accounts</h3>
+                    </div>
+                    <div className="add-row">
+                        <div className="field">
+                            <label htmlFor="bank-name">Bank name</label>
+                            <input type="text" id="bank-name" placeholder="For example HDFC Savings" value={bankName}
                                 onChange={event => { setBankName(event.target.value); bankMessage.clear(); }} />
                         </div>
-                        <div className="form-field">
-                            <label htmlFor="bank-balance">Initial Balance</label>
-                            <input type="number" id="bank-balance" placeholder="0.00" step="0.01" value={bankBalance}
+                        <div className="field">
+                            <label htmlFor="bank-balance">Balance today (₹)</label>
+                            <input type="number" id="bank-balance" inputMode="decimal" placeholder="0.00" step="0.01" value={bankBalance}
                                 onChange={event => { setBankBalance(event.target.value); bankMessage.clear(); }} />
                         </div>
-                        <button type="button" className="primary-btn" data-action="addBank" onClick={addBank}><Landmark /> Add Bank</button>
+                        <button type="button" className="btn btn-primary" data-action="addBank" onClick={addBank}><Plus aria-hidden="true" /> Add bank</button>
                     </div>
-                    <div className="setup-right" id="banks-list">
-                        {banks.length === 0 ? <p>No banks added yet.</p> : (
-                            <table>
+                    <FormMessage id="bank-message" message={bankMessage.message} />
+                    <div id="banks-list" className="table-wrap">
+                        {banks.length === 0 ? (
+                            <div className="empty"><Landmark aria-hidden="true" /><p>No banks added yet.</p></div>
+                        ) : (
+                            <table className="data-table stackable">
+                                <thead>
+                                    <tr><th scope="col">Bank</th><th scope="col" className="amount">Starting balance</th><th scope="col" className="amount">Current balance</th><th scope="col" className="actions"><span className="sr-only">Actions</span></th></tr>
+                                </thead>
                                 <tbody>
-                                    <tr><th>Bank Name</th><th>Initial Balance</th><th>Current Balance</th><th>Actions</th></tr>
                                     {banks.map(bank => (
                                         <tr key={bank.id}>
-                                            <td>{bank.name}</td>
-                                            <td>{formatRupees(bank.initial_balance)}</td>
-                                            <td>{formatRupees(bank.current_balance)}</td>
-                                            <td>
-                                                <div className="action-buttons">
-                                                    <button type="button" className="action-btn edit-btn" data-action="edit-bank" data-id={bank.id}
+                                            <td className="name"><span className="cell-with-icon"><span className="icon-tile t-bank" aria-hidden="true"><Landmark /></span>{bank.name}</span></td>
+                                            <td className="amount" data-label="Starting balance">{formatRupees(bank.initial_balance)}</td>
+                                            <td className="amount out" data-label="Current balance">{formatRupees(bank.current_balance)}</td>
+                                            <td className="actions">
+                                                <span className="row-actions">
+                                                    <button type="button" className="icon-btn" data-action="edit-bank" data-id={bank.id}
                                                         onClick={() => setEditBank({ id: bank.id, name: bank.name, balance: String(parseFloat(bank.initial_balance)) })}>
-                                                        <Pencil /> Edit
+                                                        <Pencil aria-hidden="true" /> Edit
                                                     </button>
-                                                    <button type="button" className="action-btn delete-btn" data-action="delete-bank" data-id={bank.id}
+                                                    <button type="button" className="icon-btn danger" data-action="delete-bank" data-id={bank.id}
                                                         onClick={() => setPendingDelete({ type: 'bank', id: bank.id })}>
-                                                        <Trash2 /> Delete
+                                                        <Trash2 aria-hidden="true" /> Delete
                                                     </button>
-                                                </div>
+                                                </span>
                                             </td>
                                         </tr>
                                     ))}
@@ -226,156 +256,162 @@ export function SetupScreen() {
                             </table>
                         )}
                     </div>
-                </div>
-                <FormMessage id="bank-message" message={bankMessage.message} />
-            </div>
+                </section>
 
-            <div id="credit-card-setup" className={`setup-card${trackingOption === 'income' ? ' hidden' : ''}`}>
-                <h3>Credit Card Setup</h3>
-                <div className="setup-body">
-                    <div className="setup-left">
-                        <div className="form-field">
-                            <label htmlFor="cc-name">Card Name</label>
-                            <input type="text" id="cc-name" placeholder="e.g., SBI, HDFC Card" value={cardName}
+                <section id="credit-card-setup" className={`card${showCards ? '' : ' hidden'}`} aria-labelledby="card-setup-title">
+                    <div className="card-head">
+                        <h3 id="card-setup-title"><span className="icon-tile t-card" aria-hidden="true"><CreditCard /></span>Credit cards</h3>
+                    </div>
+                    <div className="add-row">
+                        <div className="field">
+                            <label htmlFor="cc-name">Card name</label>
+                            <input type="text" id="cc-name" placeholder="For example SBI SimplyCLICK" value={cardName}
                                 onChange={event => { setCardName(event.target.value); cardMessage.clear(); }} />
                         </div>
-                        <div className="form-field">
-                            <label htmlFor="cc-limit">Credit Limit</label>
-                            <input type="number" id="cc-limit" placeholder="0.00" step="0.01" value={cardLimit}
+                        <div className="field">
+                            <label htmlFor="cc-limit">Credit limit (₹)</label>
+                            <input type="number" id="cc-limit" inputMode="decimal" placeholder="0.00" step="0.01" value={cardLimit}
                                 onChange={event => { setCardLimit(event.target.value); cardMessage.clear(); }} />
                         </div>
-                        <button type="button" className="primary-btn" data-action="addCreditCard" onClick={addCard}><CreditCard /> Add Credit Card</button>
+                        <button type="button" className="btn btn-primary" data-action="addCreditCard" onClick={addCard}><Plus aria-hidden="true" /> Add card</button>
                     </div>
-                    <div id="credit-cards-list" className="setup-right">
-                        {cards.length === 0 ? <p>No credit cards added yet.</p> : (
-                            <table>
+                    <FormMessage id="credit-card-message" message={cardMessage.message} />
+                    <div id="credit-cards-list" className="table-wrap">
+                        {cards.length === 0 ? (
+                            <div className="empty"><CreditCard aria-hidden="true" /><p>No credit cards added yet.</p></div>
+                        ) : (
+                            <table className="data-table stackable">
+                                <thead>
+                                    <tr><th scope="col">Card</th><th scope="col" className="amount">Limit</th><th scope="col" className="amount">Used</th><th scope="col" className="amount">Available</th><th scope="col" className="actions"><span className="sr-only">Actions</span></th></tr>
+                                </thead>
                                 <tbody>
-                                    <tr><th>Card Name</th><th>Credit Limit</th><th>Used Limit</th><th>Available</th><th>Actions</th></tr>
-                                    {cards.map(card => (
-                                        <tr key={card.id}>
-                                            <td>{card.name}</td>
-                                            <td>{formatRupees(card.credit_limit)}</td>
-                                            <td>{formatRupees(card.used_limit)}</td>
-                                            <td>{formatRupees(parseFloat(card.credit_limit) - parseFloat(card.used_limit))}</td>
-                                            <td>
-                                                <div className="action-buttons">
-                                                    <button type="button" className="action-btn edit-btn" data-action="edit-credit-card" data-id={card.id}
-                                                        onClick={() => setEditCard({ id: card.id, name: card.name, limit: String(parseFloat(card.credit_limit)), used: card.used_limit })}>
-                                                        <Pencil /> Edit
-                                                    </button>
-                                                    <button type="button" className="action-btn delete-btn" data-action="delete-credit-card" data-id={card.id}
-                                                        onClick={() => setPendingDelete({ type: 'credit-card', id: card.id })}>
-                                                        <Trash2 /> Delete
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                    {cards.map(card => {
+                                        const limit = parseFloat(card.credit_limit) || 0;
+                                        const used = parseFloat(card.used_limit) || 0;
+                                        const share = limit > 0 ? Math.min(used / limit, 1) : 0;
+                                        return (
+                                            <tr key={card.id}>
+                                                <td className="name">
+                                                    <span className="cell-with-icon">
+                                                        <span className="icon-tile t-card" aria-hidden="true"><CreditCard /></span>
+                                                        <span>{card.name}<span className="meter" title={`${Math.round(share * 100)}% of the limit used`}><i className={share > 0.7 ? 'high' : share > 0.3 ? 'warn' : undefined} style={{ width: `${share * 100}%` }} /></span></span>
+                                                    </span>
+                                                </td>
+                                                <td className="amount" data-label="Limit">{formatRupees(card.credit_limit)}</td>
+                                                <td className="amount" data-label="Used">{formatRupees(card.used_limit)}</td>
+                                                <td className="amount out" data-label="Available">{formatRupees(limit - used)}</td>
+                                                <td className="actions">
+                                                    <span className="row-actions">
+                                                        <button type="button" className="icon-btn" data-action="edit-credit-card" data-id={card.id}
+                                                            onClick={() => setEditCard({ id: card.id, name: card.name, limit: String(parseFloat(card.credit_limit)), used: card.used_limit })}>
+                                                            <Pencil aria-hidden="true" /> Edit
+                                                        </button>
+                                                        <button type="button" className="icon-btn danger" data-action="delete-credit-card" data-id={card.id}
+                                                            onClick={() => setPendingDelete({ type: 'credit-card', id: card.id })}>
+                                                            <Trash2 aria-hidden="true" /> Delete
+                                                        </button>
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         )}
                     </div>
-                </div>
-                <FormMessage id="credit-card-message" message={cardMessage.message} />
-            </div>
+                </section>
 
-            <div id="cash-setup" className="setup-card">
-                <h3>Cash Balance</h3>
-                <div className="setup-body">
-                    <div className="setup-left">
-                        <div className="form-field">
-                            <label htmlFor="cash-balance">Cash Balance</label>
-                            <input type="number" id="cash-balance" placeholder="0.00" step="0.01" value={cashInput}
+                <section id="cash-setup" className="card" aria-labelledby="cash-setup-title">
+                    <div className="card-head">
+                        <h3 id="cash-setup-title"><span className="icon-tile t-cash" aria-hidden="true"><Wallet /></span>Cash in hand</h3>
+                    </div>
+                    <div className="add-row single">
+                        <div className="field">
+                            <label htmlFor="cash-balance">Cash you have now (₹)</label>
+                            <input type="number" id="cash-balance" inputMode="decimal" placeholder="0.00" step="0.01" value={cashInput}
                                 onChange={event => { setCashInput(event.target.value); cashMessage.clear(); }} />
                         </div>
-                        <button type="button" className="primary-btn" data-action="setCashBalance" onClick={setCashBalance}><Banknote /> Set Cash Balance</button>
+                        <button type="button" className="btn btn-primary" data-action="setCashBalance" onClick={setCashBalance}><Banknote aria-hidden="true" /> Set cash</button>
                     </div>
-                    <div id="cash-display" className="setup-right-cash-balance">
-                        <h4>Cash Balance</h4>
-                        <div className="cash-balance-display">
+                    <FormMessage id="cash-message" message={cashMessage.message} />
+                    <div id="cash-display" className="cash-display">
+                        <div>
+                            <h4>Cash balance</h4>
                             <span className="cash-amount">{formatRupees(initialCash)}</span>
-                            <button type="button" className="action-btn edit-btn" data-action="edit-cash-balance" disabled={initialCash === 0}
-                                onClick={() => setEditCash(String(initialCash))}>
-                                <Pencil /> Edit
-                            </button>
                         </div>
+                        <button type="button" className="icon-btn" data-action="edit-cash-balance" disabled={initialCash === 0}
+                            onClick={() => setEditCash(String(initialCash))}>
+                            <Pencil aria-hidden="true" /> Edit
+                        </button>
                     </div>
-                </div>
-                <FormMessage id="cash-message" message={cashMessage.message} />
+                </section>
             </div>
 
-            <Modal id="edit-bank-modal" title="Edit Bank" open={editBank !== null} closeAction="close-edit-bank" onClose={() => setEditBank(null)}
+            <Modal id="edit-bank-modal" title="Edit bank" open={editBank !== null} closeAction="close-edit-bank" onClose={() => setEditBank(null)}
                 footer={modalButtons('save-bank', 'close-edit-bank', saveBank, () => setEditBank(null))}>
-                <form id="edit-bank-form" onSubmit={event => event.preventDefault()}>
-                    <div className="form-group">
-                        <label htmlFor="edit-bank-name">Bank Name:</label>
+                <form id="edit-bank-form" className="form-grid" onSubmit={event => { event.preventDefault(); saveBank(); }}>
+                    <div className="field">
+                        <label htmlFor="edit-bank-name">Bank name</label>
                         <input type="text" id="edit-bank-name" required value={editBank?.name ?? ''}
                             onChange={event => setEditBank(current => current && { ...current, name: event.target.value })} />
                     </div>
-                    <div className="form-group">
-                        <label htmlFor="edit-bank-balance">Initial Balance:</label>
-                        <input type="number" id="edit-bank-balance" step="0.01" min="0" required value={editBank?.balance ?? ''}
+                    <div className="field">
+                        <label htmlFor="edit-bank-balance">Starting balance (₹)</label>
+                        <input type="number" id="edit-bank-balance" inputMode="decimal" step="0.01" min="0" required value={editBank?.balance ?? ''}
                             onChange={event => setEditBank(current => current && { ...current, balance: event.target.value })} />
                     </div>
-                    <div className="warning-text">
-                        <strong>Note:</strong> Changing the initial balance will adjust the current balance by the difference.
-                    </div>
+                    <div className="notice warn">Changing the starting balance moves the current balance by the same difference.</div>
                 </form>
             </Modal>
 
-            <Modal id="edit-credit-card-modal" title="Edit Credit Card" open={editCard !== null} closeAction="close-edit-credit-card" onClose={() => setEditCard(null)}
+            <Modal id="edit-credit-card-modal" title="Edit credit card" open={editCard !== null} closeAction="close-edit-credit-card" onClose={() => setEditCard(null)}
                 footer={modalButtons('save-credit-card', 'close-edit-credit-card', saveCard, () => setEditCard(null))}>
-                <form id="edit-credit-card-form" onSubmit={event => event.preventDefault()}>
-                    <div className="form-group">
-                        <label htmlFor="edit-credit-card-name">Card Name:</label>
+                <form id="edit-credit-card-form" className="form-grid" onSubmit={event => { event.preventDefault(); saveCard(); }}>
+                    <div className="field">
+                        <label htmlFor="edit-credit-card-name">Card name</label>
                         <input type="text" id="edit-credit-card-name" required value={editCard?.name ?? ''}
                             onChange={event => setEditCard(current => current && { ...current, name: event.target.value })} />
                     </div>
-                    <div className="form-group">
-                        <label htmlFor="edit-credit-card-limit">Credit Limit:</label>
-                        <input type="number" id="edit-credit-card-limit" step="0.01" min="0.01" required value={editCard?.limit ?? ''}
+                    <div className="field">
+                        <label htmlFor="edit-credit-card-limit">Credit limit (₹)</label>
+                        <input type="number" id="edit-credit-card-limit" inputMode="decimal" step="0.01" min="0.01" required value={editCard?.limit ?? ''}
                             onChange={event => setEditCard(current => current && { ...current, limit: event.target.value })} />
                     </div>
-                    <div id="credit-card-used-info" className="info-text">
+                    <div id="credit-card-used-info" className="notice">
                         {editCard ? (
-                            <>
-                                <strong>Current Used Limit:</strong> {formatRupees(editCard.used)}<br />
-                                <em>Credit limit must be at least this amount.</em>
-                            </>
+                            <span>
+                                <strong>Current Used Limit:</strong> {formatRupees(editCard.used)}. The limit must be at least this amount.
+                            </span>
                         ) : null}
                     </div>
                 </form>
             </Modal>
 
-            <Modal id="edit-cash-modal" title="Edit Cash Balance" open={editCash !== null} closeAction="close-edit-cash" onClose={() => setEditCash(null)}
+            <Modal id="edit-cash-modal" title="Edit cash balance" open={editCash !== null} closeAction="close-edit-cash" onClose={() => setEditCash(null)}
                 footer={modalButtons('save-cash-balance', 'close-edit-cash', saveCash, () => setEditCash(null))}>
-                <form id="edit-cash-form" onSubmit={event => event.preventDefault()}>
-                    <div className="form-group">
-                        <label htmlFor="edit-cash-balance">Cash Balance:</label>
-                        <input type="number" id="edit-cash-balance" step="0.01" min="0" required value={editCash ?? ''}
+                <form id="edit-cash-form" className="form-grid" onSubmit={event => { event.preventDefault(); saveCash(); }}>
+                    <div className="field">
+                        <label htmlFor="edit-cash-balance">Cash you have now (₹)</label>
+                        <input type="number" id="edit-cash-balance" inputMode="decimal" step="0.01" min="0" required value={editCash ?? ''}
                             onChange={event => setEditCash(event.target.value)} />
                     </div>
-                    <div className="info-text">
-                        Update your current cash balance. This will replace the existing cash balance.
-                    </div>
+                    <p>This replaces your current cash balance.</p>
                 </form>
             </Modal>
 
-            <Modal id="delete-setup-modal" title="Confirm Deletion" open={pendingDelete !== null} closeAction="close-delete-setup" onClose={() => setPendingDelete(null)}
+            <Modal id="delete-setup-modal" title="Delete this account?" small open={pendingDelete !== null} closeAction="close-delete-setup" onClose={() => setPendingDelete(null)}
                 footer={(
                     <>
-                        <button type="button" data-action="confirm-delete-setup" className="danger-button" onClick={confirmDelete}>
-                            <span className="icon-enhanced"><Trash2 /></span>Delete
-                        </button>
-                        <button type="button" data-action="close-delete-setup" className="secondary-button" onClick={() => setPendingDelete(null)}>
-                            <span className="icon-enhanced"><X /></span>Cancel
+                        <button type="button" data-action="close-delete-setup" className="btn btn-secondary" onClick={() => setPendingDelete(null)}>Cancel</button>
+                        <button type="button" data-action="confirm-delete-setup" className="btn btn-danger" onClick={confirmDelete}>
+                            <Trash2 aria-hidden="true" /> Delete
                         </button>
                     </>
                 )}>
-                <p id="delete-setup-message">
+                <p id="delete-setup-message" className="lead">
                     {pendingDelete?.type === 'credit-card' ? 'Are you sure you want to delete this credit card?' : 'Are you sure you want to delete this bank?'}
                 </p>
-                <p className="warning-text">This action cannot be undone and will fail if there are related transactions.</p>
+                <p>This cannot be undone, and is refused while the account has transactions.</p>
             </Modal>
         </div>
     );
