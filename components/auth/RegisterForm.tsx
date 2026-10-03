@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Sparkles } from 'lucide-react';
-import { AuthButton, AuthShell, HelpedInput } from './AuthShell';
+import { AuthButton, AuthForm, AuthHead, AuthShell, Field, PasswordField, PasswordRules } from './AuthShell';
 import { useToast } from '@/components/Toast';
 import { apiError, apiPost } from '@/lib/api-client';
 import { SECURITY_QUESTIONS, validateRegistration, type RegistrationInput } from '@/lib/auth-validation';
@@ -40,63 +39,39 @@ export function RegisterForm() {
 
     return (
         <AuthShell>
-            <div id="register-form" className="auth-form">
-                <h3>Create New Account</h3>
-                <div className="form-group">
-                    <input id="register-name" type="text" required placeholder="Enter your full name" {...field('name')} />
-                </div>
-                <div className="form-group">
-                    <HelpedInput
-                        id="register-username"
-                        type="text"
-                        required
-                        placeholder="Choose a username"
-                        help="Username: letters, numbers, and underscores only"
-                        {...field('username')}
-                    />
-                </div>
-                <div className="form-group">
-                    <input id="register-email" type="email" required placeholder="Enter your email address" {...field('email')} />
-                </div>
-                <div className="form-group">
-                    <div className="password-container">
-                        <HelpedInput
-                            id="register-password"
-                            type="password"
-                            required
-                            placeholder="Create a strong password"
-                            help="8-16 characters with at least one uppercase, one lowercase, one number, and one special character (_, -, &, @, :, or &)"
-                            {...field('password')}
-                        />
+            <AuthForm id="register-form" onSubmit={register}>
+                <AuthHead title="Create your free account">It takes a minute. Nothing is connected to your bank.</AuthHead>
+                <div className="form-grid">
+                    <div className="form-grid two">
+                        <Field id="register-name" label="Full name" type="text" autoComplete="name" required {...field('name')} />
+                        <Field id="register-username" label="Username" type="text" autoComplete="username" autoCapitalize="none" required
+                            help="Letters, numbers and underscores" {...field('username')} />
                     </div>
-                </div>
-                <div className="form-group">
-                    <div className="password-container">
-                        <input
-                            id="register-confirm-password"
-                            type="password"
-                            required
-                            placeholder="Confirm your password"
-                            {...field('confirmPassword')}
-                        />
+                    <Field id="register-email" label="Email" type="email" autoComplete="email" required {...field('email')} />
+                    <PasswordField id="register-password" label="Password" autoComplete="new-password" required {...field('password')}>
+                        <PasswordRules password={form.password} />
+                    </PasswordField>
+                    <PasswordField id="register-confirm-password" label="Confirm password" autoComplete="new-password" required {...field('confirmPassword')} />
+
+                    <span className="auth-section-title">Account recovery</span>
+                    <span className="auth-section-note">If you forget your username or password, you will answer this question.</span>
+                    <div className="field">
+                        <label htmlFor="register-security-question">Security question</label>
+                        <select id="register-security-question" required {...field('securityQuestion')}>
+                            <option value="">Choose a question</option>
+                            {SECURITY_QUESTIONS.map(question => (
+                                <option key={question.value} value={question.value}>{question.label}</option>
+                            ))}
+                        </select>
                     </div>
+                    <Field id="register-security-answer" label="Your answer" type="text" autoComplete="off" required {...field('securityAnswer')} />
                 </div>
-                <div className="form-group">
-                    <select id="register-security-question" required {...field('securityQuestion')}>
-                        <option value="">Select a security question</option>
-                        {SECURITY_QUESTIONS.map(question => (
-                            <option key={question.value} value={question.value}>{question.label}</option>
-                        ))}
-                    </select>
-                </div>
-                <div className="form-group">
-                    <input id="register-security-answer" type="text" required placeholder="Enter your answer" {...field('securityAnswer')} />
-                </div>
-                <AuthButton action="register" icon={Sparkles} onClick={register}>Create Account</AuthButton>
-                <AuthButton action="showLogin" icon={ArrowLeft} className="secondary-button" onClick={() => router.push('/login')}>
-                    Back to Login
-                </AuthButton>
-            </div>
+                <AuthButton action="register" submit className="btn btn-primary btn-block">Create free account</AuthButton>
+                <p className="auth-alt">
+                    Already have an account?{' '}
+                    <AuthButton action="showLogin" className="btn-link" onClick={() => router.push('/login')}>Log in</AuthButton>
+                </p>
+            </AuthForm>
         </AuthShell>
     );
 }

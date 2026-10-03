@@ -8,9 +8,13 @@ const { test, expect } = require('@playwright/test');
 const { uniqueUser, register, chooseTracking } = require('./helpers');
 
 const PAGES = [
-    { path: '/', heading: /One honest picture/ },
+    { path: '/', heading: /Track every rupee your family owns and owes/ },
     { path: '/features', heading: 'Everything your money touches, in one place.' },
     { path: '/features/loans', heading: 'Loans and chit funds' },
+    { path: '/tools', heading: 'Money calculators made for India.' },
+    { path: '/tools/emi-calculator', heading: 'How much will my loan cost every month?' },
+    { path: '/tools/loan-payoff', heading: 'Which loan should I close first?' },
+    { path: '/tools/chit-fund', heading: 'Is my chit fund a good deal?' },
     { path: '/roadmap', heading: 'Built in the open, one solid step at a time.' },
     { path: '/download', heading: 'No app store needed. It installs from your browser.' },
     { path: '/faq', heading: 'Plain answers to fair questions.' },
@@ -53,13 +57,20 @@ for (const { path, heading } of PAGES) {
     });
 }
 
-test('the header navigates between pages on the client', async ({ page }) => {
+test('the Features menu opens, closes with Escape, and navigates on the client', async ({ page }) => {
     const problems = await watchForProblems(page);
     await page.goto('/');
 
-    await page.locator('.site-nav a', { hasText: 'Features' }).click();
+    const trigger = page.getByRole('button', { name: 'Features' });
+    await trigger.click();
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#features-menu')).toBeHidden();
+
+    await trigger.click();
+    await page.locator('#features-menu a', { hasText: 'All features' }).click();
     await expect(page).toHaveURL(/\/features$/);
-    await expect(page.locator('.site-nav a[aria-current="page"]')).toHaveText('Features');
+    await expect(page.locator('#features-menu')).toBeHidden();
 
     await page.locator('.feature-card', { hasText: 'Statement import' }).click();
     await expect(page).toHaveURL(/\/features\/import$/);
@@ -85,10 +96,28 @@ test('the scenario explorer switches situations, by click and by keyboard', asyn
     await expect(panel.locator('h3')).toContainText('gold chain for your wife');
 });
 
-test('on a phone the links fold into a menu', async ({ page }) => {
+test('the EMI calculator updates as you type', async ({ page }) => {
+    await page.goto('/tools/emi-calculator');
+    const emi = page.locator('.result-main .value');
+    await expect(emi).toHaveText('₹21,696');
+
+    await page.getByRole('textbox', { name: 'Loan amount (₹)' }).fill('1000000');
+    await expect(emi).toHaveText('₹8,678');
+    await expect(page.locator('tbody tr')).toHaveCount(20);
+});
+
+test('the loan payoff tool ranks loans by interest rate', async ({ page }) => {
+    await page.goto('/tools/loan-payoff');
+    await expect(page.locator('.order-list li').first()).toContainText('Credit card');
+    await page.getByRole('button', { name: 'Remove Credit card' }).click();
+    await expect(page.locator('.order-list li').first()).toContainText('Personal loan');
+});
+
+test('on a phone the links fold into a menu, and Start free sits at the bottom', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
     await expect(page.locator('.site-nav')).toBeHidden();
+    await expect(page.locator('.bottom-bar a', { hasText: 'Start free' })).toBeVisible();
 
     const button = page.getByRole('button', { name: 'Open menu' });
     await button.click();
@@ -122,10 +151,10 @@ test('the app can be installed: manifest and icons are served', async ({ page, r
     expect((await request.get('/icon.svg')).status()).toBe(200);
 });
 
-test('logged out: the app footer links to the website, and back to login', async ({ page }) => {
+test('logged out: the sign-in screen links to the website, and back to login', async ({ page }) => {
     await page.goto('/login');
 
-    await page.locator('.footer-links a', { hasText: 'Security Policy' }).click();
+    await page.locator('.auth-foot a', { hasText: 'Security' }).click();
     await expect(page).toHaveURL(/\/security$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Security Policy' })).toBeVisible();
 
@@ -139,7 +168,7 @@ test('logged in: the website offers the way back into the app', async ({ page })
     await register(page, user);
     await chooseTracking(page, 'both');
 
-    await page.locator('.footer-links a', { hasText: 'Privacy Guide' }).click();
+    await page.locator('.app-footer a', { hasText: 'Privacy' }).click();
     await expect(page).toHaveURL(/\/privacy$/);
     await expect(page.getByRole('heading', { level: 1, name: 'Privacy Guide' })).toBeVisible();
 

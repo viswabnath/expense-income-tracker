@@ -51,4 +51,10 @@ describe('routing', () => {
         expect(vercel.services).toBeUndefined();
         expect(vercel.rewrites).toBeUndefined();
     });
+
+    test('vercel.json builds production only: every preview build is skipped', () => {
+        const vercel = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+        // Vercel skips the build when the ignore command exits 0, and builds when it exits 1
+        expect(vercel.ignoreCommand).toBe('if [ "$VERCEL_ENV" = "production" ]; then exit 1; else exit 0; fi');
+    });
 });

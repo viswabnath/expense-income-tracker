@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Banknote, BarChart3, CreditCard, Gem, Landmark, List, PlusCircle, Settings, TrendingDown, TrendingUp } from 'lucide-react';
+import { Banknote, CalendarX, ChartColumn, CreditCard, Gem, Landmark, List, PiggyBank, Plus, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import { apiGet, httpError, redirectIfUnauthorized } from '@/lib/api-client';
 import { filterYears, MONTH_NAMES } from '@/lib/dates';
 import { formatRupees } from '@/lib/format';
@@ -38,15 +38,15 @@ function messageDetail(message: string): string {
     return 'No data available for the selected period.';
 }
 
-function SummaryCard({ kind, icon: Icon, title, amount, subtitle, missingSubtitle }: {
-    kind: string; icon: typeof TrendingUp; title: string; amount: Amount; subtitle: string; missingSubtitle: string;
+function SummaryCard({ kind, tile, icon: Icon, title, amount, subtitle, missingSubtitle }: {
+    kind: string; tile: string; icon: typeof TrendingUp; title: string; amount: Amount; subtitle: string; missingSubtitle: string;
 }) {
     const has = present(amount);
     return (
-        <div className={`summary-card ${kind}`} style={has ? undefined : { opacity: 0.6 }}>
-            <h3><Icon /> {title}</h3>
-            <div className="summary-amount">{formatRupees(has ? amount : 0)}</div>
-            <div className="summary-subtitle">{has ? subtitle : missingSubtitle}</div>
+        <div className={`stat summary-card ${kind}${has ? '' : ' dim'}`}>
+            <span className="stat-top"><span className={`icon-tile ${tile}`} aria-hidden="true"><Icon /></span> {title}</span>
+            <span className="stat-value summary-amount">{formatRupees(has ? amount : 0)}</span>
+            <span className="stat-note summary-subtitle">{has ? subtitle : missingSubtitle}</span>
         </div>
     );
 }
@@ -54,29 +54,26 @@ function SummaryCard({ kind, icon: Icon, title, amount, subtitle, missingSubtitl
 function SummaryView({ data, month, year }: { data: Summary; month: number; year: number }) {
     const router = useRouter();
     const monthName = MONTH_NAMES[month - 1];
-    // Legacy wording: "as of now" for the current month, otherwise the month's end
+    // "as of now" for the current month, otherwise the month's end
     const timeReference = data.isCurrentMonth ? 'as of now' : `at End of ${monthName}`;
-    const heading = (
-        <h2 style={{ textAlign: 'center', color: '#495057', marginBottom: 30 }}>
-            <BarChart3 style={{ verticalAlign: 'middle', marginRight: 8 }} /> {monthName} {year} Financial Summary
-        </h2>
-    );
+    const heading = <h3 className="sr-only">{monthName} {year} Financial Summary</h3>;
 
     if (data.message) {
         const noTransactions = data.message.includes('No transactions found');
         return (
             <>
                 {heading}
-                <div className="summary">
-                    <h3 style={{ color: '#666', textAlign: 'center' }}>{data.message}</h3>
-                    <p style={{ textAlign: 'center', color: '#999', marginBottom: 20 }}>{messageDetail(data.message)}</p>
+                <div className="card summary-message summary">
+                    <CalendarX size={36} aria-hidden="true" style={{ color: 'var(--line-strong)' }} />
+                    <h3>{data.message}</h3>
+                    <p>{messageDetail(data.message)}</p>
                     {noTransactions ? (
-                        <div style={{ textAlign: 'center' }}>
-                            <button type="button" className="primary-button setup-accounts-btn" style={{ marginRight: 10 }} onClick={() => router.push('/setup')}>
-                                <Settings /> Setup Accounts
+                        <div className="actions">
+                            <button type="button" className="btn btn-secondary setup-accounts-btn" onClick={() => router.push('/setup')}>
+                                <Wallet aria-hidden="true" /> Set up accounts
                             </button>
-                            <button type="button" className="primary-button add-transactions-btn" onClick={() => router.push('/transactions')}>
-                                <PlusCircle /> Add Transactions
+                            <button type="button" className="btn btn-primary add-transactions-btn" onClick={() => router.push('/transactions')}>
+                                <Plus aria-hidden="true" /> Add transactions
                             </button>
                         </div>
                     ) : null}
@@ -91,74 +88,88 @@ function SummaryView({ data, month, year }: { data: Summary; month: number; year
     const cashAvailable = present(cashBalance) && !Number.isNaN(Number(cashBalance));
     const showBreakdown = present(data.netSavings) && data.totalInitialBalance !== undefined
         && data.monthlyIncome !== undefined && data.totalExpenses !== undefined;
+    const income = parseFloat(String(data.monthlyIncome ?? 0)) || 0;
+    const expenses = parseFloat(String(data.totalExpenses ?? 0)) || 0;
+    const largest = Math.max(income, expenses, 1);
 
     return (
-        <>
+        <div className="stack">
             {heading}
-            <div className="summary-dashboard">
-                <SummaryCard kind="income" icon={TrendingUp} title="Monthly Income" amount={data.monthlyIncome}
+            <div className="stats">
+                <SummaryCard kind="income" tile="t-income" icon={TrendingUp} title="Income" amount={data.monthlyIncome}
                     subtitle="Money earned this month" missingSubtitle="No income data available" />
-                <SummaryCard kind="expense" icon={TrendingDown} title="Monthly Expenses" amount={data.totalExpenses}
+                <SummaryCard kind="expense" tile="t-expense" icon={TrendingDown} title="Expenses" amount={data.totalExpenses}
                     subtitle="Money spent this month" missingSubtitle="No expense data available" />
-                <SummaryCard kind="wealth" icon={Gem} title="Total Wealth" amount={data.totalCurrentWealth}
+                <SummaryCard kind="wealth" tile="t-wealth" icon={Gem} title="Total wealth" amount={data.totalCurrentWealth}
                     subtitle={`Banks + Cash ${timeReference}`} missingSubtitle="Unable to calculate wealth" />
-                <SummaryCard kind="savings" icon={present(data.netSavings) ? (netSavingsNegative ? TrendingDown : TrendingUp) : BarChart3}
-                    title="Net Savings" amount={data.netSavings}
+                <SummaryCard kind="savings" tile={netSavingsNegative ? 't-expense' : 't-income'} icon={PiggyBank}
+                    title="Net savings" amount={data.netSavings}
                     subtitle="Income - Expenses + Initial" missingSubtitle="Unable to calculate savings" />
             </div>
 
-            <div className="accounts-section">
-                <h3 style={{ color: '#495057', marginBottom: 20 }}>
-                    <CreditCard style={{ verticalAlign: 'middle', marginRight: 8 }} /> Account Balances {timeReference}
-                </h3>
+            {data.monthlyIncome !== undefined || data.totalExpenses !== undefined ? (
+                <section className="card" aria-labelledby="flow-title">
+                    <div className="card-head"><h3 id="flow-title">Money in and out</h3><span className="meta">{monthName} {year}</span></div>
+                    <div className="flow">
+                        <div className="flow-row">
+                            <span>Came in</span>
+                            <span className="flow-bar"><i className="in" style={{ width: `${(income / largest) * 100}%` }} /></span>
+                            <span className="amount">{formatRupees(income)}</span>
+                        </div>
+                        <div className="flow-row">
+                            <span>Went out</span>
+                            <span className="flow-bar"><i className="out" style={{ width: `${(expenses / largest) * 100}%` }} /></span>
+                            <span className="amount">{formatRupees(expenses)}</span>
+                        </div>
+                    </div>
+                </section>
+            ) : null}
+
+            <section className="card accounts-section" aria-labelledby="balances-title">
+                <div className="card-head">
+                    <h3 id="balances-title">Account balances {timeReference}</h3>
+                </div>
                 <div className="accounts-grid">
                     {data.cash ? (
-                        <div className="account-card cash" style={cashAvailable ? undefined : { opacity: 0.6 }}>
-                            <h4><Banknote /> Cash Balance</h4>
-                            {cashAvailable
-                                ? <div className="account-balance">{formatRupees(cashBalance)}</div>
-                                : <div className="account-balance" style={{ color: '#6c757d' }}>Unavailable</div>}
+                        <div className={`account-card cash${cashAvailable ? '' : ' dim'}`}>
+                            <h4><span className="icon-tile t-cash" aria-hidden="true"><Banknote /></span> Cash</h4>
+                            <div className="account-balance">{cashAvailable ? formatRupees(cashBalance) : 'Unavailable'}</div>
                         </div>
                     ) : null}
                     {(data.banks ?? []).map((bank, index) => (
-                        <div key={bank.id ?? `bank-${index}`} className="account-card bank" style={present(bank.current_balance) ? undefined : { opacity: 0.6 }}>
-                            <h4><Landmark /> {bank.name || 'Unknown Bank'}</h4>
-                            {present(bank.current_balance)
-                                ? <div className="account-balance">{formatRupees(bank.current_balance)}</div>
-                                : <div className="account-balance" style={{ color: '#6c757d' }}>Unavailable</div>}
+                        <div key={bank.id ?? `bank-${index}`} className={`account-card bank${present(bank.current_balance) ? '' : ' dim'}`}>
+                            <h4><span className="icon-tile t-bank" aria-hidden="true"><Landmark /></span> {bank.name || 'Unknown Bank'}</h4>
+                            <div className="account-balance">{present(bank.current_balance) ? formatRupees(bank.current_balance) : 'Unavailable'}</div>
                         </div>
                     ))}
                     {showCards ? (data.creditCards ?? []).map((card, index) => {
                         const limit = parseFloat(String(card.credit_limit || 0));
                         const used = parseFloat(String(card.current_balance || 0));
+                        const share = limit > 0 ? Math.min(used / limit, 1) : 0;
                         return (
                             <div key={card.id ?? `card-${index}`} className="account-card credit">
-                                <h4><CreditCard /> {card.name || 'Unknown Card'}</h4>
-                                <div className="account-balance" style={{ color: '#dc3545' }}>{formatRupees(used)} used</div>
-                                <div style={{ fontSize: 12, color: '#6c757d', marginTop: 5 }}>
-                                    {formatRupees(limit - used)} available of {formatRupees(limit)}
-                                </div>
+                                <h4><span className="icon-tile t-card" aria-hidden="true"><CreditCard /></span> {card.name || 'Unknown Card'}</h4>
+                                <div className="account-balance">{formatRupees(used)} used</div>
+                                <span className="meter"><i className={share > 0.7 ? 'high' : share > 0.3 ? 'warn' : undefined} style={{ width: `${share * 100}%` }} /></span>
+                                <div className="account-note">{formatRupees(limit - used)} available of {formatRupees(limit)}</div>
                             </div>
                         );
                     }) : null}
                 </div>
-            </div>
+            </section>
 
             {showBreakdown ? (
-                <div style={{ marginTop: 30, padding: 15, background: '#f8f9fa', borderRadius: 8, borderLeft: '4px solid #007bff' }}>
-                    <h4 style={{ color: '#495057', marginBottom: 10 }}>
-                        <List style={{ verticalAlign: 'middle', marginRight: 8 }} /> Calculation Breakdown
-                    </h4>
-                    <div style={{ fontSize: 14, color: '#6c757d', lineHeight: 1.6 }}>
-                        <strong>Net Savings Formula</strong><br />
-                        Initial Balance ({formatRupees(data.totalInitialBalance || 0)}) +{' '}
-                        Income ({formatRupees(data.monthlyIncome || 0)}) -{' '}
-                        Expenses ({formatRupees(data.totalExpenses || 0)}) ={' '}
+                <section className="card breakdown">
+                    <h4><List size={18} aria-hidden="true" /> Calculation Breakdown</h4>
+                    <div>
+                        Net savings = starting balance ({formatRupees(data.totalInitialBalance || 0)}) +{' '}
+                        income ({formatRupees(data.monthlyIncome || 0)}) -{' '}
+                        expenses ({formatRupees(data.totalExpenses || 0)}) ={' '}
                         <strong>{formatRupees(data.netSavings)}</strong>
                     </div>
-                </div>
+                </section>
             ) : null}
-        </>
+        </div>
     );
 }
 
@@ -189,23 +200,26 @@ export function SummaryScreen() {
 
     return (
         <div id="summary-section">
-            <h2>Monthly Summary</h2>
-            <div className="summary-controls">
-                <div className="form-group">
-                    <label htmlFor="summary-month">Month</label>
-                    <select id="summary-month" value={month} onChange={event => setMonth(Number(event.target.value))}>
-                        {MONTH_NAMES.map((name, index) => <option key={name} value={index + 1}>{name}</option>)}
-                    </select>
+            <div className="page-header">
+                <div>
+                    <h2>Monthly summary</h2>
+                    <p>What came in, what went out, and where every account ended the month.</p>
                 </div>
-                <div className="form-group">
-                    <label htmlFor="summary-year">Year</label>
-                    <select id="summary-year" value={year} onChange={event => setYear(Number(event.target.value))}>
-                        {filterYears().map(option => <option key={option} value={option}>{option}</option>)}
-                    </select>
-                </div>
-                <div className="form-group">
-                    <button type="button" data-action="loadMonthlySummary" onClick={() => loadSummary(month, year)}>
-                        <span className="icon-enhanced"><BarChart3 /></span>Load Summary
+                <div className="period-picker summary-controls">
+                    <div className="field">
+                        <label htmlFor="summary-month">Month</label>
+                        <select id="summary-month" value={month} onChange={event => setMonth(Number(event.target.value))}>
+                            {MONTH_NAMES.map((name, index) => <option key={name} value={index + 1}>{name}</option>)}
+                        </select>
+                    </div>
+                    <div className="field">
+                        <label htmlFor="summary-year">Year</label>
+                        <select id="summary-year" value={year} onChange={event => setYear(Number(event.target.value))}>
+                            {filterYears().map(option => <option key={option} value={option}>{option}</option>)}
+                        </select>
+                    </div>
+                    <button type="button" className="btn btn-secondary" data-action="loadMonthlySummary" onClick={() => loadSummary(month, year)}>
+                        <ChartColumn aria-hidden="true" /> Show
                     </button>
                 </div>
             </div>

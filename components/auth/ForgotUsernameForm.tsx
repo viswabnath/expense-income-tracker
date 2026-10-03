@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AuthButton, AuthShell, type AuthMessage } from './AuthShell';
+import { AuthButton, AuthForm, AuthHead, AuthShell, Field, type AuthMessage } from './AuthShell';
 import { PREFILL_USERNAME_KEY } from './LoginForm';
 import { useToast } from '@/components/Toast';
 import { apiError, apiPost } from '@/lib/api-client';
@@ -63,46 +63,48 @@ export function ForgotUsernameForm() {
     }
 
     const backToLogin = (
-        <AuthButton action="showLogin" className="secondary-button" onClick={() => router.push('/login')}>Back to Login</AuthButton>
+        <p className="auth-alt">
+            Remembered it?{' '}
+            <AuthButton action="showLogin" className="btn-link" onClick={() => router.push('/login')}>Back to log in</AuthButton>
+        </p>
     );
 
     return (
         <AuthShell message={message}>
             {question === null ? (
-                <div id="forgot-username-form" className="auth-form">
-                    <h3>Find Your Username</h3>
-                    <p>Enter your email address to retrieve your username</p>
-                    <div className="form-group">
-                        <input
-                            id="forgot-username-email-input"
-                            type="email"
-                            required
-                            placeholder="Enter your email address"
-                            value={email}
-                            onChange={event => setEmail(event.target.value)}
-                        />
-                    </div>
-                    <AuthButton action="forgotUsername" onClick={showQuestion}>Continue</AuthButton>
+                <AuthForm id="forgot-username-form" onSubmit={showQuestion}>
+                    <AuthHead step="Step 1 of 2" title="Find your username">Enter the email you signed up with.</AuthHead>
+                    <Field
+                        id="forgot-username-email-input"
+                        label="Email"
+                        type="email"
+                        autoComplete="email"
+                        required
+                        value={email}
+                        onChange={event => setEmail(event.target.value)}
+                    />
+                    <AuthButton action="forgotUsername" submit className="btn btn-primary btn-block">Continue</AuthButton>
                     {backToLogin}
-                </div>
+                </AuthForm>
             ) : (
-                <div id="forgot-username-answer-form" className="auth-form">
-                    <h3>Find Your Username</h3>
-                    <p><strong>Security Question</strong> <span id="forgot-username-question">{question}</span></p>
-                    <div className="form-group">
-                        <label htmlFor="forgot-username-answer">Security Answer</label>
-                        <input
-                            id="forgot-username-answer"
-                            type="text"
-                            required
-                            placeholder="Enter your security answer"
-                            value={answer}
-                            onChange={event => setAnswer(event.target.value)}
-                        />
+                <AuthForm id="forgot-username-answer-form" onSubmit={findUsername}>
+                    <AuthHead step="Step 2 of 2" title="Find your username">Answer your security question.</AuthHead>
+                    <div className="question-box">
+                        <small>Security question</small>
+                        <span id="forgot-username-question">{question}</span>
                     </div>
-                    <AuthButton action="verifyUsernameRecovery" onClick={findUsername}>Find Username</AuthButton>
+                    <Field
+                        id="forgot-username-answer"
+                        label="Your answer"
+                        type="text"
+                        autoComplete="off"
+                        required
+                        value={answer}
+                        onChange={event => setAnswer(event.target.value)}
+                    />
+                    <AuthButton action="verifyUsernameRecovery" submit className="btn btn-primary btn-block">Find my username</AuthButton>
                     {backToLogin}
-                </div>
+                </AuthForm>
             )}
         </AuthShell>
     );

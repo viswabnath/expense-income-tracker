@@ -39,8 +39,8 @@ export default async function FeaturePage({ params }: Props) {
                         <span aria-hidden="true">/</span>
                         <span aria-current="page">{feature.name}</span>
                     </nav>
-                    <div className="feature-hero feature-icon-lg rise rise-2">
-                        <FeatureIcon name={feature.icon} size={30} />
+                    <div className="feature-hero rise rise-2">
+                        <FeatureIcon name={feature.icon} size={28} tile="lg" />
                         <StatusBadge status={feature.status} />
                     </div>
                     <h1 className="rise rise-2">{feature.name}</h1>
@@ -128,8 +128,8 @@ export default async function FeaturePage({ params }: Props) {
                                 : 'Track your accounts and spending now, and this arrives as an update. Free for everyone.'}
                         </p>
                         <div className="hero-actions">
-                            <a className="btn btn-gold btn-lg" href="/register">Start free <ArrowRight size={18} /></a>
-                            <Link className="btn btn-ghost btn-on-band btn-lg" href="/roadmap">See the roadmap</Link>
+                            <a className="btn btn-light btn-lg" href="/register">Start free <ArrowRight size={18} className="go" /></a>
+                            <Link className="btn btn-outline-light btn-lg" href="/roadmap">See the roadmap</Link>
                         </div>
                     </div>
                 </div>

@@ -72,7 +72,7 @@ test('every entry is reachable: the feed pages through the server, not just the 
     }
 
     await showSection(page, 'activity');
-    await expect(page.locator('.stat-item')).toHaveText('23 Actions');
+    await expect(page.locator('#activity-section .card-head .meta')).toHaveText('23 changes');
     await expect(page.locator('.activity-item')).toHaveCount(10);
     await expect(page.locator('.pagination-btn.active')).toHaveText('1');
 

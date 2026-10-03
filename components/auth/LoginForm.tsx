@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { KeyRound, Lock, Search, UserPlus } from 'lucide-react';
-import { AuthButton, AuthShell, HelpedInput } from './AuthShell';
+import { AuthButton, AuthForm, AuthHead, AuthShell, Field, PasswordField } from './AuthShell';
 import { useToast } from '@/components/Toast';
 import { apiError, apiPost } from '@/lib/api-client';
 import { isValidUsername, requireValue } from '@/lib/auth-validation';
@@ -45,42 +44,37 @@ export function LoginForm() {
 
     return (
         <AuthShell>
-            <div id="login-form" className="auth-form">
-                <h3>Login to Your Account</h3>
-                <div className="form-group">
-                    <HelpedInput
+            <AuthForm id="login-form" onSubmit={login}>
+                <AuthHead title="Welcome back">Log in to see your accounts.</AuthHead>
+                <div className="form-grid">
+                    <Field
                         id="login-username"
+                        label="Username"
                         type="text"
+                        autoComplete="username"
+                        autoCapitalize="none"
                         required
-                        placeholder="Enter your username (e.g., john_doe)"
                         value={username}
                         onChange={event => setUsername(event.target.value)}
-                        help="Username: letters, numbers, and underscores only"
+                        help="Letters, numbers and underscores"
+                        aside={<AuthButton action="showForgotUsername" className="btn-link" onClick={() => router.push('/forgot-username')}>Forgot username?</AuthButton>}
+                    />
+                    <PasswordField
+                        id="login-password"
+                        label="Password"
+                        autoComplete="current-password"
+                        required
+                        value={password}
+                        onChange={event => setPassword(event.target.value)}
+                        aside={<AuthButton action="showForgotPassword" className="btn-link" onClick={() => router.push('/forgot-password')}>Forgot password?</AuthButton>}
                     />
                 </div>
-                <div className="form-group">
-                    <div className="password-container">
-                        <input
-                            id="login-password"
-                            type="password"
-                            required
-                            placeholder="Enter your password"
-                            value={password}
-                            onChange={event => setPassword(event.target.value)}
-                        />
-                    </div>
-                </div>
-                <AuthButton action="login" icon={Lock} onClick={login}>Login</AuthButton>
-                <AuthButton action="showRegister" icon={UserPlus} className="secondary-button" onClick={() => router.push('/register')}>
-                    Register
-                </AuthButton>
-                <AuthButton action="showForgotUsername" icon={Search} className="info-button" onClick={() => router.push('/forgot-username')}>
-                    Forgot Username?
-                </AuthButton>
-                <AuthButton action="showForgotPassword" icon={KeyRound} className="warning-button" onClick={() => router.push('/forgot-password')}>
-                    Forgot Password?
-                </AuthButton>
-            </div>
+                <AuthButton action="login" submit className="btn btn-primary btn-block">Log in</AuthButton>
+                <p className="auth-alt">
+                    New to FinDB?{' '}
+                    <AuthButton action="showRegister" className="btn-link" onClick={() => router.push('/register')}>Create a free account</AuthButton>
+                </p>
+            </AuthForm>
         </AuthShell>
     );
 }

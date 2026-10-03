@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import { Fraunces, Source_Sans_3 } from 'next/font/google';
+import { Poppins, Source_Sans_3 } from 'next/font/google';
 import { LogoMark } from '@/components/site/Logo';
 import './(site)/site.css';
 
-const display = Fraunces({ subsets: ['latin'], variable: '--font-display' });
+const head = Poppins({ subsets: ['latin'], weight: ['700'], variable: '--font-head' });
 const body = Source_Sans_3({ subsets: ['latin'], variable: '--font-body' });
 
 export const metadata: Metadata = {
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
  */
 export default function GlobalNotFound() {
     return (
-        <html lang="en-IN" className={`${display.variable} ${body.variable}`}>
+        <html lang="en-IN" className={`${head.variable} ${body.variable}`}>
             <body className="site">
                 <main className="wrap not-found">
                     <a href="/" aria-label="FinDB home"><LogoMark size={44} /></a>

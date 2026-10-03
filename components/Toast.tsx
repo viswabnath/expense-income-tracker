@@ -23,7 +23,7 @@ const DURATION_MS = 4000;
 
 const ToastContext = createContext<(type: ToastType, message: string) => void>(() => {});
 
-/** Same markup and classes as the legacy ToastManager, so fintech-theme.css styles it. Messages are text, never HTML. */
+/** Toast messages, styled by app/(product)/app.css. Messages are text, never HTML. */
 export function ToastProvider({ children }: { children: ReactNode }) {
     const [toasts, setToasts] = useState<ToastItem[]>([]);
     const nextId = useRef(0);

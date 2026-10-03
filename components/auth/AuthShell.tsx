@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, type ComponentProps, type ReactNode } from 'react';
-import type { LucideIcon } from 'lucide-react';
+import { useState, type ComponentProps, type FormEvent, type ReactNode } from 'react';
+import { Check } from 'lucide-react';
 import { HydrationGate } from '@/components/HydrationGate';
 
 export interface AuthMessage {
@@ -10,55 +10,143 @@ export interface AuthMessage {
 }
 
 /**
- * The legacy auth screen frame: "FinDB" heading, the active form, and #auth-message.
- * Same ids and classes as the former single-page app, so the shared CSS and the Playwright flows apply.
+ * The frame of a sign-in form: the form itself and #auth-message under it. The forms keep the
+ * former app's ids and data-action hooks, which the end-to-end tests use.
  */
 export function AuthShell({ message, children }: { message?: AuthMessage | null; children: ReactNode }) {
     return (
-        <div id="auth-section">
-            <h2>FinDB</h2>
+        <div id="auth-section" className="auth-card">
             <HydrationGate>{children}</HydrationGate>
-            <div id="auth-message" className={message?.kind ?? 'error'}>{message?.text ?? ''}</div>
+            <div id="auth-message" className={message?.kind ?? 'error'} role="status">{message?.text ?? ''}</div>
+        </div>
+    );
+}
+
+/** A form whose Enter key runs `onSubmit` (the page never reloads) */
+export function AuthForm({ id, onSubmit, children }: { id: string; onSubmit: () => void; children: ReactNode }) {
+    return (
+        <form
+            id={id}
+            className="auth-card"
+            noValidate
+            onSubmit={(event: FormEvent) => {
+                event.preventDefault();
+                onSubmit();
+            }}
+        >
+            {children}
+        </form>
+    );
+}
+
+/** The heading block of a sign-in form */
+export function AuthHead({ step, title, children }: { step?: string; title: string; children?: ReactNode }) {
+    return (
+        <div className="auth-head">
+            {step ? <span className="auth-step">{step}</span> : null}
+            <h1>{title}</h1>
+            {children ? <p>{children}</p> : null}
         </div>
     );
 }
 
 type AuthButtonProps = Omit<ComponentProps<'button'>, 'type'> & {
-    icon?: LucideIcon;
     action: string;
+    submit?: boolean;
 };
 
 /**
- * A button that does not take focus on mousedown. Inputs show help text while focused;
- * if a click blurred the input first, the help would disappear and move the button before
- * mouseup, and the click would miss (the legacy "first click on Continue does nothing" bug).
+ * A button that does not take focus on mousedown: inputs show help while focused, and if a
+ * click blurred the input first, the help would vanish and move the button before mouseup.
  */
-export function AuthButton({ icon: Icon, action, children, ...props }: AuthButtonProps) {
+export function AuthButton({ action, submit, children, ...props }: AuthButtonProps) {
     return (
-        <button type="button" data-action={action} onMouseDown={event => event.preventDefault()} {...props}>
-            {Icon ? <span className="icon-enhanced"><Icon /></span> : null}
+        <button type={submit ? 'submit' : 'button'} data-action={action} onMouseDown={event => event.preventDefault()} {...props}>
             {children}
         </button>
     );
 }
 
-type HelpedInputProps = ComponentProps<'input'> & {
+type FieldProps = ComponentProps<'input'> & {
     id: string;
+    label: string;
+    /** Shown while the input has focus */
     help?: ReactNode;
+    /** Something on the right of the label, such as a "Forgot?" link */
+    aside?: ReactNode;
 };
 
-/** An input whose help text (if any) is shown only while it has focus, like the legacy forms */
-export function HelpedInput({ id, help, ...props }: HelpedInputProps) {
+/** A labelled input, with help text shown while it has focus */
+export function Field({ id, label, help, aside, ...props }: FieldProps) {
     const [focused, setFocused] = useState(false);
     return (
-        <>
+        <div className="field">
+            <div className="field-row">
+                <label htmlFor={id}>{label}</label>
+                {aside}
+            </div>
             <input
                 id={id}
+                aria-describedby={help ? `${id}-help` : undefined}
                 {...props}
                 onFocus={event => { setFocused(true); props.onFocus?.(event); }}
                 onBlur={event => { setFocused(false); props.onBlur?.(event); }}
             />
-            {help ? <small id={`${id}-help`} className={`field-help${focused ? '' : ' hidden'}`}>{help}</small> : null}
-        </>
+            {help ? <small id={`${id}-help`} className={`field-hint${focused ? '' : ' sr-only'}`}>{help}</small> : null}
+        </div>
+    );
+}
+
+/** A labelled password input with a Show / Hide button */
+export function PasswordField({ id, label, aside, children, ...props }: Omit<ComponentProps<'input'>, 'type'> & {
+    id: string;
+    label: string;
+    aside?: ReactNode;
+    children?: ReactNode;
+}) {
+    const [visible, setVisible] = useState(false);
+    return (
+        <div className="field">
+            <div className="field-row">
+                <label htmlFor={id}>{label}</label>
+                {aside}
+            </div>
+            <div className="password-field">
+                <input id={id} type={visible ? 'text' : 'password'} {...props} />
+                <button
+                    type="button"
+                    className="reveal-button"
+                    aria-label={visible ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}
+                    aria-pressed={visible}
+                    onMouseDown={event => event.preventDefault()}
+                    onClick={() => setVisible(value => !value)}
+                >
+                    {visible ? 'Hide' : 'Show'}
+                </button>
+            </div>
+            {children}
+        </div>
+    );
+}
+
+/** The password rules (lib/auth-validation.ts), ticked off as the user types */
+export function PasswordRules({ password }: { password: string }) {
+    const rules = [
+        { ok: password.length >= 8 && password.length <= 16, text: '8 to 16 characters' },
+        { ok: /[A-Z]/.test(password), text: 'An uppercase letter' },
+        { ok: /[a-z]/.test(password), text: 'A lowercase letter' },
+        { ok: /[0-9]/.test(password), text: 'A number' },
+        { ok: /[_\-&@:]/.test(password), text: 'One of _ - @ : &' },
+    ];
+    return (
+        <ul className="rules" aria-label="Password rules">
+            {rules.map(rule => (
+                <li key={rule.text} className={rule.ok ? 'ok' : undefined}>
+                    <Check aria-hidden="true" />
+                    {rule.text}
+                    <span className="sr-only">{rule.ok ? ', done' : ', not yet'}</span>
+                </li>
+            ))}
+        </ul>
     );
 }

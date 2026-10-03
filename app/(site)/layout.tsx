@@ -1,14 +1,15 @@
 import type { ReactNode } from 'react';
 import type { Metadata, Viewport } from 'next';
 import { cookies, headers } from 'next/headers';
-import { Fraunces, Source_Sans_3 } from 'next/font/google';
+import { Poppins, Source_Sans_3 } from 'next/font/google';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { MarketingFooter } from '@/components/site/MarketingFooter';
 import { SITE_URL } from '@/lib/site-url';
 import './site.css';
 
 // Self-hosted at build time, so the page CSP's font-src 'self' is enough
-const display = Fraunces({ subsets: ['latin'], axes: ['opsz', 'SOFT'], variable: '--font-display' });
+// Poppins (Indian Type Foundry) for headings; Source Sans 3 for text
+const head = Poppins({ subsets: ['latin'], weight: ['500', '600', '700'], variable: '--font-head' });
 const body = Source_Sans_3({ subsets: ['latin'], variable: '--font-body' });
 
 export const metadata: Metadata = {
@@ -24,8 +25,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
     themeColor: [
-        { media: '(prefers-color-scheme: light)', color: '#fbfaf7' },
-        { media: '(prefers-color-scheme: dark)', color: '#0d0f22' },
+        { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+        { media: '(prefers-color-scheme: dark)', color: '#07130e' },
     ],
 };
 
@@ -38,7 +39,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
     await headers();
     const signedIn = (await cookies()).has('sessionId');
     return (
-        <html lang="en-IN" className={`${display.variable} ${body.variable}`}>
+        <html lang="en-IN" className={`${head.variable} ${body.variable}`}>
             <body className="site">
                 <a className="skip-link" href="#main">Skip to content</a>
                 <SiteHeader signedIn={signedIn} />

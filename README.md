@@ -4,7 +4,7 @@ FinDB (Finance Dashboard) is a personal finance tracker for people in India. You
 
 ## Features
 
-**Website.** The official FinDB website is part of the same app: the home page, a page for every feature (marked available now, in development or planned), the roadmap, how to install the app, questions, security, privacy, terms and about.
+**Website.** The official FinDB website is part of the same app: the home page, a page for every feature (marked available now, in development or planned), free calculators (EMI, which loan to close first, FD, RD, SIP, gold value, chit fund return, inflation), the roadmap, how to install the app, questions, security, privacy, terms and about.
 
 **App.**
 - **Accounts:** bank accounts with a starting balance, credit cards with a limit and the amount used, and cash.
@@ -93,17 +93,17 @@ npm run dev         # http://localhost:3000
 | `npm run test:e2e` | End-to-end browser tests (Playwright) |
 | `npm run typecheck` / `npm run lint` | TypeScript and ESLint checks |
 
-Tests always use the `balancetrack_test` schema and refuse to run against any other, so they never touch real data. Create it once with `npm run setup-test-db`.
+Tests always use the `balancetrack_test` schema and refuse to run against any other, so they never touch real data. Put a separate test database's connection settings in `.env.test` (same keys as `.env`, git-ignored) and every test command uses it instead of the database in `.env`. Create the tables once with `npm run setup-test-db`.
 
 ## Deployment
 
 FinDB runs on Vercel as a standard Next.js project (`vercel.json` sets the region, `syd1`).
 
 1. Import the repository in Vercel.
-2. Add the environment variables from `.env` (Settings > Environment Variables). Use a different `SESSION_SECRET` per environment, and set `DB_SCHEMA=balancetrack_test` for previews so they never touch production data.
+2. Add the environment variables from `.env` for Production (Settings > Environment Variables). Use a different `SESSION_SECRET` per environment.
 3. Run `npm run setup-db` once against the production database.
 
-Pushing a branch creates a preview deployment; merging into `master` deploys production.
+Only production is built: merging into `master` deploys production. Preview builds for other branches are skipped (`ignoreCommand` in `vercel.json`), which saves build time on the free plan. The Preview environment still points at the test database (`balancetrack_test` schema, with `REQUIRE_TEST_SCHEMA=true`), in case a preview is ever deployed by hand with `vercel deploy`.
 
 ## Documentation
 

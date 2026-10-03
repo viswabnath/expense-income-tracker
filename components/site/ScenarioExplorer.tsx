@@ -19,6 +19,8 @@ interface Scenario {
     id: string;
     tab: string;
     icon: LucideIcon;
+    /** Category colour class of the icon tile (site.css) */
+    colour: string;
     title: string;
     story: string;
     from: Line[];
@@ -31,7 +33,7 @@ export const SCENARIOS: Scenario[] = [
     {
         id: 'atm',
         tab: 'Cash from an ATM',
-        icon: Banknote,
+        icon: Banknote, colour: 'c-income',
         title: 'You withdraw ₹5,000 from an ATM',
         story: 'Money moved from your bank to your wallet. You have not spent anything yet, so FinDB does not count it as spending.',
         from: [{ account: 'HDFC Savings', note: 'Bank account', amount: 5000 }],
@@ -41,7 +43,7 @@ export const SCENARIOS: Scenario[] = [
     {
         id: 'emi',
         tab: 'A home loan EMI',
-        icon: Landmark,
+        icon: Landmark, colour: 'c-loan',
         title: 'Your home loan EMI of ₹32,000 is paid',
         story: 'Only the interest is a real cost. The rest reduces what you owe, so it is not spending: it is your own money building up in your home.',
         from: [{ account: 'SBI Salary', note: 'Bank account', amount: 32000 }],
@@ -54,7 +56,7 @@ export const SCENARIOS: Scenario[] = [
     {
         id: 'gold-family',
         tab: 'Gold for your wife',
-        icon: Gem,
+        icon: Gem, colour: 'c-gold',
         title: 'You buy a ₹1,20,000 gold chain for your wife',
         story: 'The gold stays in the family, so it is something you own, not money gone. FinDB records her as the owner and values it by weight every day.',
         from: [{ account: 'ICICI Savings', note: 'Bank account', amount: 120000 }],
@@ -64,7 +66,7 @@ export const SCENARIOS: Scenario[] = [
     {
         id: 'gift',
         tab: 'A gift for a friend',
-        icon: Gift,
+        icon: Gift, colour: 'c-shop',
         title: 'You give ₹25,000 of gold at a friend\'s wedding',
         story: 'This gold leaves your family, so it is a gift you have spent, even though it is gold.',
         from: [{ account: 'ICICI Savings', note: 'Bank account', amount: 25000 }],
@@ -74,7 +76,7 @@ export const SCENARIOS: Scenario[] = [
     {
         id: 'trip',
         tab: 'A trip with friends',
-        icon: Plane,
+        icon: Plane, colour: 'c-travel',
         title: 'You book ₹12,000 of train tickets for four friends',
         story: 'Only your share is your spending. The other three shares are money your friends owe you, and FinDB reminds them, and you, until it is settled.',
         from: [{ account: 'HDFC Savings', note: 'Bank account', amount: 12000 }],
@@ -87,7 +89,7 @@ export const SCENARIOS: Scenario[] = [
     {
         id: 'chit',
         tab: 'A chit fund month',
-        icon: Users,
+        icon: Users, colour: 'c-bill',
         title: 'Your ₹10,000 chit instalment, with a ₹1,200 dividend',
         story: 'This month\'s auction gave every member a dividend, so you pay only ₹8,800. Your full ₹10,000 still counts towards the chit, and the dividend is income.',
         from: [
@@ -152,7 +154,7 @@ export function ScenarioExplorer() {
                             className="explorer-tab"
                             onClick={() => setSelected(index)}
                         >
-                            <Icon size={20} strokeWidth={1.75} aria-hidden="true" />
+                            <span className={`cat-dot ${item.colour}`} aria-hidden="true"><Icon strokeWidth={2.2} /></span>
                             {item.tab}
                         </button>
                     );
