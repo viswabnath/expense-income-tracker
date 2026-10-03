@@ -127,7 +127,30 @@ Phase 1 is several pull requests: the ledger and migration, then security and pr
   - something bought for the family and given away later becomes a gift at that point, at its current value.
 - Assets owned by a spouse or child can be shown inside or outside the user's own net worth, as the user prefers (the household view in Phase 11 shows the family total). Information only: income from assets given to a spouse can be taxed in the giver's hands under Indian rules, so the tax centre notes this.
 - **Suggested category from the title:** a keyword list ("Swiggy" means restaurants, "HP Petrol" means fuel) that learns from the user's own choices.
-- **Tags** for things that cut across categories, such as "Goa trip 2026".
+- **Tags** for free-form labels that cut across categories.
+
+**Events and projects (the purpose of an entry)**
+- An **event or project** is a named purpose with optional dates and an optional budget:
+  - "Sister's wedding, Feb 2027";
+  - "Housewarming";
+  - "House construction";
+  - "Goa trip";
+  - "Diwali 2026";
+  - "Car purchase".
+- **Any entry can carry a purpose:** an expense, income, a transfer, an asset bought, a loan taken.
+  - The user picks the purpose while adding the entry, or creates a new one on the spot, alongside the usual category. So "Catering ₹1,80,000" is in the category Food and the event "Sister's wedding".
+  - Statement import (Phase 2) can assign a purpose to many entries at once.
+- **Income works the same way:** money gifts received at the housewarming, the cash and gold given at the wedding, a loan taken for construction. Each is recorded with its normal meaning (income, an asset, a loan) and the event.
+- **An event's summary shows:**
+  - total spent, by category;
+  - total received;
+  - the net cost to the user;
+  - budget against actual;
+  - how it was paid for (savings, a loan, gold sold);
+  - a timeline.
+  Shared events (a wedding where parents and siblings also pay) use groups (Phase 3), so only the user's share counts.
+- **A summary across events,** for example: house construction ₹38,40,000, housewarming ₹2,15,000, sister's wedding ₹6,70,000.
+- **One-off events don't distort the regular picture.** Monthly averages, budgets, the emergency fund and the status review can leave out spending marked as a one-off event, for example "Regular spending ₹48,000 a month (excluding sister's wedding)". The full total is always available.
 - Existing expenses start as "Uncategorised" and can be categorised in bulk.
 
 **Repeating entries**
@@ -216,7 +239,7 @@ Phase 1 is several pull requests: the ledger and migration, then security and pr
 **Spending insights**
 - **Category averages:** "Restaurants: ₹6,800 a month on average over 3, 6 or 12 months, up 22%."
 - **Subscription finder:** repeating similar charges are flagged as subscriptions, with the monthly and yearly total, new ones, price increases, and ones that stopped.
-- **Trips and events:** a tag's total by category.
+- **Events and trips:** each event's total by category, with income received and budget against actual (see Events and projects in Phase 1). A month's report shows regular spending and event spending side by side.
 - **Top categories and month-on-month changes,** as charts.
 - **Budgets:** a monthly limit per category, with alerts at 80% and 100%.
 - **Unusual-spend flags:** "Fuel this month is twice your average."
@@ -229,7 +252,7 @@ Phase 1 is several pull requests: the ledger and migration, then security and pr
 - Expiry dates (warranties, policies) feed reminders.
 - Photographed receipts can later be read automatically to fill in an expense; this is a candidate for a later release.
 
-Data: `import_profiles`, `import_batches`, `budgets`, `documents`, `document_links`.
+Data: `import_profiles`, `import_batches`, `budgets`, `documents`, `document_links`. Events and projects (Phase 1): `events`, with an `event_id` on journal entries.
 
 ## Phase 3: Debts and people
 
@@ -358,6 +381,13 @@ Data: `holdings`, `holding_lots`, `investment_transactions`, `grants` and `vesti
 **Land and property**
 - Type (land, flat, house, commercial), location, area, purchase price and date, and costs such as stamp duty, registration and brokerage.
 - **Improvement costs** (renovation, extensions) are added to the cost with their dates, because they reduce capital gains on a sale.
+- **Building a house (a construction project):**
+  - A "House construction" project is linked to the property (the plot, and the house being built on it).
+  - Payments to the contractor, for materials, labour, architect and approvals **add to the property's cost**: the money became part of an asset the user owns, so it is not spending. Things that are used up, such as a puja or meals for workers, can still be marked as expenses of the project.
+  - The project shows its total cost against the budget, by stage (foundation, structure, finishing, interiors) and by category (cement, steel, labour, electrical, plumbing).
+  - It also shows how it was funded: savings, home loan disbursements (Phase 3), gold sold.
+  - When construction finishes, the house is complete in the property list, with its full cost recorded for capital gains later.
+  - A housewarming afterwards is its own event: its spending is spending, and gifts received are income or assets.
 - **Ownership share:** for example 50% owned with a spouse. Net worth counts only the user's share.
 - **Current value:**
   - the user's own estimates (a valuation, a circle rate, a recent nearby sale), each with its date and marked as an estimate;
