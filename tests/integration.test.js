@@ -51,8 +51,15 @@ describe('Integration Tests - Server Endpoints', () => {
     };
 
     describe('Authentication Endpoints', () => {
-        test('GET / sends a logged-out visitor to /login', async () => {
+        test('GET / is the website home page', async () => {
             const response = await request(target()).get('/');
+
+            expect(response.status).toBe(200);
+            expect(response.text).toContain('One honest picture');
+        });
+
+        test('GET /?section=... (an old app link) sends a logged-out visitor to /login', async () => {
+            const response = await request(target()).get('/?section=summary');
 
             expect(response.status).toBe(307);
             expect(response.headers.location).toMatch(/\/login$/);

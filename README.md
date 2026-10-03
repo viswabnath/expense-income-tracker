@@ -4,11 +4,15 @@ FinDB (Finance Dashboard) is a personal finance tracker for people in India. You
 
 ## Features
 
+**Website.** The official FinDB website is part of the same app: the home page, a page for every feature (marked available now, in development or planned), the roadmap, how to install the app, questions, security, privacy, terms and about.
+
+**App.**
 - **Accounts:** bank accounts with a starting balance, credit cards with a limit and the amount used, and cash.
 - **Transactions:** income into a bank or cash, and expenses paid by cash, bank or card. Adding, editing or deleting an entry updates the account behind it. Users who also track income cannot overspend an account.
 - **Monthly summary:** income, expenses, net savings, total wealth, and each account's balance at the end of the month.
 - **Activity log:** every change with its old and new values, filters by month and year, paging, and CSV export.
 - **Tracking modes:** income only, expenses only, or both, chosen at sign-up.
+- **Installable:** add FinDB to the home screen of a phone, tablet or computer, where it opens like an app.
 - **Accounts and security:**
   - username and password login with 2-hour sessions;
   - account recovery by security question that does not reveal whether an account exists, and pauses after repeated wrong answers;
@@ -29,11 +33,14 @@ FinDB (Finance Dashboard) is a personal finance tracker for people in India. You
 ## Project structure
 
 ```
-app/            Pages, API route handlers (app/api) and the stylesheet
-components/     React components
+app/(site)      The website: home, features, roadmap, get the app, questions, security, privacy, terms, about
+app/(product)   The app: sign-in screens and the logged-in screens
+app/api         API route handlers
+components/     React components (components/site: the website's components and copy)
 lib/            Server and shared code: database, sessions, rate limits, services
 proxy.ts        Per-request Content-Security-Policy; sends signed-out visitors to /login
 next.config.ts  Security headers
+public/icons    App icons for installing FinDB (scripts/generate-icons.js draws them)
 setup-db.js     Creates and updates the database schema (safe to rerun)
 tests/          API tests, unit tests (tests/unit) and end-to-end tests (tests/e2e)
 docs/           API reference and project status

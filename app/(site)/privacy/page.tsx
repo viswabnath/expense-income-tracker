@@ -1,0 +1,80 @@
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+    title: 'Privacy',
+    description: 'What FinDB collects, why, where it is kept, and your rights over it.',
+};
+
+export default function PrivacyPage() {
+    return (
+        <>
+            <section className="page-head">
+                <div className="wrap">
+                    <span className="eyebrow rise">Privacy</span>
+                    <h1 className="rise rise-2">Privacy Guide</h1>
+                    <p className="lede rise rise-3">
+                        Short version: FinDB collects only what it needs to work, uses it only to show you your own money,
+                        and never sells or shares it.
+                    </p>
+                    <p className="updated rise rise-3">Last updated 3 October 2026</p>
+                </div>
+            </section>
+
+            <section className="section-tight">
+                <div className="wrap">
+                    <div className="prose reveal">
+                        <h2>What we collect</h2>
+                        <ul>
+                            <li><strong>Your account:</strong> your name, username and email, and your password and security answer stored only as one-way hashes.</li>
+                            <li><strong>Your financial records:</strong> the accounts, balances and entries you add yourself.</li>
+                            <li><strong>Your activity log:</strong> a record of each change you make, so you can see your own history.</li>
+                            <li><strong>Basic technical logs:</strong> errors and request information our hosting providers keep for a short time to run and secure the service.</li>
+                        </ul>
+
+                        <h2>What we do not collect</h2>
+                        <ul>
+                            <li>No bank, card or UPI passwords, PINs or OTPs, ever.</li>
+                            <li>No advertising or tracking cookies. The only cookie is the one that keeps you signed in.</li>
+                            <li>No contacts, location or SMS from your phone.</li>
+                        </ul>
+
+                        <h2>How we use it</h2>
+                        <p>
+                            Only to provide FinDB to you: to show your balances, summaries and history, and to keep your account
+                            secure. We never sell your data to third parties, never share it with advertisers, lenders or
+                            insurers, and never use it to choose products to sell you. Your financial information is strictly
+                            for your personal use within FinDB.
+                        </p>
+
+                        <h2>Where it is kept</h2>
+                        <p>
+                            FinDB runs on Vercel, and your data is stored in a Supabase Postgres database, encrypted at rest.
+                            The database is currently in Sydney, Australia; we plan to move it to Mumbai, India, before the
+                            public launch.
+                        </p>
+
+                        <h2>Your rights</h2>
+                        <p>
+                            Under India&apos;s Digital Personal Data Protection Act, 2023, you can ask to see, correct, export or
+                            erase your data. You can edit your records and export your activity log in the app today. A full
+                            export and self-service account deletion are part of the public launch; until then, email{' '}
+                            <strong>support@onemark.co.in</strong> and we will do it for you.
+                        </p>
+
+                        <h2>How long we keep it</h2>
+                        <p>
+                            For as long as you have an account. When you delete your account, your data is deleted with it,
+                            apart from what the law requires us to keep.
+                        </p>
+
+                        <h2>Questions or complaints</h2>
+                        <p>
+                            Email <strong>support@onemark.co.in</strong>. If we change this guide in a way that matters, we
+                            will tell you in the app before it takes effect.
+                        </p>
+                    </div>
+                </div>
+            </section>
+        </>
+    );
+}

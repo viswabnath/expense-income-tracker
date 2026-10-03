@@ -31,7 +31,7 @@ function today() {
 }
 
 async function register(page, user) {
-    await page.goto('/');
+    await page.goto('/login');
     await page.locator('[data-action="showRegister"]').click();
     await page.locator('#register-name').fill(user.name);
     await page.locator('#register-username').fill(user.username);
@@ -50,7 +50,7 @@ async function chooseTracking(page, option) {
 }
 
 async function login(page, username, password) {
-    await page.goto('/');
+    await page.goto('/login');
     await page.locator('#login-username').fill(username);
     await page.locator('#login-password').fill(password);
     await page.locator('[data-action="login"]').click();

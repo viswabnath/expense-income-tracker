@@ -28,7 +28,12 @@ test('old links to the single-page app open the matching screen', async ({ page 
     await expect(page).toHaveURL(/\/transactions$/);
     await page.goto('/?section=activity');
     await expect(page).toHaveURL(/\/activity$/);
+    await page.goto('/?section=unknown');
+    await expect(page).toHaveURL(/\/setup$/);
+
+    // "/" itself is the website, which offers a way back into the app
     await page.goto('/');
+    await page.locator('.header-actions a', { hasText: 'Open FinDB' }).click();
     await expect(page).toHaveURL(/\/setup$/);
 });
 

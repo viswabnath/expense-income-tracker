@@ -3,7 +3,8 @@ import { buildContentSecurityPolicy, createNonce } from './lib/csp';
 
 /**
  * Gives every page a per-request nonce Content-Security-Policy, and sends visitors without a
- * session cookie from the logged-in screens to /login.
+ * session cookie from the logged-in screens to /login. "/" is the website's home page; only old
+ * links into the former single-page app (/?section=...) are redirected.
  *
  * The matcher lists exactly the pages in app/ (tests/unit/routing.test.ts checks it). API
  * routes are not matched: next.config.ts gives them a deny-all policy.
@@ -18,8 +19,8 @@ const SECTION_PATHS: Record<string, string> = {
 };
 
 export function proxy(request: NextRequest) {
-    if (request.nextUrl.pathname === '/') {
-        const section = request.nextUrl.searchParams.get('section') ?? '';
+    const section = request.nextUrl.searchParams.get('section');
+    if (request.nextUrl.pathname === '/' && section !== null) {
         const target = !request.cookies.has(SESSION_COOKIE) ? '/login'
             : Object.prototype.hasOwnProperty.call(SECTION_PATHS, section) ? SECTION_PATHS[section]! : '/setup';
         return NextResponse.redirect(new URL(target, request.url));
@@ -50,6 +51,11 @@ export function proxy(request: NextRequest) {
 export const config = {
     matcher: [
         '/',
+        '/features',
+        '/features/:slug',
+        '/roadmap',
+        '/download',
+        '/faq',
         '/about',
         '/security',
         '/privacy',
