@@ -41,9 +41,14 @@ for (const { path, form, heading } of AUTH_PAGES) {
 }
 
 test('a logged-out visit to the app is sent to /login', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/setup');
     await expect(page).toHaveURL(/\/login$/);
     await expect(page.locator('#login-form')).toBeVisible();
+});
+
+test('a logged-out old link into the single-page app is sent to /login', async ({ page }) => {
+    await page.goto('/?section=transactions');
+    await expect(page).toHaveURL(/\/login$/);
 });
 
 test('the welcome step requires a session', async ({ page }) => {

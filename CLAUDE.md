@@ -58,10 +58,12 @@ The Supabase database in `.env` is also production. Production data is in the `p
 A single Next.js 16 app (App Router, TypeScript strict) on Vercel, with Supabase Postgres. It replaced an Express app and a plain JavaScript frontend in steps N0 to N4 (`docs/nextjs-migration-plan.md`).
 
 ### Pages (`app/`, `components/`)
-- Public pages `/about`, `/security`, `/privacy`, `/terms` and the auth screens `/login`, `/register`, `/forgot-username`, `/forgot-password`, `/welcome` are in route group `app/(public)`.
-- Logged-in screens `/setup`, `/transactions`, `/summary`, `/activity` are in `app/(app)`, inside `components/app/AppShell.tsx` (nav bar, mobile sidebar, logout, loading overlay).
-- `/` only redirects (in `proxy.ts`): to `/login` without a session cookie, to the screen named in an old `/?section=...` link, otherwise to `/setup`. `/next-health` is a health check.
-- **`proxy.ts`** gives every page a per-request nonce Content-Security-Policy (built by `lib/csp.ts`), and sends visitors without a `sessionId` cookie from the logged-in screens to `/login`. Its matcher lists exactly the pages; `tests/unit/routing.test.ts` checks that. A new page needs its path in the matcher, and a logged-in page also in `APP_PATHS`.
+- Two root layouts, so the website and the app never share a stylesheet (moving between them is a full page load):
+  - **Website** `app/(site)` (`site.css`, Fraunces and Source Sans 3): `/` (home), `/features`, `/features/[slug]`, `/roadmap`, `/download`, `/faq`, `/about`, `/security`, `/privacy`, `/terms`. Its copy lives in `components/site/content.ts`, and every feature carries an honest status (available, in development, planned); keep it in step with `docs/v2-plan.md` and what is actually shipped.
+  - **App** `app/(product)` (`app/fintech-theme.css`): the auth screens `/login`, `/register`, `/forgot-username`, `/forgot-password`, `/welcome` in `(public)`, and the logged-in screens `/setup`, `/transactions`, `/summary`, `/activity` in `(app)`, inside `components/app/AppShell.tsx` (nav bar, mobile sidebar, logout, loading overlay).
+- `/` is the website home. Only old `/?section=...` links redirect (in `proxy.ts`): to `/login` without a session cookie, otherwise to the named screen or `/setup`. `/next-health` is a health check.
+- `app/global-not-found.tsx` is the 404 page for unmatched addresses (needed with two root layouts). `app/manifest.ts`, `app/icon.svg`, `app/apple-icon.png` and `public/icons/` make the app installable; regenerate the icons with `node scripts/generate-icons.js`. `app/sitemap.ts` and `app/robots.ts` use `SITE_URL` (`lib/site-url.ts`).
+- **`proxy.ts`** gives every page a per-request nonce Content-Security-Policy (built by `lib/csp.ts`), and sends visitors without a `sessionId` cookie from the logged-in screens to `/login`. Its matcher lists exactly the pages (dynamic segments as `:slug`); `tests/unit/routing.test.ts` checks that. A new page needs its path in the matcher, and a logged-in page also in `APP_PATHS`.
 - Pages read `headers()` so they render per request. Never add inline scripts; bundle third-party code from npm instead of loading it from a CDN.
 - **Logged-in screens** fetch their data on the client (`lib/api-client.ts`), handle a 401 with `redirectIfUnauthorized`, and render interactive content only once hydrated (after the data loads, or inside `HydrationGate`): server-rendered buttons do nothing before hydration.
 - The screens keep the former app's ids, `data-action` attributes and class names, styled by `app/fintech-theme.css`, until the redesign pass. Names are rendered as text, never as HTML.
@@ -92,7 +94,7 @@ Jest projects in `package.json`, each listing its files in `testMatch` (**a new 
 - **api**: the API suites, over HTTP to the server `npm test` starts (`tests/api-target.js` reads `API_BASE_URL`), and to the test schema through `test-helpers.js`.
 - **scripts**: `setup-db.js` (mocked `pg`) and the no-emoji check.
 
-Playwright flows are in `tests/e2e/` (`npm run test:e2e`); they use the screens' ids and `data-action` hooks.
+Playwright flows are in `tests/e2e/` (`npm run test:e2e`); they use the screens' ids and `data-action` hooks. `tests/e2e/public-pages.spec.js` covers the website.
 
 `test-helpers.js` provides `clearTestData()`, `createTestUser()`, `deleteTestUser(username)` and `query()` against the test schema. Suites that create users call `deleteTestUser` in `beforeAll`/`afterAll` so reruns don't fail with "username exists". Test passwords must satisfy the password rules (special characters: `_ - @ : &` only).
 

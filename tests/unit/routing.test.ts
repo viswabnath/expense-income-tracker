@@ -16,10 +16,14 @@ function findFiles(dir: string, name: string): string[] {
     });
 }
 
-/** app/(public)/about/page.tsx -> /about (route groups in parentheses are not part of the URL) */
+/**
+ * app/(site)/about/page.tsx -> /about (route groups in parentheses are not part of the URL), and
+ * app/(site)/features/[slug]/page.tsx -> /features/:slug (the proxy matcher's syntax)
+ */
 function toRoute(file: string): string {
     const segments = path.relative(path.join(root, 'app'), path.dirname(file)).split(path.sep)
-        .filter(segment => segment && !/^\(.*\)$/.test(segment));
+        .filter(segment => segment && !/^\(.*\)$/.test(segment))
+        .map(segment => segment.replace(/^\[(\w+)\]$/, ':$1'));
     return '/' + segments.join('/');
 }
 

@@ -38,7 +38,8 @@ The app is one Next.js project on Vercel with Supabase Postgres; the move from E
 - [x] Next.js App Router pages in React; names and messages rendered as text, never HTML
 - [x] Per-request nonce Content-Security-Policy, no inline scripts
 - [x] Responsive layout with sidebar navigation
-- [x] About / Security / Privacy / Terms pages
+- [x] The website (`app/(site)`): home, features with a page each, roadmap, get the app, questions, security, privacy, terms and about; light and dark; phone, tablet and desktop
+- [x] Installable from the browser (web app manifest and icons)
 
 ## Testing
 

@@ -18,6 +18,9 @@ export const API_CONTENT_SECURITY_POLICY = "default-src 'none'; frame-ancestors 
 
 const nextConfig: NextConfig = {
     poweredByHeader: false,
+    // The website and the app have separate root layouts, so unmatched addresses need a
+    // standalone 404 page (app/global-not-found.tsx)
+    experimental: { globalNotFound: true },
     async headers() {
         return [
             { source: '/:path*', headers: SECURITY_HEADERS },
