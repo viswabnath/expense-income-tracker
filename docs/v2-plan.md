@@ -121,6 +121,11 @@ Phase 1 is several pull requests: the ledger and migration, then security and pr
 - **Income categories:** salary, pension, freelance, rental income, interest, dividends, meal benefit, cashback and rewards, gifts received (money), refund, other.
 - **Gifts and inheritance received as things, not money** (a gold chain, a watch, a phone, a camera, a property): the item becomes an asset at its value on the day it was received. The other side of the entry is a "Gifts and inheritance" equity account, not income. Net worth goes up, but monthly income and net savings don't, because no money arrived. The giver, their relationship to the user, and the occasion are recorded (see the tax tracker in Phase 9).
 - **Gifts given:** money given is an expense in "Gifts". Giving away an asset removes it at its current value, recorded in the same "Gifts and inheritance" account.
+- **Who a purchase is for decides how it is recorded.** Buying something of lasting value (gold, a watch, a phone) asks "who is this for?":
+  - **for the user, their spouse or children** (or another dependant in their profile): it stays in the family, so it is an **asset**, owned by that person. The owner is recorded, and their share counts in net worth;
+  - **for someone else** (a friend's wedding, a relative outside the household): it leaves the family, so it is an **expense** in "Gifts", even if it was gold;
+  - something bought for the family and given away later becomes a gift at that point, at its current value.
+- Assets owned by a spouse or child can be shown inside or outside the user's own net worth, as the user prefers (the household view in Phase 11 shows the family total). Information only: income from assets given to a spouse can be taxed in the giver's hands under Indian rules, so the tax centre notes this.
 - **Suggested category from the title:** a keyword list ("Swiggy" means restaurants, "HP Petrol" means fuel) that learns from the user's own choices.
 - **Tags** for things that cut across categories, such as "Goa trip 2026".
 - Existing expenses start as "Uncategorised" and can be categorised in bulk.
@@ -143,9 +148,28 @@ Phase 1 is several pull requests: the ledger and migration, then security and pr
 - Date of birth (for age-based rules such as senior citizen interest and the allocation guide), city, tax residency, and dependants: spouse, children and parents, with their dates of birth. Dependants feed insurance adequacy, goals such as children's education, and the review.
 - PAN, stored encrypted. Aadhaar, at most the last four digits. Demat and broker account IDs, encrypted.
 
-**Module switches**
-- Income, Expenses, Investments, Debts, Cards, Property, Retirement and Insurance can each be turned on or off in Settings. This replaces the sign-up choice (`tracking_option`); existing users are mapped from it.
-- Turned-off modules disappear from the screens. Their data stays, and switching a module back on shows it again.
+**Choosing what to track (onboarding and module switches)**
+- **Always on:** accounts (banks, cash), transactions, and net worth.
+- **Optional modules:**
+  - Income;
+  - Spending and budgets;
+  - Credit cards;
+  - Debts and people;
+  - Investments and gold;
+  - Property and other assets;
+  - Savings and retirement (deposits, post office schemes, EPF, NPS, pensions);
+  - Insurance;
+  - Goals;
+  - Tax;
+  - Household.
+- **At sign-up**, the user picks what they want to track, each module explained in one plain line:
+  - presets to start from: "Just my spending", "My spending and savings", "Everything";
+  - or any combination of their own.
+  This replaces today's income, expenses or both choice (`tracking_option`); existing users are mapped from it.
+- **Change it any time in Settings.** After using FinDB for a while, the user can turn any module on or off.
+  - **Turning one off** hides its screens and reminders. Its data is kept, and still counts in net worth unless the user archives it, and the confirmation says so.
+  - **Turning it back on** shows everything again, exactly as it was.
+- **Gentle suggestions:** when the user records something a switched-off module handles (an expense called "Home loan EMI", say), FinDB offers once to turn that module on, and never asks again if they decline.
 
 **Security and privacy**
 - **Two-factor login is mandatory** (decided 2026-10-03), using time-based codes (TOTP) from any authenticator app, such as Google Authenticator or Microsoft Authenticator. It is free: no SMS, no paid service. One-time recovery codes are given at setup. New users set it up at sign-up; existing users at their next login.
@@ -281,7 +305,7 @@ The core (ledger, accounts, spending, import, debts and cards) is complete, so F
 ## Phase 6: Investments
 
 **What can be held**
-- **Physical gold:** each piece of jewellery, coin or bar, with its weight and purity (24, 22 or 18 carat), valued at the day's rate for that purity. Each piece also records the vendor, the GST paid, its form (jewellery, bar or coin), where it is kept (home, bank locker), and the invoice in the document vault. Making charges, wastage and GST are part of the cost but not the resale value. Sales and exchanges for new jewellery are recorded. Gold received as a gift or inherited enters at the day's value, with the original owner's cost and date if known.
+- **Physical gold:** each piece of jewellery, coin or bar, with its weight and purity (24, 22 or 18 carat), valued at the day's rate for that purity. Each piece also records the vendor, the GST paid, its form (jewellery, bar or coin), where it is kept (home, bank locker), and the invoice in the document vault. Making charges, wastage and GST are part of the cost but not the resale value. Sales and exchanges for new jewellery are recorded. Gold received as a gift or inherited enters at the day's value, with the original owner's cost and date if known. Gold bought as a gift for someone outside the family is an expense, not a holding (see "who a purchase is for" in Phase 1). Each piece records its owner: the user, their spouse, or a child.
 - **Digital gold**, **gold ETFs**, and **Sovereign Gold Bonds** (units, issue price, interest, maturity).
 - **Stocks**, **mutual funds** (including SIPs and the income distribution option, IDCW) and **ETFs**.
 - **Bonds:** government securities, corporate and tax-free bonds. Coupon interest is income, and maturity is tracked.
