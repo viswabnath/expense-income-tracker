@@ -65,13 +65,22 @@ The app is one Next.js project on Vercel with Supabase Postgres; the move from E
 
 | Severity | Issue | Where |
 |---|---|---|
-| Medium | Account recovery still rests on a security question, which a person who knows the user can often answer. Guessing is now limited to 5 tries per 15 minutes per account. The real fix is recovery by an emailed link, which needs an email provider (planned for Phase 6) | `lib/services/auth.ts` |
+| Medium | Account recovery still rests on a security question, which a person who knows the user can often answer. Guessing is now limited to 5 tries per 15 minutes per account. The real fix is recovery by an emailed link, which needs an email provider (planned for Phase 5) | `lib/services/auth.ts` |
 | Low | Registration still says when a username or email is already taken, so it can be used to check whether an email has an account. Closing it also needs email verification | `POST /api/register` |
 | Low | `edge-cases` occasionally fails in the full Jest run: a 401 after its re-login (seen before the transaction fix) or its `beforeAll` exceeding 30s (seen once after it). It passes on its own and in most full runs, and a lock probe during a passing run found no stuck transactions. Likely remote-database latency, not confirmed | `tests/edge-cases.test.js` |
 | Low | Transaction dates are sent to the browser as timestamps at the server's midnight, and the add forms default to the UTC date. In a browser far from the server's time zone, or just after midnight IST, a date can show or default to the neighbouring day. To fix with the v2 data model | `lib/services/transactions.ts`, `lib/dates.ts` |
-| Low | During long test runs, a request sometimes waits more than 15 s for the database and the test times out. On 2026-10-02 this hit `set-tracking-option`, income and expense writes, and activity pages, while other requests answered in 1 to 3 s. Reruns pass. The servers log no error, and the 10 s connection and 20 s query limits fire only on the longest waits. Likely the Supabase transaction pooler queueing requests for its small pool of database connections while several test pools are busy; not confirmed. Next step: check the project's pooler pool size, and whether the test runs need fewer concurrent connections | Supabase pooler, test runs |
 | Low | The monthly summary leaves out banks and cards created on the last day of the month, because its cut-off is the start of that day. Kept as is in the Next.js port; the summary is rebuilt in v2 Phase 1 ([v2-plan.md](v2-plan.md)) | `lib/services/reports.ts` |
 | Low | Rate-limit counters are in memory, so on Vercel each function instance counts separately | `lib/rate-limit.ts` (a shared store can replace it behind `RateLimitStore`) |
+
+### Fixed on 2026-10-03
+
+- **Test runs stalling on the shared database.**
+  - Tests now run against a separate free Supabase project, `findb-test`, through `.env.test`.
+  - The full browser test run went from about 12.5 minutes, with timeouts, to 2.5 minutes.
+- **Production moved to Mumbai.**
+  - The database is now `findb-production-mumbai`, and Vercel runs in `bom1`, so requests from India no longer go to Sydney.
+  - Every row was copied with the same ids, and the counts and totals were checked.
+- **No backups on the free plan.** There is now a nightly encrypted backup (see [backups.md](backups.md)).
 
 ### Fixed on 2026-10-02
 - **N4: Express removed.** The legacy Express app, its frontend and their tests are gone; the app is one Next.js project. With them went the legacy toast that inserted messages as HTML, `tests/setup.js` that never ran, and the obsolete test files behind the ESLint warnings (lint is clean). Expired sessions are now deleted on each login (connect-pg-simple used to prune them).

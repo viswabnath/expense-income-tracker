@@ -727,7 +727,7 @@ _Prices are as known on 2026-10-03; check the current pricing pages before buyin
 | Supabase, tests and previews (new, separate project) | Free | Free |
 
 - **A separate free Supabase project for tests and previews** ends the test-run stalls on the production database. It also replaces the `balancetrack_test` schema with a whole database that cannot reach production data.
-- Free Supabase projects pause after a week without activity, have no automatic backups, and allow a 500 MB database, 1 GB of file storage and 5 GB of data transfer a month. A free account can have 2 active projects: production and tests. A scheduled `pg_dump` (a GitHub Actions job, free) keeps a daily backup of production in private storage.
+- Free Supabase projects pause after a week without activity, have no automatic backups, and allow a 500 MB database, 1 GB of file storage and 5 GB of data transfer a month. A free account can have 2 active projects: production and tests. A scheduled `pg_dump` (a GitHub Actions job, free) keeps a daily, encrypted backup of production for 30 days (in place since 2026-10-03; see `docs/backups.md`).
 
 **Stage 2: public launch (Phase 5), still free**
 
@@ -741,7 +741,7 @@ _Prices are as known on 2026-10-03; check the current pricing pages before buyin
 | Backups | Daily `pg_dump` through GitHub Actions | Free |
 | **Total** | | **₹0** (plus a domain, if wanted) |
 
-- **Move production to Supabase's Mumbai region and Vercel functions to `bom1` (Mumbai) before launch.** Users are in India: requests get faster, and data stays in India. Today the database is in Sydney. Moving means a new free project and a data copy, which is easiest before there are real users.
+- **Done 2026-10-03: production moved to Supabase's Mumbai region (`findb-production-mumbai`) and Vercel functions to `bom1` (Mumbai).** Users are in India: requests are faster, and data stays in India.
 - **Real users keep the free project from pausing.** A light scheduled check also keeps it awake during quiet weeks.
 - **Watch the limits:** a weekly job reports database size, storage, data transfer and Vercel usage against the free limits, and warns at 70%.
 

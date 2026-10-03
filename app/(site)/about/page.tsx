@@ -49,8 +49,8 @@ export default function AboutPage() {
                         <LogoMark size={56} title="FinDB logo" />
                         <h3>The mark</h3>
                         <p style={{ color: 'var(--muted)' }}>
-                            A lowercase d and b share one stem, making a coin split into two equal halves: every rupee that
-                            leaves one place arrives in another. The gold point above it is the goal you are working towards.
+                            The F of FinDB, drawn like a ledger: its two bars are the same length, because every rupee
+                            that goes out goes in somewhere else. The gold block on the bottom line is what you keep.
                         </p>
                     </div>
                 </div>

@@ -1,0 +1,69 @@
+# Nightly backup of the production database (Supabase project findb-production-mumbai).
+#
+# The free Supabase plan has no automatic backups, so this job makes one every night:
+#   1. pg_dump of the public schema, with the read-only findb_backup login
+#      (secret BACKUP_DATABASE_URL);
+#   2. a check that the dump is readable and has every table;
+#   3. encryption with age to the public key below. Only the private key kept by the owner
+#      (outside the repository) can decrypt it, so the artifact is safe in a public repository;
+#   4. upload as a workflow artifact, kept for 30 days.
+# It takes about a minute a day; GitHub-hosted runners are free for public repositories.
+# Restoring is described in docs/backups.md.
+name: Nightly database backup
+
+on:
+  schedule:
+    - cron: '30 21 * * *' # 03:00 IST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+env:
+  AGE_RECIPIENT: age1k5p5mkzfdd45qnyw5ghhwk930vxk382pd3f4tnf2dt28vehhzpusgy0x5p
+  PG_IMAGE: postgres:17-alpine
+  EXPECTED_TABLES: 8
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install age
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq age
+
+      - name: Dump the database
+        env:
+          DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          umask 077
+          docker run --rm -e DATABASE_URL "$PG_IMAGE" \
+            sh -c 'pg_dump --dbname "$DATABASE_URL" --schema public --format custom --no-owner --no-privileges' > backup.dump
+          test -s backup.dump
+
+      - name: Check the dump
+        run: |
+          set -euo pipefail
+          tables=$(docker run --rm -i "$PG_IMAGE" pg_restore --list < backup.dump | grep -c 'TABLE DATA')
+          echo "Tables with data in the dump: $tables"
+          test "$tables" -ge "$EXPECTED_TABLES"
+
+      - name: Encrypt
+        run: |
+          set -euo pipefail
+          age --recipient "$AGE_RECIPIENT" --output backup.dump.age backup.dump
+          rm backup.dump
+          echo "NAME=findb-backup-$(date -u +%Y-%m-%d)" >> "$GITHUB_ENV"
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.NAME }}
+          path: backup.dump.age
+          retention-days: 30
+          if-no-files-found: error

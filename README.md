@@ -97,7 +97,7 @@ Tests always use the `balancetrack_test` schema and refuse to run against any ot
 
 ## Deployment
 
-FinDB runs on Vercel as a standard Next.js project (`vercel.json` sets the region, `syd1`).
+FinDB runs on Vercel as a standard Next.js project (`vercel.json` sets the region, `bom1` in Mumbai, next to the database).
 
 1. Import the repository in Vercel.
 2. Add the environment variables from `.env` for Production (Settings > Environment Variables). Use a different `SESSION_SECRET` per environment.
@@ -110,6 +110,7 @@ Only production is built: merging into `master` deploys production. Preview buil
 - [docs/API.md](docs/API.md): API reference
 - [docs/STATUS.md](docs/STATUS.md): current status and known issues
 - [docs/v2-plan.md](docs/v2-plan.md): planned features
+- [docs/backups.md](docs/backups.md): nightly encrypted backups and how to restore them
 
 ## License
 

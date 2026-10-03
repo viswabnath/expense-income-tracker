@@ -1,5 +1,5 @@
 /**
- * Draws the FinDB app icons (the "Balance coin" mark) as PNG files with the Playwright browser:
+ * Draws the FinDB app icons (the "Ledger F" mark) as PNG files with the Playwright browser:
  *   public/icons/icon-192.png, icon-512.png  rounded tile, for the web app manifest
  *   public/icons/maskable-512.png            full-bleed with a safe zone, for Android adaptive icons
  *   app/apple-icon.png                       180 px full-bleed, for the iPhone and iPad home screen
@@ -19,9 +19,8 @@ function markSvg({ bleed = false, scale = 1 } = {}) {
     const offset = 32 * (1 - scale);
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">${tile}`
         + `<g transform="translate(${offset} ${offset}) scale(${scale})">`
-        + '<circle cx="32" cy="38" r="12" fill="none" stroke="#ffffff" stroke-width="5"/>'
-        + '<line x1="32" y1="21" x2="32" y2="50" stroke="#ffffff" stroke-width="5" stroke-linecap="round"/>'
-        + `<rect x="28" y="7" width="8" height="8" transform="rotate(45 32 11)" fill="${GOLD}"/>`
+        + '<path d="M21 50 V15 H44 M21 31 H44" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>'
+        + `<rect x="37" y="41" width="9" height="9" rx="1.5" fill="${GOLD}"/>`
         + '</g></svg>';
 }
 
